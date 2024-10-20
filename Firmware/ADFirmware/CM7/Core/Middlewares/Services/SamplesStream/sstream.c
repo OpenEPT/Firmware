@@ -302,7 +302,7 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 			{
 				connectionData->acquisitionState = SSTREAM_ACQUISITION_STATE_START;
 
-				if(DRV_AIN_Start(DRV_AIN_ADC_3) == DRV_AIN_STATUS_OK)
+				if(DRV_AIN_Start(connectionData->ainConfig.adc) == DRV_AIN_STATUS_OK)
 				{
 					LOGGING_Write("SStream service", LOGGING_MSG_TYPE_INFO,  "Stream started \r\n");
 				}
@@ -645,8 +645,22 @@ sstream_status_t				SSTREAM_GetConnectionByID(sstream_connection_info** connecti
 
 	return SSTREAM_STATUS_ERROR;
 }
-sstream_status_t				SSTREAM_Start(sstream_connection_info* connectionHandler, uint32_t timeout)
+sstream_status_t				SSTREAM_Start(sstream_connection_info* connectionHandler, sstream_adc_t adc, uint32_t timeout)
 {
+
+	if(xSemaphoreTake(prvSSTREAM_DATA.controlInfo[connectionHandler->id].guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return SSTREAM_STATUS_ERROR;
+	switch(adc)
+	{
+	case SSTREAM_ADC_INTERNAL:
+		prvSSTREAM_DATA.controlInfo[connectionHandler->id].ainConfig.adc = DRV_AIN_ADC_3;
+		break;
+	case SSTREAM_ADC_EXTERNAL:
+		prvSSTREAM_DATA.controlInfo[connectionHandler->id].ainConfig.adc = DRV_AIN_ADC_ADS9224R;
+		break;
+	}
+	if(xSemaphoreGive(prvSSTREAM_DATA.controlInfo[connectionHandler->id].guard) != pdTRUE) return SSTREAM_STATUS_ERROR;
+
+
 	if(xTaskNotify(prvSSTREAM_DATA.controlInfo[connectionHandler->id].controlTaskHandle,
 			SSTREAM_TASK_START_BIT,
 			eSetBits) != pdPASS) return SSTREAM_STATUS_ERROR;

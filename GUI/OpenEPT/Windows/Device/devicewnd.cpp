@@ -19,6 +19,14 @@ DeviceWnd::DeviceWnd(QWidget *parent) :
     appFont.setPointSize(10);    // Set font size to 14 (or any desired size)
     this->setFont(appFont);
     ui->setupUi(this);
+    adcOptions = new QStringList();
+    *adcOptions
+        <<""
+        <<"Int"
+        <<"Ext"
+        ;
+    ui->adcComb->addItems(*adcOptions);
+
     resolutionOptions = new QStringList();
     *resolutionOptions
         <<""
@@ -28,6 +36,7 @@ DeviceWnd::DeviceWnd(QWidget *parent) :
         <<"10"
         ;
     ui->resolutionComb->addItems(*resolutionOptions);
+
     /* Set default Value for ADC Clock Div Comb*/
     clockDivOptions = new QStringList();
     *clockDivOptions
@@ -166,6 +175,7 @@ DeviceWnd::DeviceWnd(QWidget *parent) :
     connect(ui->sampleTimeComb,         SIGNAL(currentTextChanged(QString)),        this, SLOT(onSampleTimeChanged(QString)));
     connect(ui->resolutionComb,         SIGNAL(currentTextChanged(QString)),        this, SLOT(onResolutionChanged(QString)));
     connect(ui->samplingPeriodLine,     SIGNAL(returnPressed()),                    this, SLOT(onSamplingPeriodChanged()));
+    connect(ui->adcComb,                SIGNAL(currentTextChanged(QString)),        this, SLOT(onADCChanged(QString)));
     connect(ui->streamServerInterfComb, SIGNAL(currentTextChanged(QString)),        this, SLOT(onInterfaceChanged(QString)));
     connect(ui->maxNumOfPacketsLine,    SIGNAL(editingFinished()),                  this, SLOT(onMaxNumberOfBuffersChanged()));
     connect(consumptionTypeSelection,   SIGNAL(buttonClicked(QAbstractButton*)),    this, SLOT(onConsumptionTypeChanged(QAbstractButton*)));
@@ -245,6 +255,11 @@ void DeviceWnd::onResolutionChanged(QString resolution)
 {
     advanceConfigurationWnd->setResolution(resolution);
     emit sigResolutionChanged(ui->resolutionComb->currentText());
+}
+
+void DeviceWnd::onADCChanged(QString adc)
+{
+    emit sigADCChanged(ui->adcComb->currentText());
 }
 
 void DeviceWnd::onClockDivChanged(QString aClockDiv)
@@ -384,6 +399,7 @@ void DeviceWnd::setDeviceInterfaceSelectionState(device_interface_selection_stat
     switch(selectionState)
     {
     case DEVICE_INTERFACE_SELECTION_STATE_UNDEFINED:
+        ui->adcComb->setEnabled(false);
         ui->samplingPeriodLine->setEnabled(false);
         ui->resolutionComb->setEnabled(false);
         ui->clockDivComb->setEnabled(false);
@@ -397,6 +413,7 @@ void DeviceWnd::setDeviceInterfaceSelectionState(device_interface_selection_stat
         ui->streamServerInterfComb->setEnabled(true);
         break;
     case DEVICE_INTERFACE_SELECTION_STATE_SELECTED:
+        ui->adcComb->setEnabled(true);
         ui->samplingPeriodLine->setEnabled(true);
         ui->resolutionComb->setEnabled(true);
         ui->clockDivComb->setEnabled(true);
@@ -411,6 +428,41 @@ void DeviceWnd::setDeviceInterfaceSelectionState(device_interface_selection_stat
         break;
     }
     interfaceState = selectionState;
+}
+
+void DeviceWnd::setDeviceMode(device_mode_t mode)
+{
+    switch(mode)
+    {
+    case DEVICE_MODE_EXTERNAL:
+        ui->sampleTimeComb->setEnabled(false);
+        ui->clockDivComb->setEnabled(false);
+        ui->resolutionComb->setEnabled(false);
+        break;
+    case DEVICE_MODE_INTERNAL:
+        ui->sampleTimeComb->setEnabled(true);
+        ui->clockDivComb->setEnabled(true);
+        ui->resolutionComb->setEnabled(true);
+        break;
+    }
+}
+
+bool DeviceWnd::setAdc(QString adc)
+{
+    if(!adcOptions->contains(adc)) return false;
+    //if(!advanceConfigurationWnd->setChSampleTime(sTime)) return false;
+
+    ui->adcComb->blockSignals(true);
+    ui->adcComb->setCurrentIndex(adcOptions->indexOf(adc));
+    ui->adcComb->blockSignals(false);
+    if(adc == "Ext")
+    {
+        setDeviceMode(DEVICE_MODE_EXTERNAL);
+    }
+    else
+    {
+        setDeviceMode(DEVICE_MODE_INTERNAL);
+    }
 }
 
 QStringList *DeviceWnd::getChSamplingTimeOptions()
@@ -431,6 +483,11 @@ QStringList *DeviceWnd::getClockDivOptions()
 QStringList *DeviceWnd::getResolutionOptions()
 {
     return resolutionOptions;
+}
+
+QStringList *DeviceWnd::getADCOptions()
+{
+    return adcOptions;
 }
 
 bool DeviceWnd::setChSamplingTime(QString sTime)
@@ -509,7 +566,7 @@ void DeviceWnd::setStatisticsData(double dropRate, unsigned int dropPacketsNo, u
 
 void DeviceWnd::setStatisticsSamplingTime(double stime)
 {
-    ui->statisticsSamplingTimeLabe2->setText(QString::number(stime*1000, 'f', 10));
+    ui->statisticsSamplingTimeLabe2->setText(QString::number(stime, 'f', 6));
 }
 
 void DeviceWnd::setStatisticsElapsedTime(int elapsedTime)

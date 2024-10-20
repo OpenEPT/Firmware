@@ -24,6 +24,12 @@ typedef enum
     DEVICE_INTERFACE_SELECTION_STATE_SELECTED
 }device_interface_selection_state_t;
 
+typedef enum
+{
+    DEVICE_MODE_INTERNAL,
+    DEVICE_MODE_EXTERNAL
+}device_mode_t;
+
 
 namespace Ui {
 class DeviceWnd;
@@ -41,6 +47,8 @@ public:
     void            setDeviceState(device_state_t aDeviceState);
     void            printConsoleMsg(QString msg, bool exeStatus);
     void            setDeviceInterfaceSelectionState(device_interface_selection_state_t selectionState=DEVICE_INTERFACE_SELECTION_STATE_UNDEFINED);
+    void            setDeviceMode(device_mode_t mode=DEVICE_MODE_INTERNAL);
+    bool            setAdc(QString adc);
     bool            setChSamplingTime(QString sTime);
     bool            setChAvgRatio(QString avgRatio);
     bool            setClkDiv(QString clkDiv);
@@ -65,11 +73,13 @@ public:
     QStringList*    getChAvgRationOptions();
     QStringList*    getClockDivOptions();
     QStringList*    getResolutionOptions();
+    QStringList*    getADCOptions();
 
 signals:
     void            sigWndClosed();
     void            sigSamplingPeriodChanged(QString time);
     void            sigResolutionChanged(QString resolution);
+    void            sigADCChanged(QString adc);
     void            sigClockDivChanged(QString clockDiv);
     void            sigSampleTimeChanged(QString sampleTime);
     void            sigAvrRatioChanged(QString index);
@@ -99,6 +109,7 @@ public slots:
     void            onConsolePressed();
     void            onPathInfo();
     void            onResolutionChanged(QString aResolution);
+    void            onADCChanged(QString adc);
     void            onClockDivChanged(QString aClockDiv);
     void            onSampleTimeChanged(QString aSTime);
     void            onSamplingPeriodChanged();
@@ -125,6 +136,7 @@ private:
     Plot                        *currentChart;
     Plot                        *consumptionChart;
 
+    QStringList*                adcOptions;
     QStringList*                sampleTimeOptions;
     QStringList*                resolutionOptions;
     QStringList*                clockDivOptions;

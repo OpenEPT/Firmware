@@ -9,6 +9,7 @@ Device::Device(QObject *parent)
     adcChSamplingTime       = DEVICE_ADC_SAMPLING_TIME_UKNOWN;
     adcAveraging            = DEVICE_ADC_AVERAGING_UKNOWN;
     adcClockingDiv          = DEVICE_ADC_CLOCK_DIV_UKNOWN;
+    adc                     = DEVICE_ADC_UNKNOWN;
     deviceName              = "";
     samplingPeriod          = (double)DEVICE_ADC_DEFAULT_SAMPLING_PERIOD;
     controlLink             = NULL;
@@ -26,7 +27,8 @@ Device::~Device()
 bool Device::acquisitionStart()
 {
     QString response;
-    QString command = "device stream start -sid=" + QString::number(streamID);
+    if(adc == DEVICE_ADC_UNKNOWN) return false;
+    QString command = "device stream start -sid=" + QString::number(streamID) + " -adc=" + QString::number(adc-1);
     if(controlLink == NULL) return false;
     dataProcessing->setAcquisitionStatus(DATAPROCESSING_ACQUISITION_STATUS_ACTIVE);
     if(!controlLink->executeCommand(command, &response, 1000)) return false;
@@ -155,6 +157,12 @@ void Device::sendControlMsg(QString msg)
     bool exeStatus = controlLink->executeCommand(msg, &response, 1000);
     /* emit Response to deviceContainer <- */
     emit sigNewResponseReceived(response, exeStatus);
+}
+
+bool Device::setADC(device_adc_t aAdc)
+{
+   adc = aAdc;
+   return true;
 }
 
 bool Device::setResolution(device_adc_resolution_t resolution)
@@ -682,22 +690,33 @@ bool Device::getADCInputClk(QString *clk)
 
 double Device::obtainSamplingTime()
 {
-    adcSampleTime = (adcResolutionSampleTimeOffset + adcSampleTimeOffset)*(double)adcClockingDiv/adcInputClkValue*(double)adcAveraging;
+    if(adc == DEVICE_ADC_INTERNAL)
+    {
+        adcSampleTime = (adcResolutionSampleTimeOffset + adcSampleTimeOffset)*(double)adcClockingDiv/adcInputClkValue*(double)adcAveraging*1000;
+    }
+    else
+    {
+        adcSampleTime = samplingPeriod/1000; //convert us to ms
+    }
     emit sigSamplingTimeChanged(adcSampleTime);
-    dataProcessing->setSamplingTime(adcSampleTime * 1000000); // convert s to us
+    dataProcessing->setSamplingTime(adcSampleTime); // ms
     return adcSampleTime;
 }
 
-bool Device::acquireDeviceConfiguration()
+bool Device::acquireDeviceConfiguration(device_adc_t aAdc)
 {
-    getResolution();
-    getClockDiv();
+    adc = aAdc;
     getSamplingPeriod();
-    getChSampleTime();
-    getVOffset();
-    getCOffset();
-    getAvrRatio();
-    getADCInputClk();
+    if(adc == DEVICE_ADC_INTERNAL)
+    {
+        getResolution();
+        getClockDiv();
+        getChSampleTime();
+        getVOffset();
+        getCOffset();
+        getAvrRatio();
+        getADCInputClk();
+    }
     return true;
 }
 

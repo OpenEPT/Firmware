@@ -48,7 +48,7 @@ bool DataProcessing::setSamplingPeriod(double aSamplingPeriod)
 bool DataProcessing::setSamplingTime(double aSamplingTime)
 {
     if(acquisitionStatus == DATAPROCESSING_ACQUISITION_STATUS_ACTIVE) return false;
-    samplingTime = aSamplingTime/1000.0; //convert us to ms
+    samplingTime = aSamplingTime;
     return true;
 }
 

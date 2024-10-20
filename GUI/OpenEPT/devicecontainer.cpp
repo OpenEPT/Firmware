@@ -18,6 +18,7 @@ DeviceContainer::DeviceContainer(QObject *parent,  DeviceWnd* aDeviceWnd, Device
     /*Device window signals*/
     connect(deviceWnd,  SIGNAL(sigWndClosed()),                                     this, SLOT(onDeviceWndClosed()));
     connect(deviceWnd,  SIGNAL(sigNewControlMessageRcvd(QString)),                  this, SLOT(onConsoleWndMessageRcvd(QString)));
+    connect(deviceWnd,  SIGNAL(sigADCChanged(QString)),                             this, SLOT(onDeviceWndADCChanged(QString)));
     connect(deviceWnd,  SIGNAL(sigResolutionChanged(QString)),                      this, SLOT(onDeviceWndResolutionChanged(QString)));
     connect(deviceWnd,  SIGNAL(sigClockDivChanged(QString)),                        this, SLOT(onDeviceWndClockDivChanged(QString)));
     connect(deviceWnd,  SIGNAL(sigSampleTimeChanged(QString)),                      this, SLOT(onDeviceWndChannelSamplingTimeChanged(QString)));
@@ -169,6 +170,21 @@ void DeviceContainer::onDeviceWndResolutionChanged(QString resolution)
     }
 }
 
+void DeviceContainer::onDeviceWndADCChanged(QString adc)
+{
+    /* call deviceWnd function with recieved msg from FW <- */
+    device_adc_t tmpADC = getAdcFromString(adc);
+    if(!device->acquireDeviceConfiguration(tmpADC))
+    {
+        log->printLogMessage("unable to change ADC Device", LOG_MESSAGE_TYPE_ERROR);
+    }
+    else
+    {
+        log->printLogMessage("ADC Device successfully changed", LOG_MESSAGE_TYPE_INFO);
+        deviceWnd->setAdc(adc);
+    }
+}
+
 void DeviceContainer::onDeviceWndClockDivChanged(QString clockDiv)
 {
     /* call deviceWnd function with recieved msg from FW <- */
@@ -246,7 +262,8 @@ void DeviceContainer::onDeviceWndInterfaceChanged(QString interfaceIp)
             log->printLogMessage("Ep link ( port="+ QString::number(8000) + " ) sucessfully created: ", LOG_MESSAGE_TYPE_INFO);
         }
         deviceWnd->setDeviceInterfaceSelectionState(DEVICE_INTERFACE_SELECTION_STATE_SELECTED);
-        device->acquireDeviceConfiguration();
+        deviceWnd->setAdc("Int");
+        device->acquireDeviceConfiguration(DEVICE_ADC_INTERNAL);
     }
 }
 
@@ -765,4 +782,26 @@ device_adc_averaging_t DeviceContainer::getAdcAvgRatioFromString(QString avgRati
         break;
     }
     return returnAvgRatio;
+}
+
+device_adc_t DeviceContainer::getAdcFromString(QString adc)
+{
+    device_adc_t returnAdc = DEVICE_ADC_INTERNAL;
+    QStringList *adcOptions = deviceWnd->getADCOptions();
+    switch(adcOptions->indexOf(adc))
+    {
+    case 0:
+        returnAdc = DEVICE_ADC_UNKNOWN;
+        break;
+    case 1:
+        returnAdc = DEVICE_ADC_INTERNAL;
+        break;
+    case 2:
+        returnAdc = DEVICE_ADC_EXTERNAL;
+        break;
+    default:
+        returnAdc = DEVICE_ADC_UNKNOWN;
+        break;
+    }
+    return returnAdc;
 }

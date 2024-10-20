@@ -32,7 +32,8 @@ typedef enum
 {
 	DRV_AIN_ADC_1 = 0x01,
 	DRV_AIN_ADC_2 = 0x02,
-	DRV_AIN_ADC_3 = 0x04
+	DRV_AIN_ADC_3 = 0x04,
+	DRV_AIN_ADC_ADS9224R = 0x08
 }drv_ain_adc_t;
 
 typedef enum
@@ -113,6 +114,7 @@ typedef struct
 }drv_ain_adc_channel_config_t;
 typedef struct
 {
+	drv_ain_adc_t					adc;
 	drv_ain_adc_clock_div_t 		clockDiv;
 	drv_ain_adc_resolution_t 		resolution;
 	drv_ain_adc_channel_config_t 	ch1;

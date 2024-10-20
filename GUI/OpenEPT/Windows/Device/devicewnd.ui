@@ -111,6 +111,79 @@
               </widget>
              </item>
              <item>
+              <layout class="QHBoxLayout" name="deviceVerlAdcHorl">
+               <item>
+                <widget class="QLabel" name="adcLabe">
+                 <property name="minimumSize">
+                  <size>
+                   <width>220</width>
+                   <height>30</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>220</width>
+                   <height>50</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Arial</family>
+                   <pointsize>10</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>ADC</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="adcComb">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>80</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>50</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Arial</family>
+                   <pointsize>10</pointsize>
+                  </font>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="adcHors">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Minimum</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </item>
+             <item>
               <layout class="QHBoxLayout" name="deviceVerlSamplingPeriodHorl">
                <item>
                 <widget class="QLabel" name="samplingPeriodLabe">
@@ -1771,6 +1844,18 @@
            </item>
            <item>
             <widget class="QLabel" name="statisticsDropRateNoLabe">
+             <property name="minimumSize">
+              <size>
+               <width>50</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>50</width>
+               <height>16777215</height>
+              </size>
+             </property>
              <property name="font">
               <font>
                <family>Arial</family>
@@ -1779,7 +1864,7 @@
               </font>
              </property>
              <property name="text">
-              <string>TextLabel</string>
+              <string/>
              </property>
             </widget>
            </item>
@@ -1819,13 +1904,13 @@
             <widget class="QLabel" name="statisticsPacketCounterLabe">
              <property name="minimumSize">
               <size>
-               <width>140</width>
+               <width>160</width>
                <height>20</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>140</width>
+               <width>160</width>
                <height>20</height>
               </size>
              </property>
@@ -1868,8 +1953,14 @@
                <bold>false</bold>
               </font>
              </property>
+             <property name="layoutDirection">
+              <enum>Qt::LeftToRight</enum>
+             </property>
              <property name="text">
-              <string>665000</string>
+              <string>0</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
              </property>
             </widget>
            </item>
@@ -1877,13 +1968,13 @@
             <widget class="QLabel" name="statisticsSamplingTimeLabe">
              <property name="minimumSize">
               <size>
-               <width>100</width>
+               <width>160</width>
                <height>20</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>100</width>
+               <width>160</width>
                <height>20</height>
               </size>
              </property>

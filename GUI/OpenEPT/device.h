@@ -18,6 +18,13 @@
 #define     DEVICE_ADC_TIMER_INPUT_CLK                  200000000 //Hz
 #define     DEVICE_ADC_DEFAULT_SAMPLING_PERIOD          0.000001 //s
 
+
+typedef enum{
+    DEVICE_ADC_UNKNOWN                 = 0,
+    DEVICE_ADC_INTERNAL                = 1,
+    DEVICE_ADC_EXTERNAL                = 2
+}device_adc_t;
+
 typedef enum{
     DEVICE_ADC_RESOLUTION_UKNOWN       = 1,
     DEVICE_ADC_RESOLUTION_16BIT        = 16,
@@ -88,6 +95,7 @@ public:
     void        epLinkServerCreate();
     bool        establishEPLink(QString ip);
     void        sendControlMsg(QString msg);
+    bool        setADC(device_adc_t aAdc);
     bool        setResolution(device_adc_resolution_t resolution);
     bool        getResolution(device_adc_resolution_t* resolution = NULL);
     bool        setClockDiv(device_adc_clock_div_t clockDiv);
@@ -104,7 +112,7 @@ public:
     bool        getCOffset(QString* off=NULL);
     bool        getADCInputClk(QString* clk = NULL);
     double      obtainSamplingTime();    //This function determine time interval from start of until the acquisition end. Dont mix it with acquisiton (sampling) period
-    bool        acquireDeviceConfiguration();
+    bool        acquireDeviceConfiguration(device_adc_t aAdc = DEVICE_ADC_INTERNAL);
 
     bool        setDataProcessingMaxNumberOfBuffers(unsigned int maxNumber);
     bool        setDataProcessingConsumptionType(dataprocessing_consumption_mode_t aConsumptionMode);
@@ -153,6 +161,7 @@ private:
     device_adc_ch_sampling_time_t   adcChSamplingTime;
     device_adc_clock_div_t          adcClockingDiv;
     device_adc_averaging_t          adcAveraging;
+    device_adc_t                    adc;
     double                          adcInputClkValue;
 
     double                          adcResolutionSampleTimeOffset;

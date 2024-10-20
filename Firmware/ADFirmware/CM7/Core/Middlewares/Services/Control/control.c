@@ -1270,6 +1270,8 @@ static void prvCONTROL_StreamStart(const char* arguments, uint16_t argumentsLeng
 {
 	cmparse_value_t				value;
 	uint32_t					streamID;
+	uint32_t					adcValue;
+	sstream_adc_t				adc = 0;
 	sstream_connection_info*  	connectionInfo;
 
 	memset(&value, 0, sizeof(cmparse_value_t));
@@ -1281,6 +1283,16 @@ static void prvCONTROL_StreamStart(const char* arguments, uint16_t argumentsLeng
 	}
 	sscanf(value.value, "%lu", &streamID);
 
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "adc", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain adc value\r\n", adcValue);
+		return;
+	}
+	sscanf(value.value, "%lu", &adcValue);
+
+	adc = adcValue;
+
 	if(SSTREAM_GetConnectionByID(&connectionInfo, streamID) != SSTREAM_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
@@ -1288,7 +1300,7 @@ static void prvCONTROL_StreamStart(const char* arguments, uint16_t argumentsLeng
 		return;
 	}
 
-	if(SSTREAM_Start(connectionInfo, 1000) != SSTREAM_STATUS_OK)
+	if(SSTREAM_Start(connectionInfo, adc, 3000) != SSTREAM_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to start stream\r\n");

@@ -21,6 +21,7 @@ signals:
 public slots:
     void    onConsoleWndMessageRcvd(QString msg);
     void    onDeviceWndResolutionChanged(QString resolution);
+    void    onDeviceWndADCChanged(QString adc);
     void    onDeviceWndClockDivChanged(QString clockDiv);
     void    onDeviceWndChannelSamplingTimeChanged(QString stime);
     void    onDeviceWndSamplingPeriodChanged(QString time);
@@ -77,6 +78,7 @@ private:
     device_adc_clock_div_t          getAdcClockDivFromString(QString clkDiv);
     device_adc_ch_sampling_time_t   getAdcChSamplingTimeFromString(QString chstime);
     device_adc_averaging_t          getAdcAvgRatioFromString(QString avgRatio);
+    device_adc_t                    getAdcFromString(QString adc);
 
     double                          elapsedTime;
     QTimer                          *timer;

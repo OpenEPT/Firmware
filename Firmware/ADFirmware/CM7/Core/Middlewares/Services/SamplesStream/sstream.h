@@ -43,6 +43,12 @@ typedef enum
 	SSTREAM_STATE_ERROR						/*!< Samples stream service is in error state */
 }sstream_state_t;
 
+typedef enum
+{
+	SSTREAM_ADC_INTERNAL = 0,
+	SSTREAM_ADC_EXTERNAL
+}sstream_adc_t;
+
 typedef enum{
 	SSTREAM_STATUS_OK,
 	SSTREAM_STATUS_ERROR
@@ -113,7 +119,7 @@ sstream_status_t				SSTREAM_Init(void);
 sstream_status_t				SSTREAM_CreateChannel(sstream_connection_info* connectionHandler, uint32_t timeout);
 sstream_status_t				SSTREAM_GetConnectionByID(sstream_connection_info** connectionHandler, uint32_t id);
 sstream_status_t				SSTREAM_GetConnectionByIP(sstream_connection_info* connectionHandler, uint8_t ip[4], uint16_t port);
-sstream_status_t				SSTREAM_Start(sstream_connection_info* connectionHandler, uint32_t timeout);
+sstream_status_t				SSTREAM_Start(sstream_connection_info* connectionHandler, sstream_adc_t adc, uint32_t timeout);
 sstream_status_t				SSTREAM_StartStream(sstream_connection_info* connectionHandler, uint32_t timeout);
 sstream_status_t				SSTREAM_Stop(sstream_connection_info* connectionHandler, uint32_t timeout);
 sstream_status_t				SSTREAM_SetResolution(sstream_connection_info* connectionHandler, sstream_adc_resolution_t resolution, uint32_t timeout);
