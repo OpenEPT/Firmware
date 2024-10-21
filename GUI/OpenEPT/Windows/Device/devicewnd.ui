@@ -133,7 +133,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>ADC</string>
+                  <string>Stream from ADC</string>
                  </property>
                 </widget>
                </item>
@@ -289,7 +289,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>ADC Resolution</string>
+                  <string>ADC(Int) Resolution</string>
                  </property>
                 </widget>
                </item>
@@ -371,7 +371,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>ADC Sample time</string>
+                  <string>ADC(Int) Sample time</string>
                  </property>
                 </widget>
                </item>
@@ -453,7 +453,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>ADC Clock div</string>
+                  <string>ADC(Int) Clock div</string>
                  </property>
                 </widget>
                </item>

@@ -109,6 +109,7 @@ DeviceWnd::DeviceWnd(QWidget *parent) :
     advanceConfigurationWnd  = new AdvanceConfigurationWnd();
     advanceConfigurationWnd->hide();
     //Prethodno se lista kreira dinamicki
+    advanceConfigurationWnd->assignAdcOptionsList(adcOptions);
     advanceConfigurationWnd->assignResolutionOptionsList(resolutionOptions);
     advanceConfigurationWnd->assignClockDivOptionsList(clockDivOptions);
     advanceConfigurationWnd->assignSampleTimeOptionsList(sampleTimeOptions);
@@ -435,14 +436,14 @@ void DeviceWnd::setDeviceMode(device_mode_t mode)
     switch(mode)
     {
     case DEVICE_MODE_EXTERNAL:
-        ui->sampleTimeComb->setEnabled(false);
-        ui->clockDivComb->setEnabled(false);
-        ui->resolutionComb->setEnabled(false);
+//        ui->sampleTimeComb->setEnabled(false);
+//        ui->clockDivComb->setEnabled(false);
+//        ui->resolutionComb->setEnabled(false);
         break;
     case DEVICE_MODE_INTERNAL:
-        ui->sampleTimeComb->setEnabled(true);
-        ui->clockDivComb->setEnabled(true);
-        ui->resolutionComb->setEnabled(true);
+//        ui->sampleTimeComb->setEnabled(true);
+//        ui->clockDivComb->setEnabled(true);
+//        ui->resolutionComb->setEnabled(true);
         break;
     }
 }
@@ -458,10 +459,12 @@ bool DeviceWnd::setAdc(QString adc)
     if(adc == "Ext")
     {
         setDeviceMode(DEVICE_MODE_EXTERNAL);
+        advanceConfigurationWnd->setDeviceMode(ADVCONFIG_ADC_MODE_EXTERNAL);
     }
     else
     {
         setDeviceMode(DEVICE_MODE_INTERNAL);
+        advanceConfigurationWnd->setDeviceMode(ADVCONFIG_ADC_MODE_INTERNAL);
     }
 }
 

@@ -20,6 +20,11 @@ typedef enum loadProfileType_t
     LOAD_PROFILE_TYPE_RAMP
 }loadProfileType_t;
 
+typedef enum{
+    ADVCONFIG_ADC_MODE_INTERNAL = 0,
+    ADVCONFIG_ADC_MODE_EXTERNAL = 1
+}advconfig_adc_mode_t;
+
 class AdvanceConfigurationWnd : public QWidget
 {
     Q_OBJECT
@@ -27,12 +32,13 @@ class AdvanceConfigurationWnd : public QWidget
 public:
     explicit AdvanceConfigurationWnd(QWidget *parent = nullptr);
 
+    void     assignAdcOptionsList(QStringList *aList);
     void     assignResolutionOptionsList(QStringList *aList);
     void     assignClockDivOptionsList(QStringList *aList);
     void     assignSampleTimeOptionsList(QStringList *aList);
     void     assignAvgRatioOptionsList(QStringList *aList);
 
-
+    bool     setDeviceMode(advconfig_adc_mode_t aMode);
     bool     setClockDiv(QString aClkDiv);
     bool     setADCInClk(QString aInClk);
     bool     setResolution(QString aResolution);
@@ -78,6 +84,7 @@ private:
     void    SetTextRed(QComboBox* cb, QLineEdit* le1, QLineEdit* le2, QLineEdit* le3);
 
 
+    QStringList*         adcOptions;
     QStringList*         resolutionOptions;
     QStringList*         sampleTimeOptions;
     QStringList*         clockDivOptions;

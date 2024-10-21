@@ -190,6 +190,19 @@ AdvanceConfigurationWnd::AdvanceConfigurationWnd(QWidget *parent) :
     connect(ui->acquirePusb,        SIGNAL(clicked(bool)),              this, SLOT(onAdvConfigurationRequsted(void)));
 }
 
+void AdvanceConfigurationWnd::assignAdcOptionsList(QStringList *aList)
+{
+    adcOptions = aList;
+    ui->adcComb->addItems(*aList);
+    setDeviceMode(ADVCONFIG_ADC_MODE_INTERNAL);
+}
+
+bool AdvanceConfigurationWnd::setDeviceMode(advconfig_adc_mode_t aMode)
+{
+    ui->adcStack->setCurrentIndex(aMode);
+    ui->adcComb->setCurrentIndex(aMode+1);
+    return true;
+}
 
 void    AdvanceConfigurationWnd::SetProfileTypeStatic()
 {
@@ -549,6 +562,7 @@ void AdvanceConfigurationWnd::assignAvgRatioOptionsList(QStringList *aList)
     ui->averagingRatioComb->addItems(*aList);
     ui->averagingRatioComb->setCurrentIndex(1);
 }
+
 
 
 void    AdvanceConfigurationWnd::LabelChangedNotUpdated()

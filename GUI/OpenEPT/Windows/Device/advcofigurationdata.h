@@ -15,4 +15,6 @@ typedef struct{
 }advConfigurationData;
 
 Q_DECLARE_METATYPE(advConfigurationData)
+
+
 #endif // ADVCOFIGURATIONDATA_H
