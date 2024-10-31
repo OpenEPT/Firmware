@@ -1,4 +1,7 @@
 #include <QDebug>
+#include <QtCore>
+#include "fftw/fftw3.h"
+#include <cmath>
 #include "qmath.h"
 #include "dataprocessing.h"
 
@@ -36,6 +39,93 @@ bool DataProcessing::setSamplesBufferSize(unsigned int size)
     initBuffers();
 
     return true;
+}
+
+// Function to apply FFT, zero amplitudes below a threshold, and inverse FFT
+QVector<double> DataProcessing::processSignalWithFFT(const QVector<double> &inputSignal, double threshold)
+{
+    int N = inputSignal.size();
+    if (N == 0) {
+        qWarning() << "Input signal is empty";
+        return QVector<double>();
+    }
+
+    // Allocate FFTW input and output arrays
+    fftw_complex *in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+    fftw_complex *out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+
+    // Copy input signal to FFTW input array (real part only)
+    for (int i = 0; i < N; ++i) {
+        in[i][0] = inputSignal[i]; // Real part
+        in[i][1] = 0.0;            // Imaginary part
+    }
+
+    // Plan and execute FFT
+    fftw_plan forwardPlan = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+    fftw_execute(forwardPlan);
+
+    // Zero amplitudes below the threshold
+    for (int i = 0; i < N; ++i) {
+        double amplitude = std::sqrt(out[i][0] * out[i][0] + out[i][1] * out[i][1]);
+        if (amplitude < threshold) {
+            out[i][0] = 0.0; // Zero real part
+            out[i][1] = 0.0; // Zero imaginary part
+        }
+    }
+
+    // Plan and execute inverse FFT
+    fftw_plan inversePlan = fftw_plan_dft_1d(N, out, in, FFTW_BACKWARD, FFTW_ESTIMATE);
+    fftw_execute(inversePlan);
+
+    // Normalize and copy result back to output vector
+    QVector<double> outputSignal(N);
+    for (int i = 0; i < N; ++i) {
+        outputSignal[i] = in[i][0] / N; // Normalize the result
+    }
+
+    // Clean up FFTW resources
+    fftw_destroy_plan(forwardPlan);
+    fftw_destroy_plan(inversePlan);
+    fftw_free(in);
+    fftw_free(out);
+
+    return outputSignal;
+}
+
+void DataProcessing::signalFFT(const QVector<double>& timeDomainSignal, QVector<double>& amplitudeSpectrum)
+{
+    int N = timeDomainSignal.size();
+
+    // Resize the amplitude spectrum array to match the input size
+    amplitudeSpectrum.resize(N);
+
+    // Allocate arrays for FFT input and output
+    fftw_complex* in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+    fftw_complex* out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+
+    // Plan the FFT transformation
+    fftw_plan plan = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+
+    // Load the time domain data into the input array
+    for (int i = 0; i < N; i++) {
+        in[i][0] = timeDomainSignal[i]; // Real part
+        in[i][1] = 0.0;                 // Imaginary part
+    }
+
+    // Execute the FFT
+    fftw_execute(plan);
+
+    // Compute the amplitude spectrum
+    for (int i = 0; i < N; i++) {
+        double real = out[i][0];
+        double imag = out[i][1];
+        amplitudeSpectrum[i] = sqrt(real * real + imag * imag); // Magnitude
+    }
+
+    // Cleanup
+    fftw_destroy_plan(plan);
+    fftw_free(in);
+    fftw_free(out);
 }
 
 bool DataProcessing::setSamplingPeriod(double aSamplingPeriod)
@@ -224,6 +314,7 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
         emit sigNewVoltageCurrentSamplesReceived(voltageDataCollected, currentDataCollected, voltageKeysDataCollected, currentKeysDataCollected);
         emit sigSamplesBufferReceiveStatistics(dropRate, dropPacketsNo, receivedPacketCounter, lastReceivedPacketID, ebpNo);
         emit sigEBP(ebpValue, ebpValueKey);
+        processSignalWithFFT(voltageDataCollected, 0.001);
         switch(consumptionMode)
         {
         case DATAPROCESSING_CONSUMPTION_MODE_CURRENT:
