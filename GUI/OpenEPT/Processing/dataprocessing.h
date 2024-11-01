@@ -68,6 +68,8 @@ private:
     void                                initConsumptionBuffer();
     void                                initKeyBuffer();
     void                                initEBPBuffer();
+    QVector<double>                     processSignalWithFFT(const QVector<double> &inputSignal, double threshold);
+    void                                signalFFT(const QVector<double> &inputSignal, QVector<double>& amplitudeSpectrum);
 
     /* Stream link received data in separate worker thread*/
     QThread                             *dataProcessingThread;
