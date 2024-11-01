@@ -73,7 +73,7 @@ static void prvSYSTEM_Task()
 
 	prvSYSTEM_DATA.linkStatus    = SYSTEM_LINK_STATUS_DOWN;
 	prvSYSTEM_DATA.rgbValue.red = 0;
-	prvSYSTEM_DATA.rgbValue.green = 255;
+	prvSYSTEM_DATA.rgbValue.green = 50;
 	prvSYSTEM_DATA.rgbValue.blue = 0;
 
 	for(;;)

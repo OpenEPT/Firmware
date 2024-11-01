@@ -17,6 +17,7 @@ public:
     void            setID(unsigned int aID);
     unsigned int    getID();
     void            enable();
+    void            flush();
 
 signals:
     void            sigNewSamplesBufferReceived(QVector<double> rawData, int packetCounter, int magic);

@@ -8,7 +8,11 @@
 #define DATAPROCESSING_DEFAULT_NUMBER_OF_BUFFERS        100
 #define DATAPROCESSING_DEFAULT_SAMPLES_BUFFER_SIZE      500
 #define DATAPROCESSING_DEFAULT_SAMPLE_SIZE              2
-#define DATAPROCESSING_DEFAULT_ADC_VOLTAGE_REF          2*4.096
+#define DATAPROCESSING_DEFAULT_ADC_VOLTAGE_REF          2*4.097
+//#define DATAPROCESSING_DEFAULT_ADC_VOLTAGE_REF          3.28
+#define DATAPROCESSING_DEFAULT_ADC_VOLTAGE_OFF          3.2
+#define DATAPROCESSING_DEFAULT_SHUNT                    0.045
+#define DATAPROCESSING_DEFAULT_GAIN                     10
 
 typedef enum
 {
@@ -21,6 +25,14 @@ typedef enum
     DATAPROCESSING_CONSUMPTION_MODE_CURRENT,
     DATAPROCESSING_CONSUMPTION_MODE_CUMULATIVE,
 }dataprocessing_consumption_mode_t;
+
+typedef enum
+{
+    DATAPROCESSING_DEVICE_MODE_INT,
+    DATAPROCESSING_DEVICE_MODE_EXT
+}dataprocessing_device_mode_t;
+
+
 Q_DECLARE_METATYPE(dataprocessing_consumption_mode_t);
 
 
@@ -29,6 +41,7 @@ class DataProcessing : public QObject
     Q_OBJECT
 public:
     explicit                            DataProcessing(QObject *parent = nullptr);
+    void                                setDeviceMode(dataprocessing_device_mode_t mode);
     bool                                setNumberOfBuffersToCollect(unsigned int numberOfBaffers);
     bool                                setSamplesBufferSize(unsigned int size);
     bool                                setSamplingPeriod(double aSamplingPeriod);                  //us
@@ -95,6 +108,7 @@ private:
     /**/
     dataprocessing_acquisition_status_t acquisitionStatus;
     dataprocessing_consumption_mode_t   consumptionMode;
+    dataprocessing_device_mode_t        deviceMode;
 
 };
 

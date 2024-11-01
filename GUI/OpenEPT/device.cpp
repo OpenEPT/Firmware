@@ -27,6 +27,7 @@ Device::~Device()
 bool Device::acquisitionStart()
 {
     QString response;
+    streamLink->flush();
     if(adc == DEVICE_ADC_UNKNOWN) return false;
     QString command = "device stream start -sid=" + QString::number(streamID) + " -adc=" + QString::number(adc-1);
     if(controlLink == NULL) return false;
@@ -45,7 +46,6 @@ bool Device::acquisitionStop()
     if(controlLink == NULL) return false;
     dataProcessing->setAcquisitionStatus(DATAPROCESSING_ACQUISITION_STATUS_INACTIVE);
     if(!controlLink->executeCommand(command, &response, 1000)) return false;
-
     emit sigAcqusitionStopped();
 
     return true;
@@ -716,6 +716,11 @@ bool Device::acquireDeviceConfiguration(device_adc_t aAdc)
         getCOffset();
         getAvrRatio();
         getADCInputClk();
+        dataProcessing->setDeviceMode(DATAPROCESSING_DEVICE_MODE_INT);
+    }
+    else
+    {
+        dataProcessing->setDeviceMode(DATAPROCESSING_DEVICE_MODE_EXT);
     }
     return true;
 }

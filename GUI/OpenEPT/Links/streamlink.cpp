@@ -36,6 +36,11 @@ void StreamLink::enable()
     udpThread->start();
 }
 
+void StreamLink::flush()
+{
+    udpSocket->flush();
+}
+
 void StreamLink::initStreamLinkThread()
 {
     udpSocket = new QUdpSocket();

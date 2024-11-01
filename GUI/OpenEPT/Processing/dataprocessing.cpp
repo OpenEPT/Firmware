@@ -11,11 +11,17 @@ DataProcessing::DataProcessing(QObject *parent)
     dataProcessingThread->start();
     currentNumberOfBuffers          = 0;
     lastBufferUsedPositionIndex     = 0;
+    deviceMode                      = DATAPROCESSING_DEVICE_MODE_INT;
     maxNumberOfBuffers              = DATAPROCESSING_DEFAULT_NUMBER_OF_BUFFERS;
     samplesBufferSize               = DATAPROCESSING_DEFAULT_SAMPLES_BUFFER_SIZE/2;
 
     setAcquisitionStatus(DATAPROCESSING_ACQUISITION_STATUS_INACTIVE);
     setConsumptionMode(DATAPROCESSING_CONSUMPTION_MODE_CURRENT);
+}
+
+void DataProcessing::setDeviceMode(dataprocessing_device_mode_t mode)
+{
+    deviceMode = mode;
 }
 
 bool DataProcessing::setNumberOfBuffersToCollect(unsigned int numberOfBaffers)
@@ -134,7 +140,7 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
     dropRate = (double)dropPacketsNo / (double)(receivedPacketCounter + dropPacketsNo) * 100;
 
     /* Take data */
-    if(0){
+    if(deviceMode == DATAPROCESSING_DEVICE_MODE_INT){
         keyStartValue = packetID*rawData.size()/2*samplingPeriod;
         for(; i < rawData.size();)
         {
@@ -168,7 +174,7 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
     }
     else
     {
-        keyStartValue = packetID*rawData.size()/2;
+        keyStartValue = packetID*rawData.size()/2*samplingPeriod;
         for(; i < halfSize;)
         {
             double rawVoltage = rawData[i];
@@ -183,7 +189,7 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
             c = a | b;
             d = (int) c;
             double swapDataCurrent = (double)d;
-            voltageDataCollected[lastBufferUsedPositionIndex] = swapDataVoltage*voltageInc;
+            voltageDataCollected[lastBufferUsedPositionIndex] = DATAPROCESSING_DEFAULT_ADC_VOLTAGE_OFF + swapDataVoltage*voltageInc;
             if(i == 0)
             {
                 voltageKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue;
@@ -198,14 +204,14 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
             }
             else
             {
-//                voltageKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j*samplingPeriod;
-//                currentKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j*samplingPeriod;
-//                consumptionKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j*samplingPeriod;
-                voltageKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j;
-                currentKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j;
-                consumptionKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j;
+                voltageKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j*samplingPeriod;
+                currentKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j*samplingPeriod;
+                consumptionKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j*samplingPeriod;
+//                voltageKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j;
+//                currentKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j;
+//                consumptionKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j;
             }
-            currentDataCollected[lastBufferUsedPositionIndex] = swapDataCurrent*currentInc;
+            currentDataCollected[lastBufferUsedPositionIndex] = swapDataCurrent*currentInc/(DATAPROCESSING_DEFAULT_SHUNT*DATAPROCESSING_DEFAULT_GAIN);
             currentConsumptionDataCollected[lastBufferUsedPositionIndex] = swapDataCurrent*(samplingPeriod)/3600000; //mAh
             lastCumulativeCurrentConsumptionValue += swapDataCurrent*(samplingPeriod)/3600000;                         //This value remember last consumption in case when buffers are restarted
             cumulativeConsumptionDataCollected[lastBufferUsedPositionIndex] = lastCumulativeCurrentConsumptionValue;
