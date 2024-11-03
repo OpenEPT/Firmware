@@ -30,6 +30,20 @@ typedef enum
     DEVICE_MODE_EXTERNAL
 }device_mode_t;
 
+typedef enum
+{
+    DEVICE_CONSUMPTION_TYPE_UNDEF = 0,
+    DEVICE_CONSUMPTION_TYPE_CURRENT,
+    DEVICE_CONSUMPTION_TYPE_CUMULATIVE
+}device_consumption_type_t;
+
+typedef enum
+{
+    DEVICE_MEASUREMENT_TYPE_UNDEF = 0,
+    DEVICE_MEASUREMENT_TYPE_VOLTAGE,
+    DEVICE_MEASUREMENT_TYPE_CURRENT
+}device_measurement_type_t;
+
 
 namespace Ui {
 class DeviceWnd;
@@ -61,6 +75,9 @@ public:
     void            setStatisticsData(double dropRate, unsigned int dropPacketsNo, unsigned int fullReceivedBuffersNo, unsigned int lastBufferID);
     void            setStatisticsSamplingTime(double stime);
     void            setStatisticsElapsedTime(int elapsedTime);
+
+    void            setConsumptionType(device_consumption_type_t actype);
+    void            setMeasurementType(device_measurement_type_t amtype);
 
     bool            plotSetVoltageValues(QVector<double> values, QVector<double> keys);
     bool            plotSetCurrentValues(QVector<double> values, QVector<double> keys);
@@ -97,6 +114,7 @@ signals:
     void            sigAdvConfigurationChanged(QVariant newConfig);
     void            sigMaxNumberOfBuffersChanged(unsigned int maxNumberOfBuffers);
     void            sigConsumptionTypeChanged(QString consumptionType);
+    void            sigMeasurementTypeChanged(QString consumptionType);
 protected:
     void            closeEvent(QCloseEvent *event);
 
@@ -119,6 +137,7 @@ public slots:
     void            onMaxNumberOfBuffersChanged();
 
     void            onConsumptionTypeChanged(QAbstractButton* button);
+    void            onMeasurementTypeChanged(QAbstractButton* button);
 
 
     void            onAdvanceConfigurationButtonPressed(bool pressed);
@@ -161,6 +180,10 @@ private:
     /**/
 
     QButtonGroup*               consumptionTypeSelection;
+    QButtonGroup*               measurementTypeSelection;
+
+    device_measurement_type_t   mType;
+    device_consumption_type_t   cType;
 };
 
 #endif // DEVICEWND_H

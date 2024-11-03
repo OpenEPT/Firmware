@@ -18,8 +18,19 @@ DataProcessing::DataProcessing(QObject *parent)
     maxNumberOfBuffers              = DATAPROCESSING_DEFAULT_NUMBER_OF_BUFFERS;
     samplesBufferSize               = DATAPROCESSING_DEFAULT_SAMPLES_BUFFER_SIZE/2;
 
+    maxVoltage                      = 0;
+    maxCurrent                      = 0;
+    minVoltage                      = 10;
+    minCurrent                      = 10;
+    maxVoltageF                      = 0;
+    maxCurrentF                      = 0;
+    minVoltageF                      = 10;
+    minCurrentF                      = 10;
+    minMax.resize(2);
+
     setAcquisitionStatus(DATAPROCESSING_ACQUISITION_STATUS_INACTIVE);
     setConsumptionMode(DATAPROCESSING_CONSUMPTION_MODE_CURRENT);
+    setMeasurementMode(DATAPROCESSING_MEASUREMENT_MODE_VOLTAGE);
 }
 
 void DataProcessing::setDeviceMode(dataprocessing_device_mode_t mode)
@@ -48,90 +59,83 @@ bool DataProcessing::setSamplesBufferSize(unsigned int size)
 }
 
 // Function to apply FFT, zero amplitudes below a threshold, and inverse FFT
-QVector<double> DataProcessing::processSignalWithFFT(const QVector<double> &inputSignal, double threshold)
+void DataProcessing::processSignalWithFFT(const QVector<double> &inputSignal, double threshold,QVector<double> &outputSignal, QVector<double>& amplitudeSpectrum, double sampling_time_ms, QVector<double>& frequencies, QVector<double> &minmax)
 {
     int N = inputSignal.size();
-    if (N == 0) {
-        qWarning() << "Input signal is empty";
-        return QVector<double>();
+    minmax[0] = 0;
+    minmax[1] = 10;
+
+    // Allocate arrays for FFT and IFFT
+    fftw_complex* fftOutput = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+    fftw_complex* filteredFFT = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+    fftw_complex* outFFT = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+
+    // Step 1: Compute FFT and get amplitude spectrum
+    signalFFT(inputSignal, fftOutput, amplitudeSpectrum, sampling_time_ms, frequencies);
+
+    // Step 2: Apply threshold filtering in the frequency domain
+    for (int i = 0; i < N / 2; ++i) {
+//        double amplitude = amplitudeSpectrum[i];
+//        if (amplitude < threshold) {
+//            // Set components below threshold to zero
+//            filteredFFT[i][0] = 0.0;
+//            filteredFFT[i][1] = 0.0;
+//        } else {
+            // Retain components above threshold
+            filteredFFT[i][0] = fftOutput[i][0];
+            filteredFFT[i][1] = fftOutput[i][1];
+//        }
     }
 
-    // Allocate FFTW input and output arrays
-    fftw_complex *in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
-    fftw_complex *out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+    // Step 3: Perform inverse FFT
+    outputSignal.resize(N);
+    fftw_plan ifftPlan = fftw_plan_dft_1d(N, filteredFFT, outFFT, FFTW_BACKWARD, FFTW_ESTIMATE);
+    fftw_execute(ifftPlan);
 
-    // Copy input signal to FFTW input array (real part only)
+    // Normalize the output and store in outputSignal
     for (int i = 0; i < N; ++i) {
-        in[i][0] = inputSignal[i]; // Real part
-        in[i][1] = 0.0;            // Imaginary part
+        outputSignal[i] = outFFT[i][0] / N; // Only real part is needed
+        if(outputSignal[i] > minmax[0]) minmax[0] = outputSignal[i];
+        if(outputSignal[i] < minmax[1]) minmax[1] = outputSignal[i];
+    }
+
+    amplitudeSpectrum[0] = 0.0;
+    // Clean up
+    fftw_destroy_plan(ifftPlan);
+    fftw_free(fftOutput);
+    fftw_free(filteredFFT);
+}
+
+void DataProcessing::signalFFT(const QVector<double>& inputSignal, fftw_complex* fftOutput, QVector<double>& amplitudeSpectrum, double sampling_time_ms, QVector<double>& frequencies)
+{
+    int N = inputSignal.size();
+    amplitudeSpectrum.resize(N / 2);
+    frequencies.resize(N / 2);
+
+    // Allocate input array for FFTW
+    fftw_complex* in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+
+    // Populate the input array with the real signal (imaginary part = 0)
+    for (int i = 0; i < N; ++i) {
+        in[i][0] = inputSignal[i]; // real part
+        in[i][1] = 0.0;            // imaginary part
     }
 
     // Plan and execute FFT
-    fftw_plan forwardPlan = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
-    fftw_execute(forwardPlan);
+    fftw_plan fftPlan = fftw_plan_dft_1d(N, in, fftOutput, FFTW_FORWARD, FFTW_ESTIMATE);
+    fftw_execute(fftPlan);
 
-    // Zero amplitudes below the threshold
-    for (int i = 0; i < N; ++i) {
-        double amplitude = std::sqrt(out[i][0] * out[i][0] + out[i][1] * out[i][1]);
-        if (amplitude < threshold) {
-            out[i][0] = 0.0; // Zero real part
-            out[i][1] = 0.0; // Zero imaginary part
-        }
+    // Set the DC component to zero and calculate normalized amplitude spectrum
+    for (int i = 0; i < N / 2; ++i) {
+        double real = fftOutput[i][0];
+        double imag = fftOutput[i][1];
+        amplitudeSpectrum[i] = (2.0 / N) * std::sqrt(real * real + imag * imag); // Normalize amplitude
+        frequencies[i] = (i / (N * sampling_time_ms)) * 1000; // Convert ms to seconds
     }
 
-    // Plan and execute inverse FFT
-    fftw_plan inversePlan = fftw_plan_dft_1d(N, out, in, FFTW_BACKWARD, FFTW_ESTIMATE);
-    fftw_execute(inversePlan);
-
-    // Normalize and copy result back to output vector
-    QVector<double> outputSignal(N);
-    for (int i = 0; i < N; ++i) {
-        outputSignal[i] = in[i][0] / N; // Normalize the result
-    }
-
-    // Clean up FFTW resources
-    fftw_destroy_plan(forwardPlan);
-    fftw_destroy_plan(inversePlan);
+    // Clean up
+    fftw_destroy_plan(fftPlan);
     fftw_free(in);
-    fftw_free(out);
-
-    return outputSignal;
-}
-
-void DataProcessing::signalFFT(const QVector<double>& timeDomainSignal, QVector<double>& amplitudeSpectrum)
-{
-    int N = timeDomainSignal.size();
-
-    // Resize the amplitude spectrum array to match the input size
-    amplitudeSpectrum.resize(N);
-
-    // Allocate arrays for FFT input and output
-    fftw_complex* in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
-    fftw_complex* out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
-
-    // Plan the FFT transformation
-    fftw_plan plan = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
-
-    // Load the time domain data into the input array
-    for (int i = 0; i < N; i++) {
-        in[i][0] = timeDomainSignal[i]; // Real part
-        in[i][1] = 0.0;                 // Imaginary part
-    }
-
-    // Execute the FFT
-    fftw_execute(plan);
-
-    // Compute the amplitude spectrum
-    for (int i = 0; i < N; i++) {
-        double real = out[i][0];
-        double imag = out[i][1];
-        amplitudeSpectrum[i] = sqrt(real * real + imag * imag); // Magnitude
-    }
-
-    // Cleanup
-    fftw_destroy_plan(plan);
-    fftw_free(in);
-    fftw_free(out);
 }
 
 bool DataProcessing::setSamplingPeriod(double aSamplingPeriod)
@@ -162,6 +166,13 @@ bool DataProcessing::setConsumptionMode(dataprocessing_consumption_mode_t aConsu
     consumptionMode = aConsumptionMode;
     return true;
 
+}
+
+bool DataProcessing::setMeasurementMode(dataprocessing_measurement_mode_t aMeasurementMode)
+{
+    if(acquisitionStatus == DATAPROCESSING_ACQUISITION_STATUS_ACTIVE) return false;
+    measurementMode = aMeasurementMode;
+    return true;
 }
 
 bool DataProcessing::setAcquisitionStatus(dataprocessing_acquisition_status_t aAcquisitionStatus)
@@ -279,7 +290,13 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
             c = a | b;
             d = (int) c;
             double swapDataCurrent = (double)d;
-            voltageDataCollected[lastBufferUsedPositionIndex] = DATAPROCESSING_DEFAULT_ADC_VOLTAGE_OFF + swapDataVoltage*voltageInc;
+            double voltageValue = DATAPROCESSING_DEFAULT_ADC_VOLTAGE_OFF + swapDataVoltage*voltageInc;
+            double currentValue = swapDataCurrent*currentInc/(DATAPROCESSING_DEFAULT_SHUNT*DATAPROCESSING_DEFAULT_GAIN);
+            if(voltageValue > maxVoltage) maxVoltage = voltageValue;
+            if(voltageValue < minVoltage) minVoltage = voltageValue;
+            if(currentValue > maxCurrent) maxCurrent = currentValue;
+            if(currentValue < minCurrent) minCurrent = currentValue;
+            voltageDataCollected[lastBufferUsedPositionIndex] = voltageValue;
             if(i == 0)
             {
                 voltageKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue;
@@ -301,10 +318,12 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
 //                currentKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j;
 //                consumptionKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j;
             }
-            currentDataCollected[lastBufferUsedPositionIndex] = swapDataCurrent*currentInc/(DATAPROCESSING_DEFAULT_SHUNT*DATAPROCESSING_DEFAULT_GAIN);
+            currentDataCollected[lastBufferUsedPositionIndex] = currentValue;
             currentConsumptionDataCollected[lastBufferUsedPositionIndex] = swapDataCurrent*(samplingPeriod)/3600000; //mAh
             lastCumulativeCurrentConsumptionValue += swapDataCurrent*(samplingPeriod)/3600000;                         //This value remember last consumption in case when buffers are restarted
-            cumulativeConsumptionDataCollected[lastBufferUsedPositionIndex] = lastCumulativeCurrentConsumptionValue;
+            cumulativeConsumptionDataCollected[lastBufferUsedPositionIndex] = lastCumulativeCurrentConsumptionValue;            
+            //fftKeysDataCollected[lastBufferUsedPositionIndex] = lastBufferUsedPositionIndex*1/(samplingPeriod)*1000;
+
             i                           += 1;
             lastBufferUsedPositionIndex += 1;
             j += 1;
@@ -312,24 +331,50 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
 
     }
 
-
-
     currentNumberOfBuffers += 1;
     if(currentNumberOfBuffers == maxNumberOfBuffers)
     {
-        emit sigNewVoltageCurrentSamplesReceived(voltageDataCollected, currentDataCollected, voltageKeysDataCollected, currentKeysDataCollected);
-        emit sigSamplesBufferReceiveStatistics(dropRate, dropPacketsNo, receivedPacketCounter, lastReceivedPacketID, ebpNo);
-        emit sigEBP(ebpValue, ebpValueKey);
-        processSignalWithFFT(voltageDataCollected, 0.001);
+
+        qDebug() << "---------------------------------------";
+        qDebug() << "MinV, MaxV =" << QString::number(minVoltage) << "," <<  QString::number(maxVoltage);
+        qDebug() << "MinC, MaxC =" << QString::number(minCurrent) << "," <<  QString::number(maxCurrent);
+        qDebug() << "V-Dev =" << QString::number(maxVoltage - minVoltage);
+        qDebug() << "I-Dev =" << QString::number(maxCurrent - minCurrent);
+        processSignalWithFFT(voltageDataCollected, 0.0005, voltageDataCollectedFiltered, fftDataCollectedVoltage, samplingPeriod, fftKeysDataCollected, minMax);
+        if(minMax[0] > maxVoltageF) maxVoltageF = minMax[0];
+        if(minMax[1] < minVoltageF) minVoltageF = minMax[1];
+        processSignalWithFFT(currentDataCollected, 0.002, currentDataCollectedFiltered, fftDataCollectedCurrent, samplingPeriod, fftKeysDataCollected, minMax);
+        if(minMax[0] > maxCurrentF) maxCurrentF = minMax[0];
+        if(minMax[1] < minCurrentF) minCurrentF = minMax[1];
+        qDebug() << "MinVF, MaxVF =" << QString::number(minVoltageF) << "," <<  QString::number(maxVoltageF);
+        qDebug() << "MinCF, MaxCF =" << QString::number(minCurrentF) << "," <<  QString::number(maxCurrentF);
+        qDebug() << "V-DevF =" << QString::number(maxVoltageF - minVoltageF);
+        qDebug() << "I-DevF =" << QString::number(maxCurrentF - minCurrentF);
+
         switch(consumptionMode)
         {
         case DATAPROCESSING_CONSUMPTION_MODE_CURRENT:
-            emit sigNewConsumptionDataReceived(currentConsumptionDataCollected, consumptionKeysDataCollected, DATAPROCESSING_CONSUMPTION_MODE_CURRENT);
+
+            switch(measurementMode)
+            {
+            case DATAPROCESSING_MEASUREMENT_MODE_VOLTAGE:
+                emit sigNewVoltageCurrentSamplesReceived(voltageDataCollected, voltageDataCollectedFiltered, voltageKeysDataCollected, voltageKeysDataCollected);
+                emit sigNewConsumptionDataReceived(fftDataCollectedVoltage, fftKeysDataCollected, DATAPROCESSING_CONSUMPTION_MODE_CURRENT);
+
+                break;
+            case DATAPROCESSING_MEASUREMENT_MODE_CURRENT:
+                emit sigNewVoltageCurrentSamplesReceived(currentDataCollected, currentDataCollectedFiltered, currentKeysDataCollected, currentKeysDataCollected);
+                emit sigNewConsumptionDataReceived(fftDataCollectedCurrent, fftKeysDataCollected, DATAPROCESSING_CONSUMPTION_MODE_CURRENT);
+                 break;
+            }
             break;
         case DATAPROCESSING_CONSUMPTION_MODE_CUMULATIVE:
+            emit sigNewVoltageCurrentSamplesReceived(voltageDataCollected, currentDataCollected, voltageKeysDataCollected, currentKeysDataCollected);
             emit sigNewConsumptionDataReceived(cumulativeConsumptionDataCollected, consumptionKeysDataCollected, DATAPROCESSING_CONSUMPTION_MODE_CUMULATIVE);
             break;
         }
+        emit sigEBP(ebpValue, ebpValueKey);
+        emit sigSamplesBufferReceiveStatistics(dropRate, dropPacketsNo, receivedPacketCounter, lastReceivedPacketID, ebpNo);
         initBuffers();
     }
 }
@@ -337,6 +382,7 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
 void DataProcessing::initBuffers()
 {
     initVoltageBuffer();
+    initFFTBuffer();
     initCurrentBuffer();
     initConsumptionBuffer();
     initKeyBuffer();
@@ -349,6 +395,19 @@ void DataProcessing::initVoltageBuffer()
     voltageDataCollected.fill(0);
     currentNumberOfBuffers = 0;
     lastBufferUsedPositionIndex = 0;
+}
+void DataProcessing::initFFTBuffer()
+{
+    fftDataCollectedVoltage.resize(maxNumberOfBuffers*samplesBufferSize);
+    fftDataCollectedVoltage.fill(0);
+    fftDataCollectedCurrent.resize(maxNumberOfBuffers*samplesBufferSize);
+    fftDataCollectedCurrent.fill(0);
+    voltageDataCollectedFiltered.resize(maxNumberOfBuffers*samplesBufferSize);
+    voltageDataCollectedFiltered.fill(0);
+    currentDataCollectedFiltered.resize(maxNumberOfBuffers*samplesBufferSize);
+    currentDataCollectedFiltered.fill(0);
+    fftKeysDataCollected.resize(maxNumberOfBuffers*samplesBufferSize);
+    fftKeysDataCollected.fill(0);
 }
 
 void DataProcessing::initCurrentBuffer()

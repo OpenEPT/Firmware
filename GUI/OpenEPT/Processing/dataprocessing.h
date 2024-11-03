@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QThread>
+#include "fftw/fftw3.h"
 
 
 #define DATAPROCESSING_DEFAULT_NUMBER_OF_BUFFERS        100
@@ -22,9 +23,17 @@ typedef enum
 
 typedef enum
 {
+    DATAPROCESSING_CONSUMPTION_MODE_UNDEF,
     DATAPROCESSING_CONSUMPTION_MODE_CURRENT,
-    DATAPROCESSING_CONSUMPTION_MODE_CUMULATIVE,
+    DATAPROCESSING_CONSUMPTION_MODE_CUMULATIVE
 }dataprocessing_consumption_mode_t;
+
+typedef enum
+{
+    DATAPROCESSING_MEASUREMENT_MODE_UNDEF,
+    DATAPROCESSING_MEASUREMENT_MODE_VOLTAGE,
+    DATAPROCESSING_MEASUREMENT_MODE_CURRENT
+}dataprocessing_measurement_mode_t;
 
 typedef enum
 {
@@ -48,6 +57,7 @@ public:
     bool                                setSamplingTime(double aSamplingTime);                      //us
     bool                                setResolution(double aResolution);
     bool                                setConsumptionMode(dataprocessing_consumption_mode_t aConsumptionMode);
+    bool                                setMeasurementMode(dataprocessing_measurement_mode_t aMeasurementMode);
 
     bool                                setAcquisitionStatus(dataprocessing_acquisition_status_t aAcquisitionStatus);
 
@@ -64,12 +74,13 @@ public slots:
 private:
     void                                initBuffers();
     void                                initVoltageBuffer();
+    void                                initFFTBuffer();
     void                                initCurrentBuffer();
     void                                initConsumptionBuffer();
     void                                initKeyBuffer();
     void                                initEBPBuffer();
-    QVector<double>                     processSignalWithFFT(const QVector<double> &inputSignal, double threshold);
-    void                                signalFFT(const QVector<double> &inputSignal, QVector<double>& amplitudeSpectrum);
+    void                                processSignalWithFFT(const QVector<double> &inputSignal, double threshold, QVector<double> &outputSignal, QVector<double>& amplitudeSpectrum, double sampling_time_ms, QVector<double>& frequencies, QVector<double> &minmax);
+    void                                signalFFT(const QVector<double>& inputSignal, fftw_complex* fftOutput, QVector<double>& amplitudeSpectrum, double sampling_time_ms, QVector<double>& frequencies);
 
     /* Stream link received data in separate worker thread*/
     QThread                             *dataProcessingThread;
@@ -95,21 +106,37 @@ private:
 
     /* */
     QVector<double>                     voltageDataCollected;
+    QVector<double>                     fftDataCollectedVoltage;
+    QVector<double>                     fftDataCollectedCurrent;
+    QVector<double>                     voltageDataCollectedFiltered;
     QVector<double>                     currentDataCollected;
+    QVector<double>                     currentDataCollectedFiltered;
     QVector<double>                     currentConsumptionDataCollected;
     QVector<double>                     cumulativeConsumptionDataCollected;
     double                              lastCumulativeCurrentConsumptionValue;
     QVector<double>                     voltageKeysDataCollected;
     QVector<double>                     currentKeysDataCollected;
     QVector<double>                     consumptionKeysDataCollected;
+    QVector<double>                     fftKeysDataCollected;
     QVector<bool>                       ebpFlags;
     QVector<double>                     ebpValue;
     QVector<double>                     ebpValueKey;
+
+    double                              maxVoltage;
+    double                              maxCurrent;
+    double                              minVoltage;
+    double                              minCurrent;
+    double                              maxVoltageF;
+    double                              maxCurrentF;
+    double                              minVoltageF;
+    double                              minCurrentF;
+    QVector<double>                     minMax;
 
 
     /**/
     dataprocessing_acquisition_status_t acquisitionStatus;
     dataprocessing_consumption_mode_t   consumptionMode;
+    dataprocessing_measurement_mode_t   measurementMode;
     dataprocessing_device_mode_t        deviceMode;
 
 };

@@ -735,6 +735,11 @@ bool Device::setDataProcessingConsumptionType(dataprocessing_consumption_mode_t 
     return dataProcessing->setConsumptionMode(aConsumptionMode);
 }
 
+bool Device::setDataProcessingMeasurementType(dataprocessing_measurement_mode_t aMeasurementMode)
+{
+    return dataProcessing->setMeasurementMode(aMeasurementMode);
+}
+
 void Device::onControlLinkConnected()
 {
     emit sigControlLinkConnected();

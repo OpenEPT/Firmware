@@ -150,10 +150,18 @@ DeviceWnd::DeviceWnd(QWidget *parent) :
     consumptionTypeSelection->addButton(ui->cumulativeRadb);
     consumptionTypeSelection->setId(ui->currentRadb, 1);
     consumptionTypeSelection->setId(ui->cumulativeRadb, 2);
+    measurementTypeSelection = new QButtonGroup();
+    measurementTypeSelection->addButton(ui->measurementTypeCurrentRadb);
+    measurementTypeSelection->addButton(ui->measurementTypeVoltageRadb);
+    measurementTypeSelection->setId(ui->measurementTypeVoltageRadb, 1);
+    measurementTypeSelection->setId(ui->measurementTypeCurrentRadb, 2);
 
     setStatisticsElapsedTime(0);
 
     ui->currentRadb->setChecked(true);
+    setConsumptionType(DEVICE_CONSUMPTION_TYPE_CURRENT);
+    ui->measurementTypeVoltageRadb->setChecked(true);
+    setMeasurementType(DEVICE_MEASUREMENT_TYPE_VOLTAGE);
 
     setDeviceState(DEVICE_STATE_UNDEFINED);
 
@@ -180,6 +188,7 @@ DeviceWnd::DeviceWnd(QWidget *parent) :
     connect(ui->streamServerInterfComb, SIGNAL(currentTextChanged(QString)),        this, SLOT(onInterfaceChanged(QString)));
     connect(ui->maxNumOfPacketsLine,    SIGNAL(editingFinished()),                  this, SLOT(onMaxNumberOfBuffersChanged()));
     connect(consumptionTypeSelection,   SIGNAL(buttonClicked(QAbstractButton*)),    this, SLOT(onConsumptionTypeChanged(QAbstractButton*)));
+    connect(measurementTypeSelection,   SIGNAL(buttonClicked(QAbstractButton*)),    this, SLOT(onMeasurementTypeChanged(QAbstractButton*)));
 
 
     connect(advanceConfigurationWnd, SIGNAL(sigAdvConfigurationChanged(QVariant)), this, SLOT(onAdvConfigurationChanged(QVariant)));
@@ -242,12 +251,35 @@ void DeviceWnd::onConsumptionTypeChanged(QAbstractButton* button)
     {
     case 1:
         emit sigConsumptionTypeChanged("Current");
+        setConsumptionType(DEVICE_CONSUMPTION_TYPE_CURRENT);
         break;
     case 2:
         emit sigConsumptionTypeChanged("Cumulative");
+        setConsumptionType(DEVICE_CONSUMPTION_TYPE_CUMULATIVE);
         break;
     default:
         emit sigConsumptionTypeChanged("Undef");
+        setConsumptionType(DEVICE_CONSUMPTION_TYPE_UNDEF);
+        break;
+    }
+}
+
+void DeviceWnd::onMeasurementTypeChanged(QAbstractButton *button)
+{
+    int id = measurementTypeSelection->id(button);
+    switch(id)
+    {
+    case 1:
+        emit sigMeasurementTypeChanged("Voltage");
+        setMeasurementType(DEVICE_MEASUREMENT_TYPE_VOLTAGE);
+        break;
+    case 2:
+        emit sigMeasurementTypeChanged("Current");
+        setMeasurementType(DEVICE_MEASUREMENT_TYPE_CURRENT);
+        break;
+    default:
+        emit sigMeasurementTypeChanged("Undef");
+        setMeasurementType(DEVICE_MEASUREMENT_TYPE_UNDEF);
         break;
     }
 }
@@ -584,21 +616,79 @@ void DeviceWnd::setStatisticsElapsedTime(int elapsedTime)
                                                             .arg(seconds, 2, 10, QChar('0')));
 }
 
+void DeviceWnd::setConsumptionType(device_consumption_type_t actype)
+{
+    cType = actype;
+    switch(cType)
+    {
+    case DEVICE_CONSUMPTION_TYPE_CURRENT:
+        consumptionChart->setTitle("Spectrum");
+        consumptionChart->setXLabel("Frequency [Hz]");
+        break;
+    case DEVICE_CONSUMPTION_TYPE_CUMULATIVE:
+        consumptionChart->setTitle("Consumption");
+        consumptionChart->setXLabel("[ms]");
+        voltageChart->setTitle("Voltage");
+        voltageChart->setYLabel("[V]");
+        voltageChart->setXLabel("[ms]");
+        currentChart->setTitle("Current");
+        currentChart->setYLabel("[mA]");
+        currentChart->setXLabel("[ms]");
+        for (QAbstractButton* button : measurementTypeSelection->buttons())
+        {
+            button->setDisabled(true);
+        }
+        break;
+    case DEVICE_CONSUMPTION_TYPE_UNDEF:
+        consumptionChart->setTitle("-");
+        consumptionChart->setXLabel("-");
+        break;
+    }
+}
+
+void DeviceWnd::setMeasurementType(device_measurement_type_t amtype)
+{
+    mType = amtype;
+    switch(mType)
+    {
+    case DEVICE_MEASUREMENT_TYPE_CURRENT:
+        voltageChart->setTitle("Current");
+        voltageChart->setYLabel("[mA]");
+        voltageChart->setXLabel("[ms]");
+        currentChart->setTitle("Current filtered");
+        currentChart->setYLabel("[mA]");
+        currentChart->setXLabel("[ms]");
+        break;
+    case DEVICE_MEASUREMENT_TYPE_VOLTAGE:
+        voltageChart->setTitle("Voltage");
+        voltageChart->setYLabel("[V]");
+        voltageChart->setXLabel("[ms]");
+        currentChart->setTitle("Voltage filtered");
+        currentChart->setYLabel("[V]");
+        currentChart->setXLabel("[ms]");
+        break;
+    case DEVICE_MEASUREMENT_TYPE_UNDEF:
+        voltageChart->setTitle("-");
+        currentChart->setTitle("-");
+        break;
+    }
+}
+
 bool DeviceWnd::plotSetVoltageValues(QVector<double> values, QVector<double> keys)
 {
-    voltageChart->appendData(values, keys);
+    voltageChart->setData(values, keys);
     return true;
 }
 
 bool DeviceWnd::plotSetCurrentValues(QVector<double> values, QVector<double> keys)
 {
-    currentChart->appendData(values, keys);
+    currentChart->setData(values, keys);
     return true;
 }
 
 bool DeviceWnd::plotAppendConsumptionValues(QVector<double> values, QVector<double> keys)
 {
-    consumptionChart->appendData(values, keys);
+    consumptionChart->setData(values, keys);
     return true;
 }
 

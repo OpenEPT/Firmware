@@ -35,6 +35,7 @@ DeviceContainer::DeviceContainer(QObject *parent,  DeviceWnd* aDeviceWnd, Device
     connect(deviceWnd,  SIGNAL(sigAdvConfigurationChanged(QVariant)),               this, SLOT(onDeviceWndNewConfiguration(QVariant)));
     connect(deviceWnd,  SIGNAL(sigMaxNumberOfBuffersChanged(uint)),                 this, SLOT(onDeviceWndMaxNumberOfBuffersChanged(uint)));
     connect(deviceWnd,  SIGNAL(sigConsumptionTypeChanged(QString)),                 this, SLOT(onDeviceWndConsumptionTypeChanged(QString)));
+    connect(deviceWnd,  SIGNAL(sigMeasurementTypeChanged(QString)),                 this, SLOT(onDeviceWndMeasurementTypeChanged(QString)));
     connect(deviceWnd,  SIGNAL(sigPathChanged(QString)),                            this, SLOT(onDeviceWndSamplesSavePathChanged(QString)));
 
     /*Device signals*/
@@ -123,6 +124,21 @@ void DeviceContainer::onDeviceWndConsumptionTypeChanged(QString aConsumptionType
     if(device->setDataProcessingConsumptionType(consumptionType))
     {
         log->printLogMessage("Consumption type: \"" + aConsumptionType + "\" successfully set", LOG_MESSAGE_TYPE_INFO);
+    }
+    else
+    {
+        log->printLogMessage("Unable to sucessfully configure Consumption type", LOG_MESSAGE_TYPE_ERROR);
+    }
+}
+
+void DeviceContainer::onDeviceWndMeasurementTypeChanged(QString aMeasurementType)
+{
+    dataprocessing_measurement_mode_t measurementType;
+    if(aMeasurementType == "Current") measurementType = DATAPROCESSING_MEASUREMENT_MODE_CURRENT;
+    if(aMeasurementType == "Voltage") measurementType = DATAPROCESSING_MEASUREMENT_MODE_VOLTAGE;
+    if(device->setDataProcessingMeasurementType(measurementType))
+    {
+        log->printLogMessage("Measurement type: \"" + aMeasurementType + "\" successfully set", LOG_MESSAGE_TYPE_INFO);
     }
     else
     {

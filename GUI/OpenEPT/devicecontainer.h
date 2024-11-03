@@ -38,6 +38,7 @@ public slots:
     void    onDeviceWndClosed();
     void    onDeviceWndMaxNumberOfBuffersChanged(unsigned int maxNumber);
     void    onDeviceWndConsumptionTypeChanged(QString aConsumptionType);
+    void    onDeviceWndMeasurementTypeChanged(QString aMeasurementType);
     void    onDeviceWndSamplesSavePathChanged(QString path);
 
     void    onDeviceControlLinkDisconnected();

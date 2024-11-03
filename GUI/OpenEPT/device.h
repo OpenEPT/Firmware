@@ -116,6 +116,7 @@ public:
 
     bool        setDataProcessingMaxNumberOfBuffers(unsigned int maxNumber);
     bool        setDataProcessingConsumptionType(dataprocessing_consumption_mode_t aConsumptionMode);
+    bool        setDataProcessingMeasurementType(dataprocessing_measurement_mode_t aMeasurementMode);
 
 signals:
     void        sigControlLinkConnected();
