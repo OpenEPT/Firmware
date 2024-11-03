@@ -619,11 +619,20 @@ void DeviceWnd::setStatisticsElapsedTime(int elapsedTime)
 void DeviceWnd::setConsumptionType(device_consumption_type_t actype)
 {
     cType = actype;
+    QRadioButton *button = qobject_cast<QRadioButton*>(measurementTypeSelection->button(1));
     switch(cType)
     {
     case DEVICE_CONSUMPTION_TYPE_CURRENT:
         consumptionChart->setTitle("Spectrum");
         consumptionChart->setXLabel("Frequency [Hz]");
+        for (QAbstractButton* button : measurementTypeSelection->buttons())
+        {
+            button->setDisabled(false);
+        }
+
+        button->setChecked(true);
+        emit sigMeasurementTypeChanged("Voltage");
+        setMeasurementType(DEVICE_MEASUREMENT_TYPE_VOLTAGE);
         break;
     case DEVICE_CONSUMPTION_TYPE_CUMULATIVE:
         consumptionChart->setTitle("Consumption");
@@ -674,25 +683,55 @@ void DeviceWnd::setMeasurementType(device_measurement_type_t amtype)
     }
 }
 
-bool DeviceWnd::plotSetVoltageValues(QVector<double> values, QVector<double> keys)
+bool DeviceWnd::plotVoltageValues(QVector<double> values, QVector<double> keys)
 {
-    voltageChart->setData(values, keys);
+    switch(cType)
+    {
+    case DEVICE_CONSUMPTION_TYPE_CURRENT:
+        voltageChart->setData(values, keys);
+        break;
+    case DEVICE_CONSUMPTION_TYPE_CUMULATIVE:
+        voltageChart->appendData(values, keys);
+        break;
+    case DEVICE_CONSUMPTION_TYPE_UNDEF:
+        break;
+    }
     return true;
 }
 
-bool DeviceWnd::plotSetCurrentValues(QVector<double> values, QVector<double> keys)
+bool DeviceWnd::plotCurrentValues(QVector<double> values, QVector<double> keys)
 {
-    currentChart->setData(values, keys);
+    switch(cType)
+    {
+    case DEVICE_CONSUMPTION_TYPE_CURRENT:
+        currentChart->setData(values, keys);
+        break;
+    case DEVICE_CONSUMPTION_TYPE_CUMULATIVE:
+        currentChart->appendData(values, keys);
+        break;
+    case DEVICE_CONSUMPTION_TYPE_UNDEF:
+        break;
+    }
     return true;
 }
 
-bool DeviceWnd::plotAppendConsumptionValues(QVector<double> values, QVector<double> keys)
+bool DeviceWnd::plotConsumptionValues(QVector<double> values, QVector<double> keys)
 {
-    consumptionChart->setData(values, keys);
+    switch(cType)
+    {
+    case DEVICE_CONSUMPTION_TYPE_CURRENT:
+        consumptionChart->setData(values, keys);
+        break;
+    case DEVICE_CONSUMPTION_TYPE_CUMULATIVE:
+        consumptionChart->appendData(values, keys);
+        break;
+    case DEVICE_CONSUMPTION_TYPE_UNDEF:
+        break;
+    }
     return true;
 }
 
-bool DeviceWnd::plotAppendConsumptionEBP(QVector<double> values, QVector<double> keys)
+bool DeviceWnd::plotConsumptionEBP(QVector<double> values, QVector<double> keys)
 {
     if(values.size() > 0)
     {
@@ -701,7 +740,7 @@ bool DeviceWnd::plotAppendConsumptionEBP(QVector<double> values, QVector<double>
     return true;
 }
 
-bool DeviceWnd::plotAppendConsumptionEBPWithName(double value, double key, QString name)
+bool DeviceWnd::plotConsumptionEBPWithName(double value, double key, QString name)
 {
     consumptionChart->scatterAddDataWithName(value, key, name);
     return true;

@@ -79,11 +79,11 @@ public:
     void            setConsumptionType(device_consumption_type_t actype);
     void            setMeasurementType(device_measurement_type_t amtype);
 
-    bool            plotSetVoltageValues(QVector<double> values, QVector<double> keys);
-    bool            plotSetCurrentValues(QVector<double> values, QVector<double> keys);
-    bool            plotAppendConsumptionValues(QVector<double> values, QVector<double> keys);
-    bool            plotAppendConsumptionEBP(QVector<double> values, QVector<double> keys);
-    bool            plotAppendConsumptionEBPWithName(double value, double key, QString name);
+    bool            plotVoltageValues(QVector<double> values, QVector<double> keys);
+    bool            plotCurrentValues(QVector<double> values, QVector<double> keys);
+    bool            plotConsumptionValues(QVector<double> values, QVector<double> keys);
+    bool            plotConsumptionEBP(QVector<double> values, QVector<double> keys);
+    bool            plotConsumptionEBPWithName(double value, double key, QString name);
 
 
     QStringList*    getChSamplingTimeOptions();

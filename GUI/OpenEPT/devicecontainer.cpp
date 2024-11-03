@@ -613,14 +613,14 @@ void DeviceContainer::onTimeout()
 
 void DeviceContainer::onDeviceNewVoltageCurrentSamplesReceived(QVector<double> voltage, QVector<double> current, QVector<double> voltageKeys, QVector<double> currentKeys)
 {
-    deviceWnd->plotSetVoltageValues(voltage, voltageKeys);
-    deviceWnd->plotSetCurrentValues(current, currentKeys);
+    deviceWnd->plotVoltageValues(voltage, voltageKeys);
+    deviceWnd->plotCurrentValues(current, currentKeys);
     fileProcessing->appendSampleDataQueued(voltage, voltageKeys, current, currentKeys);
 }
 
 void DeviceContainer::onDeviceNewConsumptionDataReceived(QVector<double> consumption, QVector<double> keys, dataprocessing_consumption_mode_t mode)
 {
-    deviceWnd->plotAppendConsumptionValues(consumption, keys);
+    deviceWnd->plotConsumptionValues(consumption, keys);
     fileProcessing->appendConsumptionQueued(consumption, keys);
 }
 
@@ -636,7 +636,7 @@ void DeviceContainer::onDeviceNewEBP(QVector<double> ebpValues, QVector<double> 
 
 void DeviceContainer::onDeviceNewEBPFull(double value, double key, QString name)
 {
-    deviceWnd->plotAppendConsumptionEBPWithName(value, key, name);
+    deviceWnd->plotConsumptionEBPWithName(value, key, name);
     log->printLogMessage("New Energy point received", LOG_MESSAGE_TYPE_INFO);
 }
 
