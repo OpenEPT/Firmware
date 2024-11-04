@@ -104,6 +104,9 @@ bool Device::createStreamLink(QString ip, quint16 port, int* id)
 
     connect(dataProcessing, SIGNAL(sigEBP(QVector<double>,QVector<double>)), this, SLOT(onNewEBP(QVector<double>,QVector<double>)));
 
+    connect(dataProcessing, SIGNAL(sigSignalStatistics(dataprocessing_dev_info_t,dataprocessing_dev_info_t,dataprocessing_dev_info_t)),
+            this, SLOT(onNewStatisticsReceived(dataprocessing_dev_info_t,dataprocessing_dev_info_t,dataprocessing_dev_info_t)));
+
     /*  */
     if(!controlLink->executeCommand(command, &response, 1000)) return false;
     streamID = response.toInt();
@@ -783,6 +786,11 @@ void Device::onNewSamplesBuffersProcessingStatistics(double dropRate,  unsigned 
 void Device::onNewConsumptionDataReceived(QVector<double> consumption, QVector<double> keys, dataprocessing_consumption_mode_t mode)
 {
     emit sigNewConsumptionDataReceived(consumption, keys, mode);
+}
+
+void Device::onNewStatisticsReceived(dataprocessing_dev_info_t voltageStat, dataprocessing_dev_info_t currentStat, dataprocessing_dev_info_t consumptioStat)
+{
+    emit sigNewStatisticsReceived(voltageStat, currentStat, consumptioStat);
 }
 
 void Device::onNewEBP(QVector<double> ebpValues, QVector<double> ebpKeys)

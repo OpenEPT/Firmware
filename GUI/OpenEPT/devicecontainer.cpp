@@ -63,6 +63,9 @@ DeviceContainer::DeviceContainer(QObject *parent,  DeviceWnd* aDeviceWnd, Device
             this, SLOT(onDeviceNewConsumptionDataReceived(QVector<double>,QVector<double>, dataprocessing_consumption_mode_t)));
     connect(device,     SIGNAL(sigNewEBP(QVector<double>,QVector<double>)), this, SLOT(onDeviceNewEBP(QVector<double>,QVector<double>)));
     connect(device,     SIGNAL(sigNewEBPFull(double,double,QString)), this, SLOT(onDeviceNewEBPFull(double,double,QString)));
+    connect(device,     SIGNAL(sigNewStatisticsReceived(dataprocessing_dev_info_t,dataprocessing_dev_info_t,dataprocessing_dev_info_t)),
+            this, SLOT(onDeviceNewStatisticsReceived(dataprocessing_dev_info_t,dataprocessing_dev_info_t,dataprocessing_dev_info_t)));
+
 
     log->printLogMessage("Device container successfully created", LOG_MESSAGE_TYPE_INFO);
     device->statusLinkCreate();
@@ -622,6 +625,21 @@ void DeviceContainer::onDeviceNewConsumptionDataReceived(QVector<double> consump
 {
     deviceWnd->plotConsumptionValues(consumption, keys);
     fileProcessing->appendConsumptionQueued(consumption, keys);
+}
+
+void DeviceContainer::onDeviceNewStatisticsReceived(dataprocessing_dev_info_t voltageStat, dataprocessing_dev_info_t currentStat, dataprocessing_dev_info_t consumptionStat)
+{
+    device_stat_info statInfo;
+    statInfo.voltageAvg = voltageStat.average;
+    statInfo.voltageMax = voltageStat.max;
+    statInfo.voltageMin = voltageStat.min;
+    statInfo.currentAvg = currentStat.average;
+    statInfo.currentMax = currentStat.max;
+    statInfo.currentMin = currentStat.min;
+    statInfo.consumptionAvg = consumptionStat.average;
+    statInfo.consumptionMax = consumptionStat.max;
+    statInfo.consumptionMin = consumptionStat.min;
+    deviceWnd->showStatistic(statInfo);
 }
 
 void DeviceContainer::onDeviceNewSamplesBuffersProcessingStatistics(double dropRate, unsigned int dropPacketsNo, unsigned int fullReceivedBuffersNo, unsigned int lastBufferID, unsigned short ebp)

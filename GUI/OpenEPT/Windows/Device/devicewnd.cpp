@@ -115,6 +115,9 @@ DeviceWnd::DeviceWnd(QWidget *parent) :
     advanceConfigurationWnd->assignSampleTimeOptionsList(sampleTimeOptions);
     advanceConfigurationWnd->assignAvgRatioOptionsList(averaginOptions);
 
+    dataAnalyzer            = new DataStatistics();
+
+
     connect(ui->advanceOptionPusb, SIGNAL(clicked(bool)), this, SLOT(onAdvanceConfigurationButtonPressed(bool)));
 
     voltageChart             = new Plot(PLOT_MINIMUM_SIZE_WIDTH/2, PLOT_MINIMUM_SIZE_HEIGHT);
@@ -179,6 +182,7 @@ DeviceWnd::DeviceWnd(QWidget *parent) :
     connect(ui->stopPusb, SIGNAL(clicked(bool)), this, SLOT(onStopAcquisiton()));
     connect(ui->refreshPusb, SIGNAL(clicked(bool)), this, SLOT(onRefreshAcquisiton()));
     connect(ui->ConsolePusb, SIGNAL(clicked(bool)), this, SLOT(onConsolePressed()));
+    connect(ui->DataStatisticsPushb, SIGNAL(clicked(bool)), this, SLOT(onDataAnalyzerPressed()));
 
     connect(ui->clockDivComb,           SIGNAL(currentTextChanged(QString)),        this, SLOT(onClockDivChanged(QString)));
     connect(ui->sampleTimeComb,         SIGNAL(currentTextChanged(QString)),        this, SLOT(onSampleTimeChanged(QString)));
@@ -341,6 +345,11 @@ void    DeviceWnd::onSaveToFileChanged(int value)
 void DeviceWnd::onConsolePressed()
 {
     consoleWnd->show();
+}
+
+void DeviceWnd::onDataAnalyzerPressed()
+{
+    dataAnalyzer->show();
 }
 
 void DeviceWnd::onStartAcquisition()
@@ -743,5 +752,13 @@ bool DeviceWnd::plotConsumptionEBP(QVector<double> values, QVector<double> keys)
 bool DeviceWnd::plotConsumptionEBPWithName(double value, double key, QString name)
 {
     consumptionChart->scatterAddDataWithName(value, key, name);
+    return true;
+}
+
+bool DeviceWnd::showStatistic(device_stat_info statInfo)
+{
+    dataAnalyzer->setVoltageStatisticInfo(statInfo.voltageAvg, statInfo.voltageMax, statInfo.voltageMin);
+    dataAnalyzer->setCurrentStatisticInfo(statInfo.currentAvg, statInfo.currentMax, statInfo.currentMin);
+    dataAnalyzer->setConsumptionStatisticInfo(statInfo.consumptionAvg, statInfo.consumptionMax, statInfo.consumptionMin);
     return true;
 }

@@ -41,8 +41,15 @@ typedef enum
     DATAPROCESSING_DEVICE_MODE_EXT
 }dataprocessing_device_mode_t;
 
+typedef struct
+{
+    double average;
+    double max;
+    double min;
+}dataprocessing_dev_info_t;
 
 Q_DECLARE_METATYPE(dataprocessing_consumption_mode_t);
+Q_DECLARE_METATYPE(dataprocessing_dev_info_t);
 
 
 class DataProcessing : public QObject
@@ -65,6 +72,7 @@ signals:
     void                                sigNewVoltageCurrentSamplesReceived(QVector<double> voltage, QVector<double> current, QVector<double> voltageKeys, QVector<double> currentKeys);
     void                                sigNewConsumptionDataReceived(QVector<double> consumption, QVector<double> keys, dataprocessing_consumption_mode_t consumptionMode);
     void                                sigSamplesBufferReceiveStatistics(double dropRate, unsigned int dopPacketsNo, unsigned int fullPacketCounter, unsigned int lastPacketID, unsigned short ebp);
+    void                                sigSignalStatistics(dataprocessing_dev_info_t voltage, dataprocessing_dev_info_t current, dataprocessing_dev_info_t consumption);
     void                                sigEBP(QVector<double> ebpValues, QVector<double> ebpKeys);
     void                                sigEBPValue(unsigned int ebpID, double ebpValues, double ebpKeys);
 
@@ -73,6 +81,7 @@ public slots:
 
 private:
     void                                initBuffers();
+    void                                initStatData();
     void                                initVoltageBuffer();
     void                                initFFTBuffer();
     void                                initCurrentBuffer();
@@ -122,10 +131,10 @@ private:
     QVector<double>                     ebpValue;
     QVector<double>                     ebpValueKey;
 
-    double                              maxVoltage;
-    double                              maxCurrent;
-    double                              minVoltage;
-    double                              minCurrent;
+    dataprocessing_dev_info_t           voltageStat;
+    dataprocessing_dev_info_t           currentStat;
+    dataprocessing_dev_info_t           consumptionStat;
+
     double                              maxVoltageF;
     double                              maxCurrentF;
     double                              minVoltageF;

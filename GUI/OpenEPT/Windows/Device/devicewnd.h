@@ -8,6 +8,7 @@
 #include "Windows/Device/advanceconfigurationwnd.h"
 #include "Windows/Console/consolewnd.h"
 #include "Windows/Device/advcofigurationdata.h"
+#include "Windows/Device/datastatistics.h"
 
 #define     DEVICEWND_DEFAULT_MAX_NUMBER_OF_BUFFERS 100
 
@@ -43,6 +44,20 @@ typedef enum
     DEVICE_MEASUREMENT_TYPE_VOLTAGE,
     DEVICE_MEASUREMENT_TYPE_CURRENT
 }device_measurement_type_t;
+
+typedef struct
+{
+    double voltageAvg;
+    double voltageMax;
+    double voltageMin;
+    double currentAvg;
+    double currentMax;
+    double currentMin;
+    double consumptionAvg;
+    double consumptionMax;
+    double consumptionMin;
+
+}device_stat_info;
 
 
 namespace Ui {
@@ -84,6 +99,7 @@ public:
     bool            plotConsumptionValues(QVector<double> values, QVector<double> keys);
     bool            plotConsumptionEBP(QVector<double> values, QVector<double> keys);
     bool            plotConsumptionEBPWithName(double value, double key, QString name);
+    bool            showStatistic(device_stat_info statInfo);
 
 
     QStringList*    getChSamplingTimeOptions();
@@ -125,6 +141,7 @@ public slots:
     void            onStopAcquisiton();
     void            onRefreshAcquisiton();
     void            onConsolePressed();
+    void            onDataAnalyzerPressed();
     void            onPathInfo();
     void            onResolutionChanged(QString aResolution);
     void            onADCChanged(QString adc);
@@ -151,6 +168,7 @@ private:
     AdvanceConfigurationWnd     *advanceConfigurationWnd;
 
     ConsoleWnd                  *consoleWnd;
+    DataStatistics                *dataAnalyzer;
     Plot                        *voltageChart;
     Plot                        *currentChart;
     Plot                        *consumptionChart;

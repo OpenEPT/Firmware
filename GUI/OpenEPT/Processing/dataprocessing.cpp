@@ -18,12 +18,14 @@ DataProcessing::DataProcessing(QObject *parent)
     maxNumberOfBuffers              = DATAPROCESSING_DEFAULT_NUMBER_OF_BUFFERS;
     samplesBufferSize               = DATAPROCESSING_DEFAULT_SAMPLES_BUFFER_SIZE/2;
 
-    maxVoltage                      = 0;
-    maxCurrent                      = 0;
-    minVoltage                      = 10;
-    minCurrent                      = 10;
-    maxVoltageF                      = 0;
-    maxCurrentF                      = 0;
+    voltageStat.average             = 0;
+    currentStat.average             = 0;
+    voltageStat.max                 = -10;
+    currentStat.max                 = -10;
+    voltageStat.min                 = 10;
+    currentStat.min                 = 10;
+    maxVoltageF                      = -10;
+    maxCurrentF                      = -10;
     minVoltageF                      = 10;
     minCurrentF                      = 10;
     minMax.resize(2);
@@ -194,6 +196,15 @@ bool DataProcessing::setAcquisitionStatus(dataprocessing_acquisition_status_t aA
     firstPacketReceived         = false;
     receivedPacketCounter       = 0;
     ebpNo                       = 0;
+
+    voltageStat.average             = 0;
+    currentStat.average             = 0;
+    voltageStat.max                 = -10;
+    currentStat.max                 = -10;
+    voltageStat.min                 = 10;
+    currentStat.min                 = 10;
+
+
     lastCumulativeCurrentConsumptionValue = 0;
     initBuffers();
 
@@ -292,12 +303,14 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
             double swapDataCurrent = (double)d;
             double voltageValue = DATAPROCESSING_DEFAULT_ADC_VOLTAGE_OFF + swapDataVoltage*voltageInc;
             double currentValue = swapDataCurrent*currentInc/(DATAPROCESSING_DEFAULT_SHUNT*DATAPROCESSING_DEFAULT_GAIN)*1000.0; //mA
-            if(voltageValue > maxVoltage) maxVoltage = voltageValue;
-            if(voltageValue < minVoltage) minVoltage = voltageValue;
-            if(currentValue > maxCurrent) maxCurrent = currentValue;
-            if(currentValue < minCurrent) minCurrent = currentValue;
+            if(voltageValue > voltageStat.max) voltageStat.max = voltageValue;
+            if(voltageValue < voltageStat.min) voltageStat.min = voltageValue;
+            if(currentValue > currentStat.max) currentStat.max = currentValue;
+            if(currentValue < currentStat.min) currentStat.min = currentValue;
 
             voltageDataCollected[lastBufferUsedPositionIndex] = voltageValue;
+            voltageStat.average += voltageValue;
+            currentStat.average += currentValue;
 
             if(i == 0)
             {
@@ -337,21 +350,27 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
     if(currentNumberOfBuffers == maxNumberOfBuffers)
     {
 
-        qDebug() << "---------------------------------------";
-        qDebug() << "MinV, MaxV =" << QString::number(minVoltage) << "," <<  QString::number(maxVoltage);
-        qDebug() << "MinC, MaxC =" << QString::number(minCurrent) << "," <<  QString::number(maxCurrent);
-        qDebug() << "V-Dev =" << QString::number(maxVoltage - minVoltage);
-        qDebug() << "I-Dev =" << QString::number(maxCurrent - minCurrent);
+//        qDebug() << "---------------------------------------";
+//        qDebug() << "MinV, MaxV =" << QString::number(minVoltage) << "," <<  QString::number(maxVoltage);
+//        qDebug() << "MinC, MaxC =" << QString::number(minCurrent) << "," <<  QString::number(maxCurrent);
+//        qDebug() << "V-Dev =" << QString::number(maxVoltage - minVoltage);
+//        qDebug() << "I-Dev =" << QString::number(maxCurrent - minCurrent);
         processSignalWithFFT(voltageDataCollected, 0.0005, voltageDataCollectedFiltered, fftDataCollectedVoltage, samplingPeriod, fftKeysDataCollected, minMax);
         if(minMax[0] > maxVoltageF) maxVoltageF = minMax[0];
         if(minMax[1] < minVoltageF) minVoltageF = minMax[1];
         processSignalWithFFT(currentDataCollected, 0.002, currentDataCollectedFiltered, fftDataCollectedCurrent, samplingPeriod, fftKeysDataCollected, minMax);
         if(minMax[0] > maxCurrentF) maxCurrentF = minMax[0];
         if(minMax[1] < minCurrentF) minCurrentF = minMax[1];
-        qDebug() << "MinVF, MaxVF =" << QString::number(minVoltageF) << "," <<  QString::number(maxVoltageF);
-        qDebug() << "MinCF, MaxCF =" << QString::number(minCurrentF) << "," <<  QString::number(maxCurrentF);
-        qDebug() << "V-DevF =" << QString::number(maxVoltageF - minVoltageF);
-        qDebug() << "I-DevF =" << QString::number(maxCurrentF - minCurrentF);
+//        qDebug() << "MinVF, MaxVF =" << QString::number(minVoltageF) << "," <<  QString::number(maxVoltageF);
+//        qDebug() << "MinCF, MaxCF =" << QString::number(minCurrentF) << "," <<  QString::number(maxCurrentF);
+//        qDebug() << "V-DevF =" << QString::number(maxVoltageF - minVoltageF);
+//        qDebug() << "I-DevF =" << QString::number(maxCurrentF - minCurrentF);
+
+        voltageStat.average /= (lastBufferUsedPositionIndex + 1);
+        currentStat.average /= (lastBufferUsedPositionIndex + 1);
+        consumptionStat.average = 0;
+        consumptionStat.max = lastCumulativeCurrentConsumptionValue;
+        consumptionStat.min = 0;
 
         switch(consumptionMode)
         {
@@ -377,6 +396,7 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
         }
         emit sigEBP(ebpValue, ebpValueKey);
         emit sigSamplesBufferReceiveStatistics(dropRate, dropPacketsNo, receivedPacketCounter, lastReceivedPacketID, ebpNo);
+        emit sigSignalStatistics(voltageStat, currentStat, consumptionStat);
         initBuffers();
     }
 }
@@ -389,6 +409,13 @@ void DataProcessing::initBuffers()
     initConsumptionBuffer();
     initKeyBuffer();
     initEBPBuffer();
+    initStatData();
+}
+
+void DataProcessing::initStatData()
+{
+    voltageStat.average = 0;
+    currentStat.average = 0;
 }
 
 void DataProcessing::initVoltageBuffer()

@@ -136,6 +136,7 @@ signals:
     void        sigSamplingTimeChanged(double value);
     void        sigVoltageCurrentSamplesReceived(QVector<double> voltage, QVector<double> current, QVector<double> voltageKeys, QVector<double> currentKeys);
     void        sigNewConsumptionDataReceived(QVector<double> consumption, QVector<double> keys, dataprocessing_consumption_mode_t mode);
+    void        sigNewStatisticsReceived(dataprocessing_dev_info_t voltageStat, dataprocessing_dev_info_t currentStat, dataprocessing_dev_info_t consumptioStat);
     void        sigNewSamplesBuffersProcessingStatistics(double dropRate,  unsigned int dropPacketsNo, unsigned int fullReceivedBuffersNo, unsigned int lastBufferID, unsigned short ebp);
     void        sigNewEBP(QVector<double> ebpValues, QVector<double> ebpKeys);
     void        sigNewEBPFull(double value, double key, QString name);
@@ -153,6 +154,7 @@ private slots:
     void        onNewVoltageCurrentSamplesReceived(QVector<double> voltage, QVector<double> current, QVector<double> voltageKeys, QVector<double> currentKeys);
     void        onNewSamplesBuffersProcessingStatistics(double dropRate,  unsigned int dropPacketsNo, unsigned int fullReceivedBuffersNo, unsigned int lastBufferID, unsigned short ebp);
     void        onNewConsumptionDataReceived(QVector<double> consumption, QVector<double> keys, dataprocessing_consumption_mode_t mode);
+    void        onNewStatisticsReceived(dataprocessing_dev_info_t voltageStat, dataprocessing_dev_info_t currentStat, dataprocessing_dev_info_t consumptioStat);
     void        onNewEBP(QVector<double> ebpValues, QVector<double> ebpKeys);
     void        onNewEBPFull(double value, double key, QString name);
 private:

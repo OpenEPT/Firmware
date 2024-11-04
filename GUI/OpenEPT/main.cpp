@@ -14,5 +14,6 @@ int main(int argc, char *argv[])
 
 
     qRegisterMetaType<dataprocessing_consumption_mode_t>("dataprocessing_consumption_mode_t");
+    qRegisterMetaType<dataprocessing_dev_info_t>("dataprocessing_dev_info_t");
     return a.exec();
 }

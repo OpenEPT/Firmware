@@ -35,5 +35,6 @@
         <file>images/NewSet/console.png</file>
         <file>images/NewSet/save.png</file>
         <file>images/NewSet/load.png</file>
+        <file>images/NewSet/analysis.png</file>
     </qresource>
 </RCC>

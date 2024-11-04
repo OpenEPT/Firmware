@@ -24,6 +24,7 @@ SOURCES += \
     Windows/AddDevice/adddevicewnd.cpp \
     Windows/Console/consolewnd.cpp \
     Windows/Device/advanceconfigurationwnd.cpp \
+    Windows/Device/datastatistics.cpp \
     Windows/Device/devicewnd.cpp \
     Windows/Plot/plot.cpp \
     device.cpp \
@@ -45,6 +46,7 @@ HEADERS += \
     Windows/AddDevice/adddevicewnd.h \
     Windows/Console/consolewnd.h \
     Windows/Device/advanceconfigurationwnd.h \
+    Windows/Device/datastatistics.h \
     Windows/Device/devicewnd.h \
     Windows/Plot/plot.h \
     device.h \
@@ -55,6 +57,7 @@ FORMS += \
     Windows/AddDevice/adddevicewnd.ui \
     Windows/Console/consolewnd.ui \
     Windows/Device/advanceconfigurationwnd.ui \
+    Windows/Device/datastatistics.ui \
     Windows/Device/devicewnd.ui \
     openept.ui
 
