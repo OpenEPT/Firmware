@@ -361,6 +361,12 @@ drv_ain_status 						DRV_AIN_Init(drv_ain_adc_t adc, drv_ain_adc_config_t* confi
 
 //	/* Start ADC */
 //	DRV_AIN_Start(DRV_AIN_ADC_3);
+
+//	DRV_AIN_SetSamplingPeriod(DRV_AIN_ADC_ADS9224R, 999, 1);
+//	DRV_AIN_Start(DRV_AIN_ADC_ADS9224R);
+//	DRV_AIN_Stop(DRV_AIN_ADC_ADS9224R);
+//	DRV_AIN_SetSamplingPeriod(DRV_AIN_ADC_ADS9224R, 9999, 1);
+//	DRV_AIN_Start(DRV_AIN_ADC_ADS9224R);
 	return DRV_AIN_STATUS_OK;
 }
 drv_ain_status 						DRV_AIN_Start(drv_ain_adc_t adc)

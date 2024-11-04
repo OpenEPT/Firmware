@@ -9,6 +9,7 @@
 #include "../../GPIO/drv_gpio.h"
 #include "ads9224r.h"
 #include "stm32h7xx_hal_conf.h"
+#include "stm32h7xx_ll_dma.h"
 
 
 typedef struct
@@ -585,7 +586,7 @@ static ads9224r_status_t prvADS9224R_TIMER_CONVST_Init(void)
 	sConfigOC.OCNPolarity = TIM_OCNPOLARITY_LOW;
 	if (HAL_TIM_PWM_ConfigChannel(&prvADS9224R_TIMER_CONVST_HANDLER, &sConfigOC, TIM_CHANNEL_4) != HAL_OK) return ADS9224R_STATUS_ERROR;
 
-	 return ADS9224R_STATUS_OK;
+    return ADS9224R_STATUS_OK;
 
 }
 static ads9224r_status_t prvADS9224R_ACQ_SetState(uint8_t* sdoaBuffer0, uint8_t* sdoaBuffer1, uint8_t* sdobBuffer0,uint8_t* sdobBuffer1, uint32_t size)
@@ -799,6 +800,19 @@ ads9224r_status_t   ADS9224R_StopAcquisiton()
 	HAL_TIM_PWM_Stop(&prvADS9224R_TIMER_CS_HANDLER, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Stop(&prvADS9224R_TIMER_SCLK_HANDLER, TIM_CHANNEL_4);
 	HAL_TIM_PWM_Stop(&prvADS9224R_TIMER_CONVST_HANDLER, TIM_CHANNEL_4);
+
+	HAL_SPI_DMAStop(&prvADS9224R_SPI_S_SDOA_HANDLER);
+	HAL_SPI_DMAStop(&prvADS9224R_SPI_S_SDOB_HANDLER);
+
+	/*If previous transfer is stopped at the middle of the packet, this part  of the code
+	 * return DMA to inital state*/
+	LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_0);
+	LL_DMA_SetDataLength(DMA2, LL_DMA_STREAM_0, 500);
+	LL_DMA_EnableStream(DMA2, LL_DMA_STREAM_0);
+	LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_1);
+	LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_1, 500);
+	LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
+
 	prvADS9224R_DATA.acqState = ADS9224R_ACQ_STATE_INACTIVE;
 	return ADS9224R_STATUS_OK;
 }
@@ -826,6 +840,12 @@ ads9224r_status_t   ADS9224R_SetSamplingRate(uint32_t timPeriod, uint32_t timPre
 	prvADS9224R_DATA.timPulse =  (int)(0.05*(float)(timPeriod+1));
 	if(prvADS9224R_DATA.timPulse == 0) prvADS9224R_DATA.timPulse = 1;
 	prvADS9224R_DATA.samplingPeriod = (float)(timPrescaler + 1)/(float)200*(float)(timPeriod+1);
+
+	//if(prvADS9224R_TIMER_CONVST_Init() != ADS9224R_STATUS_OK) return ADS9224R_STATUS_ERROR;
+
+	prvADS9224R_TIMER_CONVST_HANDLER.Instance->PSC = timPrescaler;
+	prvADS9224R_TIMER_CONVST_HANDLER.Instance->ARR = prvADS9224R_DATA.timPeriod;
+	prvADS9224R_TIMER_CONVST_HANDLER.Instance->CCR4 = prvADS9224R_DATA.timPulse;
 
 	return ADS9224R_STATUS_OK;
 }
