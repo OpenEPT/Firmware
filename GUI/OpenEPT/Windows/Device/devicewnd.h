@@ -120,7 +120,7 @@ signals:
     void            sigAvrRatioChanged(QString index);
     void            sigVOffsetChanged(QString off);
     void            sigCOffsetChanged(QString off);
-    void            saveToFileEnabled(bool enableStatus);
+    void            sigSaveToFileEnabled(bool enableStatus);
     void            sigNewInterfaceSelected(QString interfaceIp);
     void            sigStartAcquisition();
     void            sigPauseAcquisition();

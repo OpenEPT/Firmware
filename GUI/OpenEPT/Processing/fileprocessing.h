@@ -25,11 +25,13 @@ public:
     bool                    setSamplesFileHeader(QString header);
     bool                    setConsumptionFileHeader(QString header);
     bool                    setSummaryFileHeader(QString header);
+    bool                    appendSummaryFile(QString content);
     bool                    appendSampleData(QVector<double>* voltage, QVector<double>* voltageKeys, QVector<double>* current, QVector<double>* currentKeys);
     bool                    appendConsumptionData(QVector<double>* consumption, QVector<double>* consumptionKeys);
     bool                    appendSampleDataQueued(QVector<double> voltage, QVector<double> voltageKeys, QVector<double> current, QVector<double> currentKeys);
     bool                    appendConsumptionQueued(QVector<double> consumption, QVector<double> consumptionKeys);
     bool                    close();
+    bool                    reOpenFiles();
 
 signals:
     void                    sigAppendSampleData(QVector<double> voltage, QVector<double> voltageKeys, QVector<double> current, QVector<double> currentKeys);
@@ -52,6 +54,10 @@ private:
     QFile                   *consumptionFile;
     QThread                 *thread;
     QSemaphore              *sync;
+
+    QString                 consumptionFileHeader;
+    QString                 samplesFileHeader;
+    QString                 summaryFileHeader;
 
 };
 

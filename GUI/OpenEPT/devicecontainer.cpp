@@ -1,3 +1,4 @@
+#include <QMessageBox>
 #include "devicecontainer.h"
 
 DeviceContainer::DeviceContainer(QObject *parent,  DeviceWnd* aDeviceWnd, Device* aDevice, QString aWsPath)
@@ -9,6 +10,10 @@ DeviceContainer::DeviceContainer(QObject *parent,  DeviceWnd* aDeviceWnd, Device
     fileProcessing  = new FileProcessing();
     log->assignLogWidget(deviceWnd->getLogWidget());
     wsPath          = aWsPath;
+    consumptionProfileName = "";
+    consumptionProfileNameSet = false;
+    consumptionProfileNameExists = false;
+    savetoFileEnabled   = false;
 
     elapsedTime     = 0;
     timer           = new QTimer();
@@ -18,6 +23,7 @@ DeviceContainer::DeviceContainer(QObject *parent,  DeviceWnd* aDeviceWnd, Device
 
     /*Device window signals*/
     connect(deviceWnd,  SIGNAL(sigWndClosed()),                                     this, SLOT(onDeviceWndClosed()));
+    connect(deviceWnd,  SIGNAL(sigSaveToFileEnabled(bool)),                         this, SLOT(onDeviceWndSaveToFileChanged(bool)));
     connect(deviceWnd,  SIGNAL(sigNewControlMessageRcvd(QString)),                  this, SLOT(onConsoleWndMessageRcvd(QString)));
     connect(deviceWnd,  SIGNAL(sigADCChanged(QString)),                             this, SLOT(onDeviceWndADCChanged(QString)));
     connect(deviceWnd,  SIGNAL(sigResolutionChanged(QString)),                      this, SLOT(onDeviceWndResolutionChanged(QString)));
@@ -108,6 +114,14 @@ void DeviceContainer::onDeviceWndClosed()
     emit sigDeviceClosed(device);
 }
 
+void DeviceContainer::onDeviceWndSaveToFileChanged(bool saveToFile)
+{
+    savetoFileEnabled = saveToFile;
+    consumptionProfileName = "";
+    consumptionProfileNameSet = false;
+    consumptionProfileNameExists = false;
+}
+
 void DeviceContainer::onDeviceWndMaxNumberOfBuffersChanged(unsigned int maxNumber)
 {
     if(device->setDataProcessingMaxNumberOfBuffers(maxNumber))
@@ -150,20 +164,33 @@ void DeviceContainer::onDeviceWndMeasurementTypeChanged(QString aMeasurementType
     }
 }
 
-void DeviceContainer::onDeviceWndConsumptionProfileNameChanged(QString consumptionProfileName)
+void DeviceContainer::onDeviceWndConsumptionProfileNameChanged(QString aConsumptionProfileName)
 {
     QString fullPath;
-    if(!createSubDir(consumptionProfileName, fullPath) )
+    if(consumptionProfileName == aConsumptionProfileName)
     {
         log->printLogMessage("Consumption profile " + consumptionProfileName+ " already exists", LOG_MESSAGE_TYPE_ERROR);
         return;
     }
-    if(fileProcessing->open(FILEPROCESSING_TYPE_SAMPLES, fullPath))
+    consumptionProfileName = aConsumptionProfileName;
+    consumptionProfileNameSet = true;
+    if(!createSubDir(consumptionProfileName, fullPath) )
     {
-        log->printLogMessage("Directory for consumption profile " + consumptionProfileName + " succesfully created", LOG_MESSAGE_TYPE_INFO);
+        log->printLogMessage("Consumption profile " + consumptionProfileName+ " already exists", LOG_MESSAGE_TYPE_WARNING);
+        fileProcessing->open(FILEPROCESSING_TYPE_SAMPLES, fullPath);
         fileProcessing->setSamplesFileHeader("Voltage and Current samples");
         fileProcessing->setConsumptionFileHeader("Consumption samples");
         fileProcessing->setSummaryFileHeader("Acquisition info");
+        consumptionProfileNameExists = true;
+        return;
+    }
+    if(fileProcessing->open(FILEPROCESSING_TYPE_SAMPLES, fullPath))
+    {
+        log->printLogMessage("Directory for new consumption profile " + consumptionProfileName + " succesfully created", LOG_MESSAGE_TYPE_INFO);
+        fileProcessing->setSamplesFileHeader("Voltage and Current samples");
+        fileProcessing->setConsumptionFileHeader("Consumption samples");
+        fileProcessing->setSummaryFileHeader("Acquisition info");
+        consumptionProfileNameExists = false;
     }
     else
     {
@@ -334,13 +361,47 @@ void DeviceContainer::onDeviceWndCOffsetChanged(QString off)
 
 void DeviceContainer::onDeviceWndAcquisitionStart()
 {
+    if(savetoFileEnabled && (!consumptionProfileNameSet))
+    {
+        QMessageBox msgBox;
+        msgBox.setWindowIcon(QIcon(QPixmap(":/images/NewSet/stopHand.png")));
+        msgBox.setWindowTitle("Error: Unable to start Acquisition");
+        msgBox.setText("Set consumption profile name or disable \"Save to file\"");
+        msgBox.exec();
+        return;
+    }
+    if(savetoFileEnabled && consumptionProfileNameExists)
+    {
+        QMessageBox msgBox;
+        msgBox.setWindowIcon(QIcon(QPixmap(":/images/NewSet/stopHand.png")));
+        msgBox.setWindowTitle("Warning: Consumption profile already exists");
+        msgBox.setInformativeText("Consumption profile already exists. Continuing will overwrite previous data. Do you want to proceed?");
+        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        msgBox.setDefaultButton(QMessageBox::Cancel);
+        int ret = msgBox.exec();
+
+        switch (ret) {
+        case QMessageBox::Ok:
+            fileProcessing->reOpenFiles();
+            consumptionProfileNameExists = false;
+            break;
+        case QMessageBox::Cancel:
+            return;
+        default:
+            return;
+        }
+    }
     if(!device->acquisitionStart())
     {
         log->printLogMessage("Unable to start acquistion", LOG_MESSAGE_TYPE_ERROR);
     }
     else
     {
-        log->printLogMessage("Acquisition sucessfully started", LOG_MESSAGE_TYPE_INFO);
+        log->printLogMessage("Acquisition sucessfully started", LOG_MESSAGE_TYPE_INFO);        
+        if(savetoFileEnabled)
+        {
+            fileProcessing->appendSummaryFile("Acquisiton start: " + QDateTime::currentDateTime().toString());
+        }
     }
 }
 
@@ -353,6 +414,11 @@ void DeviceContainer::onDeviceWndAcquisitionStop()
     else
     {
         log->printLogMessage("Acquisition sucessfully stoped", LOG_MESSAGE_TYPE_INFO);
+        if(savetoFileEnabled && (consumptionProfileNameExists == false))
+        {
+            fileProcessing->appendSummaryFile("Acquisiton stop: " + QDateTime::currentDateTime().toString());
+            consumptionProfileNameExists = true;
+        }
     }
 }
 
@@ -365,6 +431,11 @@ void DeviceContainer::onDeviceWndAcquisitionPause()
     else
     {
         log->printLogMessage("Acquisition sucessfully paused", LOG_MESSAGE_TYPE_INFO);
+          if(savetoFileEnabled && (consumptionProfileNameExists == false))
+        {
+            fileProcessing->appendSummaryFile("Acquisiton stop: " + QDateTime::currentDateTime().toString());
+            consumptionProfileNameExists = true;
+        }
     }
 }
 
@@ -850,6 +921,8 @@ device_adc_t DeviceContainer::getAdcFromString(QString adc)
 bool        DeviceContainer::createSubDir(const QString &subDirName, QString &fullPath) {
     QDir dir(wsPath);
 
+    fullPath = wsPath + "/" + subDirName;
+
     // Check if the main directory exists
     if (!dir.exists()) return false;
 
@@ -858,9 +931,6 @@ bool        DeviceContainer::createSubDir(const QString &subDirName, QString &fu
 
     // Try to create the subdirectory
     if (!dir.mkdir(subDirName)) return false;
-
-
-    fullPath = wsPath + "/" + subDirName;
 
     return true;
 }

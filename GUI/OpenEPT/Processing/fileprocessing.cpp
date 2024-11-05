@@ -11,7 +11,8 @@ FileProcessing::FileProcessing(QObject *parent)
 
 bool FileProcessing::open(fileprocessing_type_t aType, QString aPath)
 {
-    summaryFilePath = aPath + "/OpenPET.txt";
+    summaryFilePath = aPath + "/OpenEPT.txt";
+    summaryFile = new QFile(summaryFilePath);
     samplesFilePath = aPath + "/vc.csv";
     consumptionFilePath = aPath + "/cons.csv";
     type = aType;
@@ -42,6 +43,7 @@ bool FileProcessing::setSamplesFileHeader(QString header)
         if(!samplesFile->open(QIODevice::WriteOnly | QIODevice::Text)) return false;
     }
     QTextStream out(samplesFile);
+    samplesFileHeader = header;
     out << header << "\n";
     out << "------------\n";
     switch(type)
@@ -67,6 +69,7 @@ bool FileProcessing::setConsumptionFileHeader(QString header)
         if(!consumptionFile->open(QIODevice::WriteOnly | QIODevice::Text)) return false;
     }
     QTextStream out(consumptionFile);
+    consumptionFileHeader = header;
     out << header << "\n";
     out << "------------\n";
     switch(type)
@@ -92,20 +95,21 @@ bool FileProcessing::setSummaryFileHeader(QString header)
         if(!summaryFile->open(QIODevice::WriteOnly | QIODevice::Text)) return false;
     }
     QTextStream out(summaryFile);
+    summaryFileHeader = header;
     out << header << "\n";
     out << "------------\n";
-    switch(type)
+    summaryFile->close();
+    return true;
+}
+
+bool FileProcessing::appendSummaryFile(QString content)
+{
+    if(!summaryFile->isOpen())
     {
-    case FILEPROCESSING_TYPE_UKNOWN:
-        out << "Error\n";
-        break;
-    case FILEPROCESSING_TYPE_LOG:
-        out << "Log\n";
-        break;
-    case FILEPROCESSING_TYPE_SAMPLES:
-        out << "NoOfPackets, Duration\n";
-        break;
+        if(!summaryFile->open(QIODevice::WriteOnly | QIODevice::Text| QIODevice::Append)) return false;
     }
+    QTextStream out(summaryFile);
+    out << content << "\n";
     summaryFile->close();
     return true;
 }
@@ -165,6 +169,26 @@ bool FileProcessing::close()
     return true;
 }
 
+bool FileProcessing::reOpenFiles()
+{
+    if(samplesFile->exists())
+    {
+        samplesFile->remove();
+        setSamplesFileHeader(samplesFileHeader);
+    }
+    if(consumptionFile->exists())
+    {
+        consumptionFile->remove();
+        setConsumptionFileHeader(consumptionFileHeader);
+    }
+    if(summaryFile->exists())
+    {
+        summaryFile->remove();
+        setSummaryFileHeader(summaryFileHeader);
+    }
+    return true;
+}
+
 void FileProcessing::onThreadStart()
 {
     switch(type)
@@ -176,7 +200,6 @@ void FileProcessing::onThreadStart()
     case FILEPROCESSING_TYPE_SAMPLES:
         samplesFile = new QFile(samplesFilePath);
         consumptionFile = new QFile(consumptionFilePath);
-        summaryFile = new QFile(summaryFilePath);
         samplesFile->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append);
         consumptionFile->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append);
         qDebug() << samplesFile;

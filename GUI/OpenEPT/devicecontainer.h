@@ -2,6 +2,7 @@
 #define DEVICECONTAINER_H
 
 #include <QObject>
+#include <QDateTime>
 #include <QTimer>
 #include <QDir>
 #include "device.h"
@@ -37,10 +38,11 @@ public slots:
     void    onDeviceWndAcquisitionRefresh();
     void    onDeviceWndNewConfiguration(QVariant newConfig);
     void    onDeviceWndClosed();
+    void    onDeviceWndSaveToFileChanged(bool saveToFile);
     void    onDeviceWndMaxNumberOfBuffersChanged(unsigned int maxNumber);
     void    onDeviceWndConsumptionTypeChanged(QString aConsumptionType);
     void    onDeviceWndMeasurementTypeChanged(QString aMeasurementType);
-    void    onDeviceWndConsumptionProfileNameChanged(QString consumptionProfileName);
+    void    onDeviceWndConsumptionProfileNameChanged(QString aConsumptionProfileName);
 
     void    onDeviceControlLinkDisconnected();
     void    onDeviceControlLinkConnected();
@@ -89,6 +91,11 @@ private:
     QTimer                          *timer;
 
     QString                         wsPath;
+
+    QString                         consumptionProfileName;
+    bool                            consumptionProfileNameSet;
+    bool                            consumptionProfileNameExists;
+    bool                            savetoFileEnabled; //Mark that for one consumption profile data are stored in file
 
 };
 

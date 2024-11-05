@@ -12,6 +12,10 @@
 #include <QMdiSubWindow>
 #include <QDockWidget>
 #include <QMainWindow>
+#include <QProgressBar>
+#include <QFuture>
+#include <QtConcurrent>
+#include <QThread>
 #include "Windows/Plot/plot.h"
 
 namespace Ui {
@@ -24,10 +28,13 @@ class DataAnalyzer : public QWidget
 
 public:
     explicit DataAnalyzer(QWidget *parent = nullptr, QString aWsDirPath="");
+    void     loadConsumptionProfileData();
     ~DataAnalyzer();
 
 public slots:
     void    onRealoadConsumptionProfiles();
+    void    onConsumptionProfileChanged(int index);
+    void    onLoadConsumptionProfileData();
 
 private:
     Ui::DataAnalyzer *ui;
@@ -41,15 +48,19 @@ private:
     Plot    *currentChart;
     Plot    *consumptionChart;
 
-    void createVoltageSubWin();
-    void createCurrentSubWin();
-    void createConsumptionSubWin();
+
+    QString                 selectedConsumptionProfile;
+
+    void                    createVoltageSubWin();
+    void                    createCurrentSubWin();
+    void                    createConsumptionSubWin();
 
     QComboBox               *consumptionProfilesCB;
     QStringList             consumptionProfilesName;
 
-    QVector<QVector<double>> parseData(const QString &filePath);
-    QStringList             listSubdirectories();
+    QVector<QVector<double>> parseVCData(const QString &filePath);
+    QVector<QVector<double>> parseConsumptionData(const QString &filePath);
+    QStringList             listConsumptionProfiles();
 
 
     void                    realoadConsumptionProfiles();

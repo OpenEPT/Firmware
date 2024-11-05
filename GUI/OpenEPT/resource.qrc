@@ -38,5 +38,7 @@
         <file>images/NewSet/analysis.png</file>
         <file>images/NewSet/dataAnalyzer.png</file>
         <file>images/NewSet/process.png</file>
+        <file>images/NewSet/error.png</file>
+        <file>images/NewSet/stopHand.png</file>
     </qresource>
 </RCC>

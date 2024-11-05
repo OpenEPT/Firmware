@@ -1,4 +1,4 @@
-QT       += core gui uitools opengl
+QT       += core gui uitools opengl concurrent
 QT       += network
 LIBS     += -lws2_32
 

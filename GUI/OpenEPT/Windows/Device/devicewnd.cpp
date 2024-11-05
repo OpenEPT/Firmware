@@ -327,13 +327,15 @@ void    DeviceWnd::onSaveToFileChanged(int value)
         ui->consNamePusb->setEnabled(true);
         ui->consNameLab->setEnabled(true);
         ui->consNameLine->setEnabled(true);
-        emit saveToFileEnabled(true);
+        ui->consNameLine->setPlaceholderText("Set Consumption Name");
+        emit sigSaveToFileEnabled(true);
     }else
     {
         ui->consNamePusb->setEnabled(false);
         ui->consNameLab->setEnabled(false);
         ui->consNameLine->setEnabled(false);
-        emit saveToFileEnabled(false);
+        ui->consNameLine->setPlaceholderText("Enable \"Save to file\"");
+        emit sigSaveToFileEnabled(false);
     }
 }
 
