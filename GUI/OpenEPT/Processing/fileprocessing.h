@@ -24,6 +24,7 @@ public:
     bool                    open(fileprocessing_type_t aType, QString aPath);
     bool                    setSamplesFileHeader(QString header);
     bool                    setConsumptionFileHeader(QString header);
+    bool                    setSummaryFileHeader(QString header);
     bool                    appendSampleData(QVector<double>* voltage, QVector<double>* voltageKeys, QVector<double>* current, QVector<double>* currentKeys);
     bool                    appendConsumptionData(QVector<double>* consumption, QVector<double>* consumptionKeys);
     bool                    appendSampleDataQueued(QVector<double> voltage, QVector<double> voltageKeys, QVector<double> current, QVector<double> currentKeys);
@@ -42,9 +43,11 @@ public slots:
     void                    onAppendConsumptionData(QVector<double> consumption, QVector<double> consumptionKeys);
 
 private:
+    QString                 summaryFilePath;
     QString                 samplesFilePath;
     QString                 consumptionFilePath;
     fileprocessing_type_t   type;
+    QFile                   *summaryFile;
     QFile                   *samplesFile;
     QFile                   *consumptionFile;
     QThread                 *thread;

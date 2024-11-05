@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QDir>
 #include "device.h"
 #include "Windows/Device/devicewnd.h"
 #include "Utility/log.h"
@@ -12,7 +13,7 @@ class DeviceContainer : public QObject
 {
     Q_OBJECT
 public:
-    explicit DeviceContainer(QObject *parent = nullptr,  DeviceWnd* aDeviceWnd = nullptr, Device* aDevice = nullptr);
+    explicit DeviceContainer(QObject *parent = nullptr,  DeviceWnd* aDeviceWnd = nullptr, Device* aDevice = nullptr, QString aWsPath="");
     ~DeviceContainer();
 
 signals:
@@ -39,7 +40,7 @@ public slots:
     void    onDeviceWndMaxNumberOfBuffersChanged(unsigned int maxNumber);
     void    onDeviceWndConsumptionTypeChanged(QString aConsumptionType);
     void    onDeviceWndMeasurementTypeChanged(QString aMeasurementType);
-    void    onDeviceWndSamplesSavePathChanged(QString path);
+    void    onDeviceWndConsumptionProfileNameChanged(QString consumptionProfileName);
 
     void    onDeviceControlLinkDisconnected();
     void    onDeviceControlLinkConnected();
@@ -69,6 +70,7 @@ public slots:
     void    onDeviceNewEBPFull(double value, double key, QString name);
 
 
+
 private:
     DeviceWnd*                      deviceWnd;
     Device*                         device;
@@ -81,9 +83,12 @@ private:
     device_adc_ch_sampling_time_t   getAdcChSamplingTimeFromString(QString chstime);
     device_adc_averaging_t          getAdcAvgRatioFromString(QString avgRatio);
     device_adc_t                    getAdcFromString(QString adc);
+    bool                            createSubDir(const QString &subDirName, QString &fullPath);
 
     double                          elapsedTime;
     QTimer                          *timer;
+
+    QString                         wsPath;
 
 };
 

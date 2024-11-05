@@ -28,6 +28,7 @@ SOURCES += \
     Windows/Device/datastatistics.cpp \
     Windows/Device/devicewnd.cpp \
     Windows/Plot/plot.cpp \
+    Windows/WSSelection/selectworkspace.cpp \
     device.cpp \
     devicecontainer.cpp \
     main.cpp \
@@ -51,6 +52,7 @@ HEADERS += \
     Windows/Device/datastatistics.h \
     Windows/Device/devicewnd.h \
     Windows/Plot/plot.h \
+    Windows/WSSelection/selectworkspace.h \
     device.h \
     devicecontainer.h \
     openept.h
@@ -62,6 +64,7 @@ FORMS += \
     Windows/Device/advanceconfigurationwnd.ui \
     Windows/Device/datastatistics.ui \
     Windows/Device/devicewnd.ui \
+    Windows/WSSelection/selectworkspace.ui \
     openept.ui
 
 QTPLUGIN += qjpeg

@@ -176,7 +176,7 @@ DeviceWnd::DeviceWnd(QWidget *parent) :
     setDeviceInterfaceSelectionState(DEVICE_INTERFACE_SELECTION_STATE_UNDEFINED);
 
     connect(ui->saveToFileCheb, SIGNAL(stateChanged(int)), this, SLOT(onSaveToFileChanged(int)));
-    connect(ui->pathPusb, SIGNAL(clicked(bool)), this, SLOT(onPathInfo()));
+    connect(ui->consNamePusb, SIGNAL(clicked(bool)), this, SLOT(onSetConsumptionName()));
     connect(ui->startPusb, SIGNAL(clicked(bool)), this, SLOT(onStartAcquisition()));
     connect(ui->pausePusb, SIGNAL(clicked(bool)), this, SLOT(onPauseAcquisition()));
     connect(ui->stopPusb, SIGNAL(clicked(bool)), this, SLOT(onStopAcquisiton()));
@@ -208,18 +208,9 @@ void    DeviceWnd::onNewControlMsgRcvd(QString text)
     emit sigNewControlMessageRcvd(text);
 }
 
-void DeviceWnd::onPathInfo()
-{
-    QString selfilter = tr("CSV files (*.csv)" );
-    QString chosenPath = QFileDialog::getSaveFileName(
-        this,
-        "Select directory to save files",
-        QDir::homePath(),
-        selfilter,
-        &selfilter);
-    ui->pathLine->setText(chosenPath);
-    qDebug() << chosenPath;
-    emit sigPathChanged(chosenPath);
+void DeviceWnd::onSetConsumptionName()
+{    
+    emit sigConsumptionProfileNameChanged(ui->consNameLine->text());
 }
 
 void DeviceWnd::onInterfaceChanged(QString interfaceInfo)
@@ -246,6 +237,10 @@ void DeviceWnd::onMaxNumberOfBuffersChanged()
     QString maxNumberOfSamplesBuffers = ui->maxNumOfPacketsLine->text();
     emit sigMaxNumberOfBuffersChanged(maxNumberOfSamplesBuffers.toInt());
 
+}
+
+void DeviceWnd::onConsumptionProfileNameChanged()
+{
 }
 
 void DeviceWnd::onConsumptionTypeChanged(QAbstractButton* button)
@@ -329,15 +324,15 @@ void    DeviceWnd::onSaveToFileChanged(int value)
 {
     if(value == Qt::Checked)
     {
-        ui->pathPusb->setEnabled(true);
-        ui->pathLab->setEnabled(true);
-        ui->pathLine->setEnabled(true);
+        ui->consNamePusb->setEnabled(true);
+        ui->consNameLab->setEnabled(true);
+        ui->consNameLine->setEnabled(true);
         emit saveToFileEnabled(true);
     }else
     {
-        ui->pathPusb->setEnabled(false);
-        ui->pathLab->setEnabled(false);
-        ui->pathLine->setEnabled(false);
+        ui->consNamePusb->setEnabled(false);
+        ui->consNameLab->setEnabled(false);
+        ui->consNameLine->setEnabled(false);
         emit saveToFileEnabled(false);
     }
 }
@@ -451,7 +446,7 @@ void DeviceWnd::setDeviceInterfaceSelectionState(device_interface_selection_stat
         ui->saveToFileCheb->setEnabled(false);
         ui->dischargeControlPusb1->setEnabled(false);
         ui->dischargeControlPusb2->setEnabled(false);
-        ui->pathPusb->setEnabled(false);
+        ui->consNamePusb->setEnabled(false);
         ui->streamServerInterfComb->setEnabled(true);
         break;
     case DEVICE_INTERFACE_SELECTION_STATE_SELECTED:
@@ -465,7 +460,7 @@ void DeviceWnd::setDeviceInterfaceSelectionState(device_interface_selection_stat
         ui->saveToFileCheb->setEnabled(true);
         ui->dischargeControlPusb1->setEnabled(true);
         ui->dischargeControlPusb2->setEnabled(true);
-        ui->pathPusb->setEnabled(true);
+        ui->consNamePusb->setEnabled(true);
         ui->streamServerInterfComb->setEnabled(false);
         break;
     }
@@ -760,5 +755,12 @@ bool DeviceWnd::showStatistic(device_stat_info statInfo)
     dataAnalyzer->setVoltageStatisticInfo(statInfo.voltageAvg, statInfo.voltageMax, statInfo.voltageMin);
     dataAnalyzer->setCurrentStatisticInfo(statInfo.currentAvg, statInfo.currentMax, statInfo.currentMin);
     dataAnalyzer->setConsumptionStatisticInfo(statInfo.consumptionAvg, statInfo.consumptionMax, statInfo.consumptionMin);
+    return true;
+}
+
+bool DeviceWnd::setWorkingSpaceDir(QString aWsPath)
+{
+    wsPath = aWsPath;
+    ui->consNameLine->setText(wsPath);
     return true;
 }

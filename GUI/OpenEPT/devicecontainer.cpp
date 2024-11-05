@@ -1,6 +1,6 @@
 #include "devicecontainer.h"
 
-DeviceContainer::DeviceContainer(QObject *parent,  DeviceWnd* aDeviceWnd, Device* aDevice)
+DeviceContainer::DeviceContainer(QObject *parent,  DeviceWnd* aDeviceWnd, Device* aDevice, QString aWsPath)
     : QObject{parent}
 {
     deviceWnd       = aDeviceWnd;
@@ -8,6 +8,7 @@ DeviceContainer::DeviceContainer(QObject *parent,  DeviceWnd* aDeviceWnd, Device
     log             = new Log();
     fileProcessing  = new FileProcessing();
     log->assignLogWidget(deviceWnd->getLogWidget());
+    wsPath          = aWsPath;
 
     elapsedTime     = 0;
     timer           = new QTimer();
@@ -36,7 +37,7 @@ DeviceContainer::DeviceContainer(QObject *parent,  DeviceWnd* aDeviceWnd, Device
     connect(deviceWnd,  SIGNAL(sigMaxNumberOfBuffersChanged(uint)),                 this, SLOT(onDeviceWndMaxNumberOfBuffersChanged(uint)));
     connect(deviceWnd,  SIGNAL(sigConsumptionTypeChanged(QString)),                 this, SLOT(onDeviceWndConsumptionTypeChanged(QString)));
     connect(deviceWnd,  SIGNAL(sigMeasurementTypeChanged(QString)),                 this, SLOT(onDeviceWndMeasurementTypeChanged(QString)));
-    connect(deviceWnd,  SIGNAL(sigPathChanged(QString)),                            this, SLOT(onDeviceWndSamplesSavePathChanged(QString)));
+    connect(deviceWnd,  SIGNAL(sigConsumptionProfileNameChanged(QString)),          this, SLOT(onDeviceWndConsumptionProfileNameChanged(QString)));
 
     /*Device signals*/
     connect(device,     SIGNAL(sigControlLinkConnected()),                          this, SLOT(onDeviceControlLinkConnected()));
@@ -149,17 +150,24 @@ void DeviceContainer::onDeviceWndMeasurementTypeChanged(QString aMeasurementType
     }
 }
 
-void DeviceContainer::onDeviceWndSamplesSavePathChanged(QString path)
+void DeviceContainer::onDeviceWndConsumptionProfileNameChanged(QString consumptionProfileName)
 {
-    if(fileProcessing->open(FILEPROCESSING_TYPE_SAMPLES, path))
+    QString fullPath;
+    if(!createSubDir(consumptionProfileName, fullPath) )
     {
-        log->printLogMessage("Samples log file sucessfully opened (Path = " + path + ")", LOG_MESSAGE_TYPE_INFO);
+        log->printLogMessage("Consumption profile " + consumptionProfileName+ " already exists", LOG_MESSAGE_TYPE_ERROR);
+        return;
+    }
+    if(fileProcessing->open(FILEPROCESSING_TYPE_SAMPLES, fullPath))
+    {
+        log->printLogMessage("Directory for consumption profile " + consumptionProfileName + " succesfully created", LOG_MESSAGE_TYPE_INFO);
         fileProcessing->setSamplesFileHeader("Voltage and Current samples");
         fileProcessing->setConsumptionFileHeader("Consumption samples");
+        fileProcessing->setSummaryFileHeader("Acquisition info");
     }
     else
     {
-        log->printLogMessage("Unable to open samples log file (Path = " + path + ")", LOG_MESSAGE_TYPE_ERROR);
+        log->printLogMessage("Unable to open samples log file (Path = " + consumptionProfileName + ")", LOG_MESSAGE_TYPE_ERROR);
     }
 }
 
@@ -838,4 +846,21 @@ device_adc_t DeviceContainer::getAdcFromString(QString adc)
         break;
     }
     return returnAdc;
+}
+bool        DeviceContainer::createSubDir(const QString &subDirName, QString &fullPath) {
+    QDir dir(wsPath);
+
+    // Check if the main directory exists
+    if (!dir.exists()) return false;
+
+    // Check if the subdirectory already exists
+    if (dir.exists(subDirName)) return false;
+
+    // Try to create the subdirectory
+    if (!dir.mkdir(subDirName)) return false;
+
+
+    fullPath = wsPath + "/" + subDirName;
+
+    return true;
 }

@@ -11,8 +11,9 @@ FileProcessing::FileProcessing(QObject *parent)
 
 bool FileProcessing::open(fileprocessing_type_t aType, QString aPath)
 {
-    samplesFilePath = aPath;
-    consumptionFilePath = aPath.split('.')[0] + "_Cons.csv";
+    summaryFilePath = aPath + "/OpenPET.txt";
+    samplesFilePath = aPath + "/vc.csv";
+    consumptionFilePath = aPath + "/cons.csv";
     type = aType;
     switch(type)
     {
@@ -84,6 +85,31 @@ bool FileProcessing::setConsumptionFileHeader(QString header)
     return true;
 }
 
+bool FileProcessing::setSummaryFileHeader(QString header)
+{
+    if(!summaryFile->isOpen())
+    {
+        if(!summaryFile->open(QIODevice::WriteOnly | QIODevice::Text)) return false;
+    }
+    QTextStream out(summaryFile);
+    out << header << "\n";
+    out << "------------\n";
+    switch(type)
+    {
+    case FILEPROCESSING_TYPE_UKNOWN:
+        out << "Error\n";
+        break;
+    case FILEPROCESSING_TYPE_LOG:
+        out << "Log\n";
+        break;
+    case FILEPROCESSING_TYPE_SAMPLES:
+        out << "NoOfPackets, Duration\n";
+        break;
+    }
+    summaryFile->close();
+    return true;
+}
+
 bool FileProcessing::appendSampleData(QVector<double>* voltage, QVector<double>* voltageKeys, QVector<double>* current, QVector<double>* currentKeys)
 {
     if(!samplesFile->isOpen())
@@ -150,6 +176,7 @@ void FileProcessing::onThreadStart()
     case FILEPROCESSING_TYPE_SAMPLES:
         samplesFile = new QFile(samplesFilePath);
         consumptionFile = new QFile(consumptionFilePath);
+        summaryFile = new QFile(summaryFilePath);
         samplesFile->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append);
         consumptionFile->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append);
         qDebug() << samplesFile;

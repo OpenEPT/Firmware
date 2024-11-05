@@ -2,6 +2,9 @@
 #define DATAANALYZER_H
 
 #include <QWidget>
+#include <QString>
+#include <QStringList>
+#include <QComboBox>
 #include <QMdiArea>
 #include <QBoxLayout>
 #include <QLabel>
@@ -20,12 +23,19 @@ class DataAnalyzer : public QWidget
     Q_OBJECT
 
 public:
-    explicit DataAnalyzer(QWidget *parent = nullptr);
+    explicit DataAnalyzer(QWidget *parent = nullptr, QString aWsDirPath="");
     ~DataAnalyzer();
+
+public slots:
+    void    onRealoadConsumptionProfiles();
 
 private:
     Ui::DataAnalyzer *ui;
     QMainWindow *mainWindow;
+
+    QLabel*     detectedProfilesLabe;
+
+    QString     wsDirPath;
 
     Plot    *voltageChart;
     Plot    *currentChart;
@@ -35,7 +45,14 @@ private:
     void createCurrentSubWin();
     void createConsumptionSubWin();
 
+    QComboBox               *consumptionProfilesCB;
+    QStringList             consumptionProfilesName;
+
     QVector<QVector<double>> parseData(const QString &filePath);
+    QStringList             listSubdirectories();
+
+
+    void                    realoadConsumptionProfiles();
 };
 
 #endif // DATAANALYZER_H

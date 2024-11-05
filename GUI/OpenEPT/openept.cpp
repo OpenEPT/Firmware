@@ -10,13 +10,13 @@
 #define BUTTON_WIDTH (25)
 
 
-OpenEPT::OpenEPT(QWidget *parent)
+OpenEPT::OpenEPT(QString aWorkspacePath, QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::OpenEPT)
 {
     ui->setupUi(this);
 
-    dataAnalyzerWnd = new DataAnalyzer();
+    dataAnalyzerWnd = new DataAnalyzer(nullptr,aWorkspacePath);
 
     addDeviceWnd = new AddDeviceWnd(this);
     addDeviceWnd->setWindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint);
@@ -32,6 +32,7 @@ OpenEPT::OpenEPT(QWidget *parent)
     connect(ui->actionAddSingleDevice, &QAction::triggered, this,  &OpenEPT::onActionAddSingleDeviceTriggered);
     connect(ui->actionDataAnalyzer, &QAction::triggered, this,  &OpenEPT::onActionOpenAndProcessData);
 
+    workspacePath = aWorkspacePath;
 
  }
 
@@ -91,9 +92,10 @@ bool OpenEPT::addNewDevice(QString aIpAddress, QString aPort)
     DeviceWnd *tmpdeviceWnd = new DeviceWnd(0);
     tmpdeviceWnd->setWindowTitle(deviceName);
     tmpdeviceWnd->setDeviceState(DEVICE_STATE_CONNECTED);
+    //tmpdeviceWnd->setWorkingSpaceDir(workspacePath);
 
     /* Create device container */
-    DeviceContainer *tmpDeviceContainer = new DeviceContainer(NULL,tmpdeviceWnd,tmpDevice);
+    DeviceContainer *tmpDeviceContainer = new DeviceContainer(NULL,tmpdeviceWnd,tmpDevice, workspacePath);
 
     connect(tmpDeviceContainer, SIGNAL(sigDeviceClosed(Device*)), this, SLOT(onDeviceContainerDeviceWndClosed(Device*)));
 

@@ -101,6 +101,8 @@ public:
     bool            plotConsumptionEBPWithName(double value, double key, QString name);
     bool            showStatistic(device_stat_info statInfo);
 
+    bool            setWorkingSpaceDir(QString aWsPath);
+
 
     QStringList*    getChSamplingTimeOptions();
     QStringList*    getChAvgRationOptions();
@@ -124,7 +126,7 @@ signals:
     void            sigPauseAcquisition();
     void            sigStopAcquisition();
     void            sigRefreshAcquisition();
-    void            sigPathChanged(QString path);
+    void            sigConsumptionProfileNameChanged(QString newName);
     void            sigNewControlMessageRcvd(const QString &response);
     void            sigAdvConfigurationReqested();
     void            sigAdvConfigurationChanged(QVariant newConfig);
@@ -142,7 +144,7 @@ public slots:
     void            onRefreshAcquisiton();
     void            onConsolePressed();
     void            onDataAnalyzerPressed();
-    void            onPathInfo();
+    void            onSetConsumptionName();
     void            onResolutionChanged(QString aResolution);
     void            onADCChanged(QString adc);
     void            onClockDivChanged(QString aClockDiv);
@@ -152,6 +154,9 @@ public slots:
     void            onAdvConfigurationChanged(QVariant aConfig);
     void            onAdvConfigurationReqested(void);
     void            onMaxNumberOfBuffersChanged();
+
+
+    void            onConsumptionProfileNameChanged();
 
     void            onConsumptionTypeChanged(QAbstractButton* button);
     void            onMeasurementTypeChanged(QAbstractButton* button);
@@ -168,7 +173,7 @@ private:
     AdvanceConfigurationWnd     *advanceConfigurationWnd;
 
     ConsoleWnd                  *consoleWnd;
-    DataStatistics                *dataAnalyzer;
+    DataStatistics              *dataAnalyzer;
     Plot                        *voltageChart;
     Plot                        *currentChart;
     Plot                        *consumptionChart;
@@ -202,6 +207,8 @@ private:
 
     device_measurement_type_t   mType;
     device_consumption_type_t   cType;
+
+    QString                     wsPath;
 };
 
 #endif // DEVICEWND_H

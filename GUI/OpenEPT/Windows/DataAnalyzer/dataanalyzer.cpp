@@ -5,11 +5,13 @@
 #define PLOT_MINIMUM_SIZE_HEIGHT 100
 #define PLOT_MINIMUM_SIZE_WIDTH 500
 
-DataAnalyzer::DataAnalyzer(QWidget *parent) :
+DataAnalyzer::DataAnalyzer(QWidget *parent, QString aWsDirPath) :
     QWidget(parent),
     ui(new Ui::DataAnalyzer)
 {
     ui->setupUi(this);
+
+    wsDirPath = aWsDirPath;
 
     QFont defaultFont("Arial", 10); // Set desired font and size
     setFont(defaultFont);
@@ -21,18 +23,27 @@ DataAnalyzer::DataAnalyzer(QWidget *parent) :
 
     // Create a horizontal layout for the button and line edit
     QHBoxLayout *topLayout = new QHBoxLayout;
-    QPushButton *loadFilePushb = new QPushButton();
+    QPushButton *reloadProfileNamesPushb = new QPushButton();
     QPushButton *processFilePushb = new QPushButton();
-    QLineEdit *lineEdit = new QLineEdit();
-    lineEdit->setPlaceholderText("Consumption data file path");
-    lineEdit->setFont(defaultFont);
 
-    QPixmap buttonIconPng(":/images/NewSet/directory.png");
+    detectedProfilesLabe    = new QLabel("Detect consumption profiles", this);
+    detectedProfilesLabe->setFixedSize(260, 30);
+    detectedProfilesLabe->setFont(defaultFont);
+
+    consumptionProfilesCB = new QComboBox();
+    consumptionProfilesCB->setFont(defaultFont);
+    consumptionProfilesCB->setFixedSize(150, 30);
+
+    realoadConsumptionProfiles();
+
+    QPixmap buttonIconPng(":/images/NewSet/reload.png");
     QIcon buttonIcon(buttonIconPng);
-    loadFilePushb->setIcon(buttonIcon);
-    loadFilePushb->setIconSize(QSize(30,30));
-    loadFilePushb->setToolTip("Zoom in");
-    loadFilePushb->setFixedSize(30, 30);
+    reloadProfileNamesPushb->setIcon(buttonIcon);
+    reloadProfileNamesPushb->setIconSize(QSize(30,30));
+    reloadProfileNamesPushb->setToolTip("Reload consumption profiles");
+    reloadProfileNamesPushb->setFixedSize(30, 30);
+
+    connect(reloadProfileNamesPushb, SIGNAL(clicked(bool)), this, SLOT(onRealoadConsumptionProfiles()));
 
     QPixmap processIconPng(":/images/NewSet/process.png");
     QIcon processIcon(processIconPng);
@@ -44,8 +55,9 @@ DataAnalyzer::DataAnalyzer(QWidget *parent) :
     // Add the button and line edit to the horizontal layout
     topLayout->addWidget(processFilePushb);
     topLayout->addStretch();
-    topLayout->addWidget(lineEdit);
-    topLayout->addWidget(loadFilePushb);
+    topLayout->addWidget(detectedProfilesLabe);
+    topLayout->addWidget(consumptionProfilesCB);
+    topLayout->addWidget(reloadProfileNamesPushb);
 
      mainLayout->addLayout(topLayout);
 
@@ -212,7 +224,51 @@ QVector<QVector<double> > DataAnalyzer::parseData(const QString &filePath)
     return data;
 }
 
+QStringList DataAnalyzer::listSubdirectories()
+{
+    QStringList subdirectories;
+
+    QDir dir(wsDirPath);
+
+    // Check if the main directory exists
+    if (!dir.exists()) return subdirectories;
+
+    // Set the filter to only look for directories, excluding "." and ".."
+    dir.setFilter(QDir::Dirs | QDir::NoDotAndDotDot);
+
+    // Iterate through the directory entries and add the directory names to the list
+    foreach (const QFileInfo &entry, dir.entryInfoList()) {
+        if (entry.isDir()) {
+            subdirectories << entry.fileName(); // Add only the name of the subdirectory
+        }
+    }
+
+    return subdirectories;
+}
+
+void DataAnalyzer::realoadConsumptionProfiles()
+{
+    consumptionProfilesCB->clear();
+    consumptionProfilesName = listSubdirectories();
+    if(consumptionProfilesName.size() == 0)
+    {
+        consumptionProfilesCB->setEnabled(false);
+        detectedProfilesLabe->setText("No detected consumption profile");
+    }
+    else
+    {
+        consumptionProfilesCB->setEnabled(true);
+        consumptionProfilesCB->addItems(consumptionProfilesName);
+        detectedProfilesLabe->setText("Select one consumption profile");
+    }
+}
+
 DataAnalyzer::~DataAnalyzer()
 {
     delete ui;
+}
+
+void DataAnalyzer::onRealoadConsumptionProfiles()
+{
+    realoadConsumptionProfiles();
 }

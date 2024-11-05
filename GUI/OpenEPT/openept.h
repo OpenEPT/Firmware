@@ -17,7 +17,7 @@ class OpenEPT : public QMainWindow
     Q_OBJECT
 
 public:
-    OpenEPT(QWidget *parent = nullptr);
+    OpenEPT(QString aWorkspacePath, QWidget *parent = nullptr);
     ~OpenEPT();
 
 
@@ -49,6 +49,9 @@ private:
 
     /**/
     void                        setTheme();
+
+    /**/
+    QString                     workspacePath;
 
 };
 #endif // OPENEPT_H
