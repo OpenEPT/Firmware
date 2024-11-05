@@ -5,6 +5,7 @@
 #include <QList>
 #include <QMessageBox>
 #include "Windows/AddDevice/adddevicewnd.h"
+#include "Windows/DataAnalyzer/dataanalyzer.h"
 #include "devicecontainer.h"
 
 QT_BEGIN_NAMESPACE
@@ -25,6 +26,8 @@ private slots:
     void onAddDeviceWndAddDevice(QString aIpAddress, QString aPort);
     void onDeviceContainerDeviceWndClosed(Device* aDevice);
     void onDeviceContainerAllDeviceWndClosed();
+    void onActionOpenAndProcessData();
+
 
 private:
     Ui::OpenEPT                 *ui;
@@ -34,6 +37,9 @@ private:
     QList<DeviceContainer*>     deviceList;
     /**/
     QMenu                       *connectedDevicesMenu;
+
+    /**/
+    DataAnalyzer                *dataAnalyzerWnd;
 
     /* */
     QMessageBox                 msgBox;

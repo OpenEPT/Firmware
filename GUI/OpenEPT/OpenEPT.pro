@@ -23,6 +23,7 @@ SOURCES += \
     Utility/log.cpp \
     Windows/AddDevice/adddevicewnd.cpp \
     Windows/Console/consolewnd.cpp \
+    Windows/DataAnalyzer/dataanalyzer.cpp \
     Windows/Device/advanceconfigurationwnd.cpp \
     Windows/Device/datastatistics.cpp \
     Windows/Device/devicewnd.cpp \
@@ -45,6 +46,7 @@ HEADERS += \
     Utility/log.h \
     Windows/AddDevice/adddevicewnd.h \
     Windows/Console/consolewnd.h \
+    Windows/DataAnalyzer/dataanalyzer.h \
     Windows/Device/advanceconfigurationwnd.h \
     Windows/Device/datastatistics.h \
     Windows/Device/devicewnd.h \
@@ -56,6 +58,7 @@ HEADERS += \
 FORMS += \
     Windows/AddDevice/adddevicewnd.ui \
     Windows/Console/consolewnd.ui \
+    Windows/DataAnalyzer/dataanalyzer.ui \
     Windows/Device/advanceconfigurationwnd.ui \
     Windows/Device/datastatistics.ui \
     Windows/Device/devicewnd.ui \

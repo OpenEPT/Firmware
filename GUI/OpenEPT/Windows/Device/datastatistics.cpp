@@ -4,7 +4,7 @@
 
 DataStatistics::DataStatistics(QWidget *parent) :
     QWidget(parent),
-    ui(new Ui::DataAnalyzer)
+    ui(new Ui::DataStatistics)
 {
     ui->setupUi(this);
 

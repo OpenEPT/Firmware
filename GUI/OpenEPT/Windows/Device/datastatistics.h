@@ -8,7 +8,7 @@
 #include <QLineEdit>
 
 namespace Ui {
-class DataAnalyzer;
+class DataStatistics;
 }
 
 class DataStatistics : public QWidget
@@ -24,7 +24,7 @@ public:
     void    setConsumptionStatisticInfo(double average, double max, double min);
 
 private:
-    Ui::DataAnalyzer *ui;
+    Ui::DataStatistics *ui;
 
     void            createVoltageInfoLayout(QFont font);
     void            createCurrentInfoLayout(QFont font);

@@ -3,7 +3,7 @@
 
 #define BUTTONS_SIZE 30
 
-Plot::Plot(int mw, int mh, QWidget *parent)
+Plot::Plot(int mw, int mh, bool aEnableTracking, QWidget *parent)
     : QWidget{parent}
 {
     /* Set parent */
@@ -94,7 +94,7 @@ Plot::Plot(int mw, int mh, QWidget *parent)
     title = new QCPTextElement(plot, "NN", QFont("Helvetica", 16));
     plot->plotLayout()->addElement(0, 0, title);
 
-    enableTracking      = true;
+    enableTracking      = aEnableTracking;
     replotActive        = true;
 
     connect(zoomIn, SIGNAL(pressed()), this, SLOT(onZoomIn()));

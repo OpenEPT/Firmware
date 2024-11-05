@@ -125,6 +125,7 @@
    </attribute>
    <addaction name="actionAddSingleDevice"/>
    <addaction name="actionAddMultipleDevices"/>
+   <addaction name="actionDataAnalyzer"/>
   </widget>
   <action name="actionAddMultipleDevices">
    <property name="icon">
@@ -142,6 +143,18 @@
    </property>
    <property name="text">
     <string>Add Single Device</string>
+   </property>
+  </action>
+  <action name="actionDataAnalyzer">
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/images/NewSet/dataAnalyzer.png</normaloff>:/images/NewSet/dataAnalyzer.png</iconset>
+   </property>
+   <property name="text">
+    <string>DataAnalyzer</string>
+   </property>
+   <property name="toolTip">
+    <string>Open and analyze consumption profile</string>
    </property>
   </action>
  </widget>

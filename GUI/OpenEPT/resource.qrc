@@ -36,5 +36,7 @@
         <file>images/NewSet/save.png</file>
         <file>images/NewSet/load.png</file>
         <file>images/NewSet/analysis.png</file>
+        <file>images/NewSet/dataAnalyzer.png</file>
+        <file>images/NewSet/process.png</file>
     </qresource>
 </RCC>

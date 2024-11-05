@@ -16,7 +16,7 @@ OpenEPT::OpenEPT(QWidget *parent)
 {
     ui->setupUi(this);
 
-
+    dataAnalyzerWnd = new DataAnalyzer();
 
     addDeviceWnd = new AddDeviceWnd(this);
     addDeviceWnd->setWindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint);
@@ -30,6 +30,7 @@ OpenEPT::OpenEPT(QWidget *parent)
 
 
     connect(ui->actionAddSingleDevice, &QAction::triggered, this,  &OpenEPT::onActionAddSingleDeviceTriggered);
+    connect(ui->actionDataAnalyzer, &QAction::triggered, this,  &OpenEPT::onActionOpenAndProcessData);
 
 
  }
@@ -148,4 +149,11 @@ void OpenEPT::onDeviceContainerAllDeviceWndClosed()
         delete tmpDeviceContainer;
     }
 }
+
+void OpenEPT::onActionOpenAndProcessData()
+{
+    dataAnalyzerWnd->show();
+}
+
+
 
