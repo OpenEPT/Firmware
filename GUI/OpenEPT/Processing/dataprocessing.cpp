@@ -78,7 +78,7 @@ void DataProcessing::processSignalWithFFT(const QVector<double> &inputSignal, do
     // Step 2: Apply threshold filtering in the frequency domain
     for (int i = 0; i < N / 2; ++i) {
 //        double amplitude = amplitudeSpectrum[i];
-//        if (amplitude < threshold) {
+//        if ((amplitude > threshold) && (i > 1) && (i > 200)) {
 //            // Set components below threshold to zero
 //            filteredFFT[i][0] = 0.0;
 //            filteredFFT[i][1] = 0.0;
@@ -334,9 +334,9 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
 //                consumptionKeysDataCollected[lastBufferUsedPositionIndex] = keyStartValue + (double)j;
             }
             currentDataCollected[lastBufferUsedPositionIndex] = currentValue;
-            currentConsumptionDataCollected[lastBufferUsedPositionIndex] = swapDataCurrent*(samplingPeriod)/3600000; //mAh
+            /*currentConsumptionDataCollected[lastBufferUsedPositionIndex] = swapDataCurrent*(samplingPeriod)/3600000; //mAh
             lastCumulativeCurrentConsumptionValue += swapDataCurrent*(samplingPeriod)/3600000;                         //This value remember last consumption in case when buffers are restarted
-            cumulativeConsumptionDataCollected[lastBufferUsedPositionIndex] = lastCumulativeCurrentConsumptionValue;            
+            cumulativeConsumptionDataCollected[lastBufferUsedPositionIndex] = lastCumulativeCurrentConsumptionValue;    */
             //fftKeysDataCollected[lastBufferUsedPositionIndex] = lastBufferUsedPositionIndex*1/(samplingPeriod)*1000;
 
             i                           += 1;
@@ -358,9 +358,17 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
         processSignalWithFFT(voltageDataCollected, 0.0005, voltageDataCollectedFiltered, fftDataCollectedVoltage, samplingPeriod, fftKeysDataCollected, minMax);
         if(minMax[0] > maxVoltageF) maxVoltageF = minMax[0];
         if(minMax[1] < minVoltageF) minVoltageF = minMax[1];
-        processSignalWithFFT(currentDataCollected, 0.002, currentDataCollectedFiltered, fftDataCollectedCurrent, samplingPeriod, fftKeysDataCollected, minMax);
+        processSignalWithFFT(currentDataCollected, 0.5, currentDataCollectedFiltered, fftDataCollectedCurrent, samplingPeriod, fftKeysDataCollected, minMax);
         if(minMax[0] > maxCurrentF) maxCurrentF = minMax[0];
         if(minMax[1] < minCurrentF) minCurrentF = minMax[1];
+        for(int i = 0; i < lastBufferUsedPositionIndex; i++)
+        {
+            double current = currentDataCollectedFiltered[i];
+            currentConsumptionDataCollected[i] = current*(samplingPeriod)/3600000; //mAh
+            lastCumulativeCurrentConsumptionValue += current*(samplingPeriod)/3600000;                         //This value remember last consumption in case when buffers are restarted
+            cumulativeConsumptionDataCollected[i] = lastCumulativeCurrentConsumptionValue;
+
+        }
 //        qDebug() << "MinVF, MaxVF =" << QString::number(minVoltageF) << "," <<  QString::number(maxVoltageF);
 //        qDebug() << "MinCF, MaxCF =" << QString::number(minCurrentF) << "," <<  QString::number(maxCurrentF);
 //        qDebug() << "V-DevF =" << QString::number(maxVoltageF - minVoltageF);
@@ -390,7 +398,7 @@ void DataProcessing::onNewSampleBufferReceived(QVector<double> rawData, int pack
             }
             break;
         case DATAPROCESSING_CONSUMPTION_MODE_CUMULATIVE:
-            emit sigNewVoltageCurrentSamplesReceived(voltageDataCollected, currentDataCollected, voltageKeysDataCollected, currentKeysDataCollected);
+            emit sigNewVoltageCurrentSamplesReceived(voltageDataCollectedFiltered, currentDataCollectedFiltered, voltageKeysDataCollected, currentKeysDataCollected);
             emit sigNewConsumptionDataReceived(cumulativeConsumptionDataCollected, consumptionKeysDataCollected, DATAPROCESSING_CONSUMPTION_MODE_CUMULATIVE);
             break;
         }
