@@ -77,16 +77,16 @@ void DataProcessing::processSignalWithFFT(const QVector<double> &inputSignal, do
 
     // Step 2: Apply threshold filtering in the frequency domain
     for (int i = 0; i < N / 2; ++i) {
-//        double amplitude = amplitudeSpectrum[i];
-//        if ((amplitude > threshold) && (i > 1) && (i > 200)) {
-//            // Set components below threshold to zero
-//            filteredFFT[i][0] = 0.0;
-//            filteredFFT[i][1] = 0.0;
-//        } else {
+        double amplitude = amplitudeSpectrum[i];
+        if ((amplitude > threshold) && (i > 1) && (i > 200)) {
+            // Set components below threshold to zero
+            filteredFFT[i][0] = 0.0;
+            filteredFFT[i][1] = 0.0;
+        } else {
             // Retain components above threshold
             filteredFFT[i][0] = fftOutput[i][0];
             filteredFFT[i][1] = fftOutput[i][1];
-//        }
+        }
     }
 
     // Step 3: Perform inverse FFT

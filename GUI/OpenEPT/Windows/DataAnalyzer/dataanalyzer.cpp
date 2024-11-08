@@ -51,7 +51,7 @@ DataAnalyzer::DataAnalyzer(QWidget *parent, QString aWsDirPath) :
     QIcon processIcon(processIconPng);
     processFilePushb->setIcon(processIcon);
     processFilePushb->setIconSize(QSize(30,30));
-    processFilePushb->setToolTip("Zoom in");
+    processFilePushb->setToolTip("Process consumption profile data");
     processFilePushb->setFixedSize(30, 30);
 
     connect(processFilePushb, SIGNAL(clicked(bool)), this, SLOT(onLoadConsumptionProfileData()));
