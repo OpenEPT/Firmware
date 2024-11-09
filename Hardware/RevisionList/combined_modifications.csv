@@ -1,0 +1,20 @@
+Modification Details,Status
+"Source and drain switched on PMOS transistors: M1, M13, M7",Done
+"Right side of LM358, pins reversed: 8 is 5, 6 is 7 on U7, U8, U9",Done
+Added indicators for 12V and 5V: ,Done
+Added indicators for undervoltage protection with a trimmable threshold potentiometer: 0V to 9V,Done
+GND moved to -5V: Bottom side of resistors R32 and R15,Done
+Zener diode D9 replaced: From 3.3V to 3.9V,Done
+"Added overvoltage protection indication: Components: R76, M29, R75, D14",Done
+Added signal diodes for Load disable and Battery disable: ,Done
+"Added connector (2.54 mm header, 3 pins) for DUT RX, TX, and Sync: Bottom layer side (main logic area)",Done
+Pinout modified to match previously provided images: Only the last image,Done
+Pin names updated for Arduino: Replaced labels like '1' with meaningful names,Done
+Removed 3V3_FOR_OUT_DISABLE and added GPIO_DISABLE: ,Done
+Exposed J13 and similar connections for Arduino connectors: ,Done
+Added connector for two outputs (Vbat and current): For external ADC connection,Done
+Added OPAMP to isolate the battery from the resistor for the ADC: ,Done
+GND moved to the third layer: ,Done
+Removed voltage regulators and accompanying components: ,Done
+Added undervoltage protection/detection: ,Done
+Removed logic for creating 50 ohms: ,Done
