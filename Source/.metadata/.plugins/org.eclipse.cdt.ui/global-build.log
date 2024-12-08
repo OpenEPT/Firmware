@@ -1,0 +1,380 @@
+21:07:45 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+21:07:51 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+21:20:40 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Middlewares/Services/ED/energy_debugger.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DCORE_CM7 -DDATA_IN_D2_SRAM -DSTM32H755xx -DDEBUG -DUSE_HAL_DRIVER -c -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/system" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/BSP/Components/lan8742" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Device/ST/STM32H7xx/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Configuration" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/LwIP" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Network/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/Interrupts/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/System" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/AnalogIN" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/GPIO" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/System/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/UART" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Logging/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Control/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/SamplesStream/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/ED" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Middlewares/Services/ED/energy_debugger.d" -MT"Core/Middlewares/Services/ED/energy_debugger.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Middlewares/Services/ED/energy_debugger.o"
+In file included from ../Core/Middlewares/Services/ED/energy_debugger.c:12:
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvEDEBUGGING_SerialCharReceived':
+../Core/Middlewares/Services/ED/energy_debugger.c:87:72: warning: passing argument 2 of 'xQueueGenericSendFromISR' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   87 |             xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_EBP_NAME, &prvENERGY_DEBUGGER_EBP_LAST_NAME, pxHigherPriorityTaskWoken);
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1055:125: note: in definition of macro 'xQueueSendToBackFromISR'
+ 1055 | #define xQueueSendToBackFromISR( xQueue, pvItemToQueue, pxHigherPriorityTaskWoken ) xQueueGenericSendFromISR( ( xQueue ), ( pvItemToQueue ), ( pxHigherPriorityTaskWoken ), queueSEND_TO_BACK )
+      |                                                                                                                             ^~~~~~~~~~~~~
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1295:79: note: expected 'const void * const' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+ 1295 | BaseType_t xQueueGenericSendFromISR( QueueHandle_t xQueue, const void * const pvItemToQueue, BaseType_t * const pxHigherPriorityTaskWoken, const BaseType_t xCopyPosition ) PRIVILEGED_FUNCTION;
+      |                                                            ~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c:88:24: warning: passing argument 1 of 'memset' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   88 |                 memset(&prvENERGY_DEBUGGER_EBP_LAST_NAME, 0, sizeof(energy_debugger_ebp_name_t));
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include/lwip/sockets.h:52,
+                 from ../Core/Middlewares/Services/ED/energy_debugger.c:15:
+C:\ST\STM32CubeIDE_1.16.1\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:33:18: note: expected 'void *' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+   33 | void *   memset (void *, int, size_t);
+      |                  ^~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvENERGY_DEBUGGER_Task':
+../Core/Middlewares/Services/ED/energy_debugger.c:200:26: warning: unused variable 'data' [-Wunused-variable]
+  200 |                 uint8_t  data;
+      |                          ^~~~
+arm-none-eabi-gcc -o "ADFirmware_CM7.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\frado\Desktop\Projekat_EPT\Firmware\Source\ADFirmware\CM7\STM32H755ZITX.ld" --specs=nosys.specs -Wl,-Map="ADFirmware_CM7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/bin/ld.exe: warning: ADFirmware_CM7.elf has a LOAD segment with RWX permissions
+Finished building target: ADFirmware_CM7.elf
+ 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+arm-none-eabi-objdump -h -S ADFirmware_CM7.elf  > "ADFirmware_CM7.list"
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+Finished building: ADFirmware_CM7.list
+ 
+11:52:42 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+12:03:33 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Middlewares/Services/ED/energy_debugger.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DCORE_CM7 -DDATA_IN_D2_SRAM -DSTM32H755xx -DDEBUG -DUSE_HAL_DRIVER -c -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/system" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/BSP/Components/lan8742" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Device/ST/STM32H7xx/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Configuration" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/LwIP" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Network/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/Interrupts/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/System" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/AnalogIN" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/GPIO" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/System/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/UART" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Logging/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Control/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/SamplesStream/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/ED" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Middlewares/Services/ED/energy_debugger.d" -MT"Core/Middlewares/Services/ED/energy_debugger.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Middlewares/Services/ED/energy_debugger.o"
+In file included from ../Core/Middlewares/Services/ED/energy_debugger.c:12:
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvEDEBUGGING_SerialCharReceived':
+../Core/Middlewares/Services/ED/energy_debugger.c:87:72: warning: passing argument 2 of 'xQueueGenericSendFromISR' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   87 |             xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_EBP_NAME, &prvENERGY_DEBUGGER_EBP_LAST_NAME, pxHigherPriorityTaskWoken);
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1055:125: note: in definition of macro 'xQueueSendToBackFromISR'
+ 1055 | #define xQueueSendToBackFromISR( xQueue, pvItemToQueue, pxHigherPriorityTaskWoken ) xQueueGenericSendFromISR( ( xQueue ), ( pvItemToQueue ), ( pxHigherPriorityTaskWoken ), queueSEND_TO_BACK )
+      |                                                                                                                             ^~~~~~~~~~~~~
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1295:79: note: expected 'const void * const' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+ 1295 | BaseType_t xQueueGenericSendFromISR( QueueHandle_t xQueue, const void * const pvItemToQueue, BaseType_t * const pxHigherPriorityTaskWoken, const BaseType_t xCopyPosition ) PRIVILEGED_FUNCTION;
+      |                                                            ~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c:88:24: warning: passing argument 1 of 'memset' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   88 |                 memset(&prvENERGY_DEBUGGER_EBP_LAST_NAME, 0, sizeof(energy_debugger_ebp_name_t));
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include/lwip/sockets.h:52,
+                 from ../Core/Middlewares/Services/ED/energy_debugger.c:15:
+C:\ST\STM32CubeIDE_1.16.1\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:33:18: note: expected 'void *' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+   33 | void *   memset (void *, int, size_t);
+      |                  ^~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvENERGY_DEBUGGER_Task':
+../Core/Middlewares/Services/ED/energy_debugger.c:200:26: warning: unused variable 'data' [-Wunused-variable]
+  200 |                 uint8_t  data;
+      |                          ^~~~
+arm-none-eabi-gcc -o "ADFirmware_CM7.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\frado\Desktop\Projekat_EPT\Firmware\Source\ADFirmware\CM7\STM32H755ZITX.ld" --specs=nosys.specs -Wl,-Map="ADFirmware_CM7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/bin/ld.exe: warning: ADFirmware_CM7.elf has a LOAD segment with RWX permissions
+Finished building target: ADFirmware_CM7.elf
+ 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+arm-none-eabi-objdump -h -S ADFirmware_CM7.elf  > "ADFirmware_CM7.list"
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+Finished building: ADFirmware_CM7.list
+ 
+12:09:22 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Middlewares/Services/ED/energy_debugger.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DCORE_CM7 -DDATA_IN_D2_SRAM -DSTM32H755xx -DDEBUG -DUSE_HAL_DRIVER -c -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/system" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/BSP/Components/lan8742" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Device/ST/STM32H7xx/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Configuration" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/LwIP" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Network/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/Interrupts/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/System" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/AnalogIN" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/GPIO" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/System/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/UART" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Logging/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Control/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/SamplesStream/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/ED" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Middlewares/Services/ED/energy_debugger.d" -MT"Core/Middlewares/Services/ED/energy_debugger.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Middlewares/Services/ED/energy_debugger.o"
+In file included from ../Core/Middlewares/Services/ED/energy_debugger.c:12:
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvEDEBUGGING_SerialCharReceived':
+../Core/Middlewares/Services/ED/energy_debugger.c:87:72: warning: passing argument 2 of 'xQueueGenericSendFromISR' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   87 |             xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_EBP_NAME, &prvENERGY_DEBUGGER_EBP_LAST_NAME, pxHigherPriorityTaskWoken);
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1055:125: note: in definition of macro 'xQueueSendToBackFromISR'
+ 1055 | #define xQueueSendToBackFromISR( xQueue, pvItemToQueue, pxHigherPriorityTaskWoken ) xQueueGenericSendFromISR( ( xQueue ), ( pvItemToQueue ), ( pxHigherPriorityTaskWoken ), queueSEND_TO_BACK )
+      |                                                                                                                             ^~~~~~~~~~~~~
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1295:79: note: expected 'const void * const' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+ 1295 | BaseType_t xQueueGenericSendFromISR( QueueHandle_t xQueue, const void * const pvItemToQueue, BaseType_t * const pxHigherPriorityTaskWoken, const BaseType_t xCopyPosition ) PRIVILEGED_FUNCTION;
+      |                                                            ~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c:88:24: warning: passing argument 1 of 'memset' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   88 |                 memset(&prvENERGY_DEBUGGER_EBP_LAST_NAME, 0, sizeof(energy_debugger_ebp_name_t));
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include/lwip/sockets.h:52,
+                 from ../Core/Middlewares/Services/ED/energy_debugger.c:15:
+C:\ST\STM32CubeIDE_1.16.1\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:33:18: note: expected 'void *' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+   33 | void *   memset (void *, int, size_t);
+      |                  ^~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvENERGY_DEBUGGER_Task':
+../Core/Middlewares/Services/ED/energy_debugger.c:200:26: warning: unused variable 'data' [-Wunused-variable]
+  200 |                 uint8_t  data;
+      |                          ^~~~
+arm-none-eabi-gcc -o "ADFirmware_CM7.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\frado\Desktop\Projekat_EPT\Firmware\Source\ADFirmware\CM7\STM32H755ZITX.ld" --specs=nosys.specs -Wl,-Map="ADFirmware_CM7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/bin/ld.exe: warning: ADFirmware_CM7.elf has a LOAD segment with RWX permissions
+Finished building target: ADFirmware_CM7.elf
+ 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+arm-none-eabi-objdump -h -S ADFirmware_CM7.elf  > "ADFirmware_CM7.list"
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+Finished building: ADFirmware_CM7.list
+ 
+12:10:37 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Middlewares/Services/ED/energy_debugger.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DCORE_CM7 -DDATA_IN_D2_SRAM -DSTM32H755xx -DDEBUG -DUSE_HAL_DRIVER -c -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/system" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/BSP/Components/lan8742" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Device/ST/STM32H7xx/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Configuration" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/LwIP" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Network/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/Interrupts/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/System" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/AnalogIN" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/GPIO" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/System/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/UART" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Logging/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Control/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/SamplesStream/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/ED" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Middlewares/Services/ED/energy_debugger.d" -MT"Core/Middlewares/Services/ED/energy_debugger.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Middlewares/Services/ED/energy_debugger.o"
+In file included from ../Core/Middlewares/Services/ED/energy_debugger.c:12:
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvEDEBUGGING_SerialCharReceived':
+../Core/Middlewares/Services/ED/energy_debugger.c:87:72: warning: passing argument 2 of 'xQueueGenericSendFromISR' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   87 |             xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_EBP_NAME, &prvENERGY_DEBUGGER_EBP_LAST_NAME, pxHigherPriorityTaskWoken);
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1055:125: note: in definition of macro 'xQueueSendToBackFromISR'
+ 1055 | #define xQueueSendToBackFromISR( xQueue, pvItemToQueue, pxHigherPriorityTaskWoken ) xQueueGenericSendFromISR( ( xQueue ), ( pvItemToQueue ), ( pxHigherPriorityTaskWoken ), queueSEND_TO_BACK )
+      |                                                                                                                             ^~~~~~~~~~~~~
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1295:79: note: expected 'const void * const' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+ 1295 | BaseType_t xQueueGenericSendFromISR( QueueHandle_t xQueue, const void * const pvItemToQueue, BaseType_t * const pxHigherPriorityTaskWoken, const BaseType_t xCopyPosition ) PRIVILEGED_FUNCTION;
+      |                                                            ~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c:88:24: warning: passing argument 1 of 'memset' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   88 |                 memset(&prvENERGY_DEBUGGER_EBP_LAST_NAME, 0, sizeof(energy_debugger_ebp_name_t));
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include/lwip/sockets.h:52,
+                 from ../Core/Middlewares/Services/ED/energy_debugger.c:15:
+C:\ST\STM32CubeIDE_1.16.1\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:33:18: note: expected 'void *' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+   33 | void *   memset (void *, int, size_t);
+      |                  ^~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvENERGY_DEBUGGER_Task':
+../Core/Middlewares/Services/ED/energy_debugger.c:200:26: warning: unused variable 'data' [-Wunused-variable]
+  200 |                 uint8_t  data;
+      |                          ^~~~
+arm-none-eabi-gcc -o "ADFirmware_CM7.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\frado\Desktop\Projekat_EPT\Firmware\Source\ADFirmware\CM7\STM32H755ZITX.ld" --specs=nosys.specs -Wl,-Map="ADFirmware_CM7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/bin/ld.exe: warning: ADFirmware_CM7.elf has a LOAD segment with RWX permissions
+Finished building target: ADFirmware_CM7.elf
+ 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+arm-none-eabi-objdump -h -S ADFirmware_CM7.elf  > "ADFirmware_CM7.list"
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+Finished building: ADFirmware_CM7.list
+ 
+12:47:21 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+12:48:25 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+12:49:10 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+12:58:41 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+13:00:35 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Middlewares/Services/ED/energy_debugger.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DCORE_CM7 -DDATA_IN_D2_SRAM -DSTM32H755xx -DDEBUG -DUSE_HAL_DRIVER -c -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/system" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/BSP/Components/lan8742" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Device/ST/STM32H7xx/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Configuration" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/LwIP" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Network/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/Interrupts/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/System" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/AnalogIN" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/GPIO" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/System/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/UART" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Logging/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Control/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/SamplesStream/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/ED" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Middlewares/Services/ED/energy_debugger.d" -MT"Core/Middlewares/Services/ED/energy_debugger.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Middlewares/Services/ED/energy_debugger.o"
+In file included from ../Core/Middlewares/Services/ED/energy_debugger.c:12:
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvEDEBUGGING_SerialCharReceived':
+../Core/Middlewares/Services/ED/energy_debugger.c:87:72: warning: passing argument 2 of 'xQueueGenericSendFromISR' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   87 |             xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_EBP_NAME, &prvENERGY_DEBUGGER_EBP_LAST_NAME, pxHigherPriorityTaskWoken);
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1055:125: note: in definition of macro 'xQueueSendToBackFromISR'
+ 1055 | #define xQueueSendToBackFromISR( xQueue, pvItemToQueue, pxHigherPriorityTaskWoken ) xQueueGenericSendFromISR( ( xQueue ), ( pvItemToQueue ), ( pxHigherPriorityTaskWoken ), queueSEND_TO_BACK )
+      |                                                                                                                             ^~~~~~~~~~~~~
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1295:79: note: expected 'const void * const' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+ 1295 | BaseType_t xQueueGenericSendFromISR( QueueHandle_t xQueue, const void * const pvItemToQueue, BaseType_t * const pxHigherPriorityTaskWoken, const BaseType_t xCopyPosition ) PRIVILEGED_FUNCTION;
+      |                                                            ~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c:88:24: warning: passing argument 1 of 'memset' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   88 |                 memset(&prvENERGY_DEBUGGER_EBP_LAST_NAME, 0, sizeof(energy_debugger_ebp_name_t));
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include/lwip/sockets.h:52,
+                 from ../Core/Middlewares/Services/ED/energy_debugger.c:15:
+C:\ST\STM32CubeIDE_1.16.1\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:33:18: note: expected 'void *' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+   33 | void *   memset (void *, int, size_t);
+      |                  ^~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvENERGY_DEBUGGER_Task':
+../Core/Middlewares/Services/ED/energy_debugger.c:200:26: warning: unused variable 'data' [-Wunused-variable]
+  200 |                 uint8_t  data;
+      |                          ^~~~
+arm-none-eabi-gcc -o "ADFirmware_CM7.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\frado\Desktop\Projekat_EPT\Firmware\Source\ADFirmware\CM7\STM32H755ZITX.ld" --specs=nosys.specs -Wl,-Map="ADFirmware_CM7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/bin/ld.exe: warning: ADFirmware_CM7.elf has a LOAD segment with RWX permissions
+Finished building target: ADFirmware_CM7.elf
+ 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+arm-none-eabi-objdump -h -S ADFirmware_CM7.elf  > "ADFirmware_CM7.list"
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+Finished building: ADFirmware_CM7.list
+ 
+13:22:21 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Middlewares/Services/ED/energy_debugger.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DCORE_CM7 -DDATA_IN_D2_SRAM -DSTM32H755xx -DDEBUG -DUSE_HAL_DRIVER -c -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/system" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/BSP/Components/lan8742" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Device/ST/STM32H7xx/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Configuration" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/LwIP" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Network/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/Interrupts/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/System" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/AnalogIN" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/GPIO" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/System/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/UART" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Logging/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Control/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/SamplesStream/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/ED" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Middlewares/Services/ED/energy_debugger.d" -MT"Core/Middlewares/Services/ED/energy_debugger.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Middlewares/Services/ED/energy_debugger.o"
+arm-none-eabi-gcc "../Core/Drivers/Platform/UART/drv_uart.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DCORE_CM7 -DDATA_IN_D2_SRAM -DSTM32H755xx -DDEBUG -DUSE_HAL_DRIVER -c -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/system" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/BSP/Components/lan8742" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Device/ST/STM32H7xx/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Configuration" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/LwIP" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Network/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/Interrupts/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/System" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/AnalogIN" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/AnalogIN/ADS9224R" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/AnalogOUT" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/GPIO" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/SPI" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/System/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/UART" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Logging/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Control/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/DPControl/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/SamplesStream/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/ED" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/Timer" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Drivers/Platform/UART/drv_uart.d" -MT"Core/Drivers/Platform/UART/drv_uart.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Drivers/Platform/UART/drv_uart.o"
+../Core/Drivers/Platform/UART/drv_uart.c: In function 'HAL_UART_RxCpltCallback':
+../Core/Drivers/Platform/UART/drv_uart.c:33:96: warning: passing argument 2 of 'HAL_UART_Receive_IT' from incompatible pointer type [-Wincompatible-pointer-types]
+   33 |                 HAL_UART_Receive_IT(&prvDRV_UART_INSTANCES[DRV_UART_INSTANCE_7].deviceHandler, &data, 1);
+      |                                                                                                ^~~~~
+      |                                                                                                |
+      |                                                                                                volatile uint32_t * {aka volatile long unsigned int *}
+In file included from C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Configuration/stm32h7xx_hal_conf.h:463,
+                 from C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h:29,
+                 from C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Configuration/main.h:30,
+                 from ../Core/Drivers/Platform/UART/drv_uart.c:7:
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h:1640:75: note: expected 'uint8_t *' {aka 'unsigned char *'} but argument is of type 'volatile uint32_t *' {aka 'volatile long unsigned int *'}
+ 1640 | HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size);
+      |                                                                  ~~~~~~~~~^~~~~
+../Core/Drivers/Platform/UART/drv_uart.c:38:96: warning: passing argument 2 of 'HAL_UART_Receive_IT' from incompatible pointer type [-Wincompatible-pointer-types]
+   38 |                 HAL_UART_Receive_IT(&prvDRV_UART_INSTANCES[DRV_UART_INSTANCE_6].deviceHandler, &data, 1);
+      |                                                                                                ^~~~~
+      |                                                                                                |
+      |                                                                                                volatile uint32_t * {aka volatile long unsigned int *}
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h:1640:75: note: expected 'uint8_t *' {aka 'unsigned char *'} but argument is of type 'volatile uint32_t *' {aka 'volatile long unsigned int *'}
+ 1640 | HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size);
+      |                                                                  ~~~~~~~~~^~~~~
+../Core/Drivers/Platform/UART/drv_uart.c:43:96: warning: passing argument 2 of 'HAL_UART_Receive_IT' from incompatible pointer type [-Wincompatible-pointer-types]
+   43 |                 HAL_UART_Receive_IT(&prvDRV_UART_INSTANCES[DRV_UART_INSTANCE_4].deviceHandler, &data, 1);
+      |                                                                                                ^~~~~
+      |                                                                                                |
+      |                                                                                                volatile uint32_t * {aka volatile long unsigned int *}
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h:1640:75: note: expected 'uint8_t *' {aka 'unsigned char *'} but argument is of type 'volatile uint32_t *' {aka 'volatile long unsigned int *'}
+ 1640 | HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size);
+      |                                                                  ~~~~~~~~~^~~~~
+../Core/Drivers/Platform/UART/drv_uart.c: In function 'DRV_UART_Init':
+../Core/Drivers/Platform/UART/drv_uart.c:309:9: warning: implicit declaration of function 'memset' [-Wimplicit-function-declaration]
+  309 |         memset(prvDRV_UART_INSTANCES, 0, CONF_UART_INSTANCES_MAX_NUMBER*sizeof(drv_uart_handle_t));
+      |         ^~~~~~
+../Core/Drivers/Platform/UART/drv_uart.c:14:1: note: include '<string.h>' or provide a declaration of 'memset'
+   13 | #include "drv_uart.h"
+  +++ |+#include <string.h>
+   14 | 
+../Core/Drivers/Platform/UART/drv_uart.c:309:9: warning: incompatible implicit declaration of built-in function 'memset' [-Wbuiltin-declaration-mismatch]
+  309 |         memset(prvDRV_UART_INSTANCES, 0, CONF_UART_INSTANCES_MAX_NUMBER*sizeof(drv_uart_handle_t));
+      |         ^~~~~~
+../Core/Drivers/Platform/UART/drv_uart.c:309:9: note: include '<string.h>' or provide a declaration of 'memset'
+../Core/Drivers/Platform/UART/drv_uart.c: In function 'DRV_UART_Instance_RegisterRxCallback':
+../Core/Drivers/Platform/UART/drv_uart.c:377:80: warning: passing argument 2 of 'HAL_UART_Receive_IT' from incompatible pointer type [-Wincompatible-pointer-types]
+  377 |         if(HAL_UART_Receive_IT(&prvDRV_UART_INSTANCES[instance].deviceHandler, &data, 1) != HAL_OK) return DRV_UART_STATUS_ERROR;
+      |                                                                                ^~~~~
+      |                                                                                |
+      |                                                                                volatile uint32_t * {aka volatile long unsigned int *}
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h:1640:75: note: expected 'uint8_t *' {aka 'unsigned char *'} but argument is of type 'volatile uint32_t *' {aka 'volatile long unsigned int *'}
+ 1640 | HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size);
+      |                                                                  ~~~~~~~~~^~~~~
+In file included from ../Core/Middlewares/Services/ED/energy_debugger.c:12:
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvEDEBUGGING_SerialCharReceived':
+../Core/Middlewares/Services/ED/energy_debugger.c:87:72: warning: passing argument 2 of 'xQueueGenericSendFromISR' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   87 |             xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_EBP_NAME, &prvENERGY_DEBUGGER_EBP_LAST_NAME, pxHigherPriorityTaskWoken);
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1055:125: note: in definition of macro 'xQueueSendToBackFromISR'
+ 1055 | #define xQueueSendToBackFromISR( xQueue, pvItemToQueue, pxHigherPriorityTaskWoken ) xQueueGenericSendFromISR( ( xQueue ), ( pvItemToQueue ), ( pxHigherPriorityTaskWoken ), queueSEND_TO_BACK )
+      |                                                                                                                             ^~~~~~~~~~~~~
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1295:79: note: expected 'const void * const' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+ 1295 | BaseType_t xQueueGenericSendFromISR( QueueHandle_t xQueue, const void * const pvItemToQueue, BaseType_t * const pxHigherPriorityTaskWoken, const BaseType_t xCopyPosition ) PRIVILEGED_FUNCTION;
+      |                                                            ~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c:88:24: warning: passing argument 1 of 'memset' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   88 |                 memset(&prvENERGY_DEBUGGER_EBP_LAST_NAME, 0, sizeof(energy_debugger_ebp_name_t));
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include/lwip/sockets.h:52,
+                 from ../Core/Middlewares/Services/ED/energy_debugger.c:15:
+C:\ST\STM32CubeIDE_1.16.1\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:33:18: note: expected 'void *' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+   33 | void *   memset (void *, int, size_t);
+      |                  ^~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvENERGY_DEBUGGER_Task':
+../Core/Middlewares/Services/ED/energy_debugger.c:200:26: warning: unused variable 'data' [-Wunused-variable]
+  200 |                 uint8_t  data;
+      |                          ^~~~
+arm-none-eabi-gcc -o "ADFirmware_CM7.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\frado\Desktop\Projekat_EPT\Firmware\Source\ADFirmware\CM7\STM32H755ZITX.ld" --specs=nosys.specs -Wl,-Map="ADFirmware_CM7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/bin/ld.exe: warning: ADFirmware_CM7.elf has a LOAD segment with RWX permissions
+Finished building target: ADFirmware_CM7.elf
+ 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+arm-none-eabi-objdump -h -S ADFirmware_CM7.elf  > "ADFirmware_CM7.list"
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+Finished building: ADFirmware_CM7.list
+ 
+13:24:33 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+16:25:45 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+16:40:16 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+09:38:19 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Middlewares/Services/ED/energy_debugger.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DCORE_CM7 -DDATA_IN_D2_SRAM -DSTM32H755xx -DDEBUG -DUSE_HAL_DRIVER -c -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/system" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/STM32H7xx_HAL_Driver/Inc" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/BSP/Components/lan8742" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Drivers/CMSIS/Device/ST/STM32H7xx/Include" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Configuration" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/LwIP" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Network/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/Interrupts/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/System" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/AnalogIN" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/GPIO" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/System/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Drivers/Platform/UART" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Logging/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/Control/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/SamplesStream/" -I"C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/ED" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Middlewares/Services/ED/energy_debugger.d" -MT"Core/Middlewares/Services/ED/energy_debugger.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Middlewares/Services/ED/energy_debugger.o"
+In file included from ../Core/Middlewares/Services/ED/energy_debugger.c:12:
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvEDEBUGGING_SerialCharReceived':
+../Core/Middlewares/Services/ED/energy_debugger.c:87:72: warning: passing argument 2 of 'xQueueGenericSendFromISR' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   87 |             xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_EBP_NAME, &prvENERGY_DEBUGGER_EBP_LAST_NAME, pxHigherPriorityTaskWoken);
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1055:125: note: in definition of macro 'xQueueSendToBackFromISR'
+ 1055 | #define xQueueSendToBackFromISR( xQueue, pvItemToQueue, pxHigherPriorityTaskWoken ) xQueueGenericSendFromISR( ( xQueue ), ( pvItemToQueue ), ( pxHigherPriorityTaskWoken ), queueSEND_TO_BACK )
+      |                                                                                                                             ^~~~~~~~~~~~~
+C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:1295:79: note: expected 'const void * const' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+ 1295 | BaseType_t xQueueGenericSendFromISR( QueueHandle_t xQueue, const void * const pvItemToQueue, BaseType_t * const pxHigherPriorityTaskWoken, const BaseType_t xCopyPosition ) PRIVILEGED_FUNCTION;
+      |                                                            ~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c:88:24: warning: passing argument 1 of 'memset' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   88 |                 memset(&prvENERGY_DEBUGGER_EBP_LAST_NAME, 0, sizeof(energy_debugger_ebp_name_t));
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/ADFirmware/Middlewares/Third_Party/LwIP/src/include/lwip/sockets.h:52,
+                 from ../Core/Middlewares/Services/ED/energy_debugger.c:15:
+C:\ST\STM32CubeIDE_1.16.1\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:33:18: note: expected 'void *' but argument is of type 'volatile energy_debugger_ebp_name_t *'
+   33 | void *   memset (void *, int, size_t);
+      |                  ^~~~~~
+../Core/Middlewares/Services/ED/energy_debugger.c: In function 'prvENERGY_DEBUGGER_Task':
+../Core/Middlewares/Services/ED/energy_debugger.c:200:26: warning: unused variable 'data' [-Wunused-variable]
+  200 |                 uint8_t  data;
+      |                          ^~~~
+arm-none-eabi-gcc -o "ADFirmware_CM7.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\frado\Desktop\Projekat_EPT\Firmware\Source\ADFirmware\CM7\STM32H755ZITX.ld" --specs=nosys.specs -Wl,-Map="ADFirmware_CM7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/bin/ld.exe: warning: ADFirmware_CM7.elf has a LOAD segment with RWX permissions
+Finished building target: ADFirmware_CM7.elf
+ 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+arm-none-eabi-objdump -h -S ADFirmware_CM7.elf  > "ADFirmware_CM7.list"
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+Finished building: ADFirmware_CM7.list
+ 
