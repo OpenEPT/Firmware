@@ -281,3 +281,103 @@ Command-line arguments:  -os win32 -ws win32 -arch x86_64
 
 !ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2024-12-08 09:36:34.712
 !MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.core.jobs 2 2 2024-12-08 09:48:31.018
+!MESSAGE Job found still running after platform shutdown.  Jobs should be canceled by the plugin that scheduled them during shutdown: org.eclipse.equinox.internal.p2.ui.sdk.scheduler.AutomaticUpdater$2
+!SESSION 2024-12-08 09:48:31.229 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Command-line arguments:  -os win32 -ws win32 -arch x86_64 -data file:/C:/Users/frado/Desktop/Projekat_EPT/Firmware/Source/
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2024-12-08 09:48:37.018
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2024-12-08 09:48:37.019
+!MESSAGE Log4j2 initialized with config file C:\Users\frado\Desktop\Projekat_EPT\Firmware\Source\.metadata\.log4j2.xml
+
+!ENTRY org.eclipse.egit.ui 2 0 2024-12-08 09:48:40.472
+!MESSAGE Warning: The environment variable HOME is not set. The following directory will be used to store the Git
+user global configuration and to define the default location to store repositories: 'C:\Users\frado'. If this is
+not correct please set the HOME environment variable and restart Eclipse. Otherwise Git for Windows and
+EGit might behave differently since they see different configuration options.
+This warning can be switched off on the Team > Git > Confirmations and Warnings preference page.
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2024-12-08 09:48:42.476
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.cdt.core 1 0 2024-12-08 09:51:52.857
+!MESSAGE Indexed 'ADFirmware_CM7' (146 sources, 353 headers) in 13.4 sec: 30,809 declarations; 208,008 references; 3 unresolved inclusions; 156 syntax errors; 234 unresolved names (0.098%)
+
+!ENTRY org.eclipse.cdt.core 1 0 2024-12-08 09:51:53.203
+!MESSAGE Indexed 'ADFirmware_CM4' (6 sources, 57 headers) in 0.343 sec: 2,501 declarations; 3,090 references; 12 unresolved inclusions; 1 syntax errors; 87 unresolved names (1.5%)
+!SESSION 2024-12-09 17:55:23.161 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2024-12-09 17:55:34.160
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2024-12-09 17:55:34.169
+!MESSAGE Log4j2 initialized with config file C:\Users\frado\Desktop\Projekat_EPT\Firmware\Source\.metadata\.log4j2.xml
+
+!ENTRY org.eclipse.egit.ui 2 0 2024-12-09 17:55:37.915
+!MESSAGE Warning: The environment variable HOME is not set. The following directory will be used to store the Git
+user global configuration and to define the default location to store repositories: 'C:\Users\frado'. If this is
+not correct please set the HOME environment variable and restart Eclipse. Otherwise Git for Windows and
+EGit might behave differently since they see different configuration options.
+This warning can be switched off on the Team > Git > Confirmations and Warnings preference page.
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2024-12-09 17:55:43.310
+!MESSAGE Started RMI Server, listening on port 41338
+
+!ENTRY com.st.stm32cube.ide.common.services 4 0 2024-12-09 17:56:09.992
+!MESSAGE Not able to get any active project build configuration.
+!SESSION 2024-12-09 18:25:28.090 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2024-12-09 18:25:34.955
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2024-12-09 18:25:34.959
+!MESSAGE Log4j2 initialized with config file C:\Users\frado\Desktop\Projekat_EPT\Firmware\Source\.metadata\.log4j2.xml
+
+!ENTRY org.eclipse.egit.ui 2 0 2024-12-09 18:25:38.781
+!MESSAGE Warning: The environment variable HOME is not set. The following directory will be used to store the Git
+user global configuration and to define the default location to store repositories: 'C:\Users\frado'. If this is
+not correct please set the HOME environment variable and restart Eclipse. Otherwise Git for Windows and
+EGit might behave differently since they see different configuration options.
+This warning can be switched off on the Team > Git > Confirmations and Warnings preference page.
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2024-12-09 18:25:40.905
+!MESSAGE Started RMI Server, listening on port 41338
+!SESSION 2024-12-10 10:14:28.633 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2024-12-10 10:14:57.896
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2024-12-10 10:14:57.905
+!MESSAGE Log4j2 initialized with config file C:\Users\frado\Desktop\Projekat_EPT\Firmware\Source\.metadata\.log4j2.xml
+
+!ENTRY org.eclipse.egit.ui 2 0 2024-12-10 10:15:02.214
+!MESSAGE Warning: The environment variable HOME is not set. The following directory will be used to store the Git
+user global configuration and to define the default location to store repositories: 'C:\Users\frado'. If this is
+not correct please set the HOME environment variable and restart Eclipse. Otherwise Git for Windows and
+EGit might behave differently since they see different configuration options.
+This warning can be switched off on the Team > Git > Confirmations and Warnings preference page.
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2024-12-10 10:15:07.733
+!MESSAGE Started RMI Server, listening on port 41337
