@@ -54,6 +54,14 @@ void TIM1_UP_IRQHandler(void)
 	HAL_TIM_IRQHandler(&prvDRV_AIN_DEVICE_TIMER_HANDLER);
 	//HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_15);
 }
+/**
+ * @brief This function handles TIM1 update interrupt.
+ */
+void TIM2_IRQHandler(void)
+{
+	HAL_TIM_IRQHandler(&prvDRV_AIN_DEVICE_TIMER_HANDLER);
+	//HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_15);
+}
 
 /**
   * @brief This function handles TIM1 capture compare interrupt.
@@ -122,6 +130,24 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 //	    HAL_NVIC_SetPriority(ADC3_IRQn, 5, 0);
 //	    HAL_NVIC_EnableIRQ(ADC3_IRQn);
 
+		/* ADC3 DMA Init */
+		/* ADC3 Init */
+		prvDRV_AIN_DEVICE_DMA_HANDLER.Instance = DMA1_Stream0;
+		prvDRV_AIN_DEVICE_DMA_HANDLER.Init.Request = DMA_REQUEST_ADC3;
+		prvDRV_AIN_DEVICE_DMA_HANDLER.Init.Direction = DMA_PERIPH_TO_MEMORY;
+		prvDRV_AIN_DEVICE_DMA_HANDLER.Init.PeriphInc = DMA_PINC_DISABLE;
+		prvDRV_AIN_DEVICE_DMA_HANDLER.Init.MemInc = DMA_MINC_ENABLE;
+		prvDRV_AIN_DEVICE_DMA_HANDLER.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+		prvDRV_AIN_DEVICE_DMA_HANDLER.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+		prvDRV_AIN_DEVICE_DMA_HANDLER.Init.Mode = DMA_DOUBLE_BUFFER_M0;
+		prvDRV_AIN_DEVICE_DMA_HANDLER.Init.Priority = DMA_PRIORITY_HIGH;
+		if (HAL_DMA_Init(&prvDRV_AIN_DEVICE_DMA_HANDLER) != HAL_OK)
+		{
+		  Error_Handler();
+		}
+
+		__HAL_LINKDMA(&prvDRV_AIN_DEVICE_ADC_HANDLER, DMA_Handle, prvDRV_AIN_DEVICE_DMA_HANDLER);
+
 	}
 
 }
@@ -132,25 +158,9 @@ static void prvDRV_AIN_InitDMA(void)
 {
 
 	/* DMA controller clock enable */
-	__HAL_RCC_BDMA_CLK_ENABLE();
+	__HAL_RCC_DMA1_CLK_ENABLE();
 
-	/* ADC3 DMA Init */
-	/* ADC3 Init */
-	prvDRV_AIN_DEVICE_DMA_HANDLER.Instance = DMA1_Stream0;
-	prvDRV_AIN_DEVICE_DMA_HANDLER.Init.Request = DMA_REQUEST_ADC3;
-	prvDRV_AIN_DEVICE_DMA_HANDLER.Init.Direction = DMA_PERIPH_TO_MEMORY;
-	prvDRV_AIN_DEVICE_DMA_HANDLER.Init.PeriphInc = DMA_PINC_DISABLE;
-	prvDRV_AIN_DEVICE_DMA_HANDLER.Init.MemInc = DMA_MINC_ENABLE;
-	prvDRV_AIN_DEVICE_DMA_HANDLER.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-	prvDRV_AIN_DEVICE_DMA_HANDLER.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-	prvDRV_AIN_DEVICE_DMA_HANDLER.Init.Mode = DMA_DOUBLE_BUFFER_M0;
-	prvDRV_AIN_DEVICE_DMA_HANDLER.Init.Priority = DMA_PRIORITY_HIGH;
-	if (HAL_DMA_Init(&prvDRV_AIN_DEVICE_DMA_HANDLER) != HAL_OK)
-	{
-	  Error_Handler();
-	}
 
-	__HAL_LINKDMA(&prvDRV_AIN_DEVICE_ADC_HANDLER, DMA_Handle, prvDRV_AIN_DEVICE_DMA_HANDLER);
 
 	/* DMA interrupt init */
 	/* BDMA_Channel0_IRQn interrupt configuration */
@@ -360,7 +370,7 @@ drv_ain_status 						DRV_AIN_Init(drv_ain_adc_t adc, drv_ain_adc_config_t* confi
 
 
 //	/* Start ADC */
-//	DRV_AIN_Start(DRV_AIN_ADC_3);
+	//DRV_AIN_Start(DRV_AIN_ADC_3);
 
 //	DRV_AIN_SetSamplingPeriod(DRV_AIN_ADC_ADS9224R, 999, 1);
 //	DRV_AIN_Start(DRV_AIN_ADC_ADS9224R);
