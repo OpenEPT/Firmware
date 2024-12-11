@@ -247,7 +247,7 @@ static void prvENERGY_DEBUGGER_Task()
 			    */
 
 			    // Initialize the GPIO port
-			    if (DRV_GPIO_Port_Init(DRV_GPIO_PORT_C) != DRV_GPIO_STATUS_OK)
+			    if (DRV_GPIO_Port_Init(ENERGY_DEBUGGER_BUTTON_PORT) != DRV_GPIO_STATUS_OK)
 			    	prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
 
 			    // Configure the pin for the button
@@ -255,7 +255,7 @@ static void prvENERGY_DEBUGGER_Task()
 			    button_pin_conf.mode = DRV_GPIO_PIN_MODE_IT_RISING;
 			    button_pin_conf.pullState = DRV_GPIO_PIN_PULL_NOPULL;
 			    //Definisati pin preko makroa
-			    if (DRV_GPIO_Pin_Init(DRV_GPIO_PORT_C, ENERGY_DEBUGGER_BUTTON_PIN, &button_pin_conf) != DRV_GPIO_STATUS_OK)
+			    if (DRV_GPIO_Pin_Init(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN, &button_pin_conf) != DRV_GPIO_STATUS_OK)
 			    {
 					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_ERROR,  "Unable to register sync GPIO\r\n");
 					prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
@@ -263,7 +263,7 @@ static void prvENERGY_DEBUGGER_Task()
 			    }
 
 			    // Register the button press callback
-			    if (DRV_GPIO_RegisterCallback(DRV_GPIO_PORT_C, ENERGY_DEBUGGER_BUTTON_PIN, prvEDEBUGGING_ButtonPressedCallback, ENERGY_DEBUGGER_BUTTON_ISR_PRIO) != DRV_GPIO_STATUS_OK)
+			    if (DRV_GPIO_RegisterCallback(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN, prvEDEBUGGING_ButtonPressedCallback, ENERGY_DEBUGGER_BUTTON_ISR_PRIO) != DRV_GPIO_STATUS_OK)
 			    {
 					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_ERROR,  "Unable to register sync callback\r\n");
 					prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
