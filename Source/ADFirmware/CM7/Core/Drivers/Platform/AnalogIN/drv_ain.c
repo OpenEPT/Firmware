@@ -325,8 +325,8 @@ drv_ain_status 						DRV_AIN_Init(drv_ain_adc_t adc, drv_ain_adc_config_t* confi
 	prvDRV_AIN_InitDeviceTimer();
 
 	/* Initialize ADS9224R */
-	//if(ADS9224R_Init(0, 1000) != ADS9224R_STATUS_OK) return DRV_AIN_STATUS_ERROR;
-	//if(ADS9224R_RegisterCallback(prvDRV_AIN_DMAHalfComplitedCallback, ADS9224R_SDO_B) != ADS9224R_STATUS_OK) return DRV_AIN_STATUS_ERROR;
+	if(ADS9224R_Init(0, 1000) != ADS9224R_STATUS_OK) return DRV_AIN_STATUS_ERROR;
+	if(ADS9224R_RegisterCallback(prvDRV_AIN_DMAHalfComplitedCallback, ADS9224R_SDO_B) != ADS9224R_STATUS_OK) return DRV_AIN_STATUS_ERROR;
 
 	/* Set initial acquisition status*/
 	prvDRV_AIN_ACQUISITION_STATUS 	= DRV_AIN_ADC_ACQUISITION_STATUS_UKNOWN;
