@@ -273,9 +273,11 @@ static ads9224r_status_t prvADS9224R_PowerDown(uint32_t timeout)
 	DRV_GPIO_Pin_Init(ADS9224R_RESET_PD_PORT, ADS9224R_RESET_PD_PIN, 	&outPinConfig);
 
 
-	/*Set high to power up device */
+	/*Set low to power down device */
 	DRV_GPIO_Pin_SetState(ADS9224R_RESET_PD_PORT, ADS9224R_RESET_PD_PIN, DRV_GPIO_PIN_STATE_RESET);
 
+
+	prvADS9224R_DATA.opState = ADS9224R_OP_STATE_DOWN;
 
 	return ADS9224R_STATUS_OK;
 }
@@ -589,6 +591,63 @@ static ads9224r_status_t prvADS9224R_TIMER_CONVST_Init(void)
     return ADS9224R_STATUS_OK;
 
 }
+
+/**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static ads9224r_status_t prvADS9224R_TIMER_CONVST_DeInit(void)
+{
+
+
+	if(HAL_TIM_Base_DeInit(&prvADS9224R_TIMER_CONVST_HANDLER) != HAL_OK) return ADS9224R_STATUS_OK;
+
+	if(HAL_TIM_PWM_DeInit(&prvADS9224R_TIMER_CONVST_HANDLER) != HAL_OK) return ADS9224R_STATUS_OK;
+
+    return ADS9224R_STATUS_OK;
+
+}
+
+/**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static ads9224r_status_t prvADS9224R_TIMER_CS_DeInit(void)
+{
+
+
+	if(HAL_TIM_Base_DeInit(&prvADS9224R_TIMER_CS_HANDLER) != HAL_OK) return ADS9224R_STATUS_OK;
+
+	if(HAL_TIM_OnePulse_DeInit(&prvADS9224R_TIMER_CS_HANDLER) != HAL_OK) return ADS9224R_STATUS_OK;
+
+	if(HAL_TIM_PWM_DeInit(&prvADS9224R_TIMER_CS_HANDLER) != HAL_OK) return ADS9224R_STATUS_OK;
+
+    return ADS9224R_STATUS_OK;
+
+}
+
+/**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static ads9224r_status_t prvADS9224R_TIMER_SCLK_DeInit(void)
+{
+
+
+	if(HAL_TIM_Base_DeInit(&prvADS9224R_TIMER_SCLK_HANDLER) != HAL_OK) return ADS9224R_STATUS_OK;
+
+	if(HAL_TIM_OnePulse_DeInit(&prvADS9224R_TIMER_SCLK_HANDLER) != HAL_OK) return ADS9224R_STATUS_OK;
+
+	if(HAL_TIM_PWM_DeInit(&prvADS9224R_TIMER_SCLK_HANDLER) != HAL_OK) return ADS9224R_STATUS_OK;
+
+    return ADS9224R_STATUS_OK;
+
+}
+
+
 static ads9224r_status_t prvADS9224R_ACQ_SetState(uint8_t* sdoaBuffer0, uint8_t* sdoaBuffer1, uint8_t* sdobBuffer0,uint8_t* sdobBuffer1, uint32_t size)
 {
 	uint32_t curTick = 0;
@@ -667,6 +726,7 @@ static ads9224r_status_t prvADS9224R_ACQ_SetState(uint8_t* sdoaBuffer0, uint8_t*
 
 	HAL_SPI_Receive_DMA(&prvADS9224R_SPI_S_SDOA_HANDLER, sdoaBuffer0, sdoaBuffer1, size);
 	HAL_SPI_Receive_DMA(&prvADS9224R_SPI_S_SDOB_HANDLER, sdobBuffer0, sdobBuffer1, size);
+
 
 //	HAL_DMAEx_MultiBufferStart_IT(&prvADS9224R_SPI_S_DMA_SDOA_HANDLER,(uint32_t)&prvADS9224R_SPI_S_SDOA_HANDLER.Instance->RXDR, (uint32_t)sdoaBuffer0, (uint32_t)sdoaBuffer1, size);
 //	HAL_DMAEx_MultiBufferStart_IT(&prvADS9224R_SPI_S_DMA_SDOB_HANDLER,(uint32_t)&prvADS9224R_SPI_S_SDOB_HANDLER.Instance->RXDR, (uint32_t)sdobBuffer0, (uint32_t)sdobBuffer1, size);
@@ -795,25 +855,62 @@ ads9224r_status_t   ADS9224R_StartAcquisiton(uint8_t* sdoaBuffer0, uint8_t* sdoa
 }
 ads9224r_status_t   ADS9224R_StopAcquisiton()
 {
+	uint8_t registersContent[8] = {0};
+
 	if(prvADS9224R_DATA.init == ADS9224R_INIT_STATE_NOINIT || prvADS9224R_DATA.opState == ADS9224R_OP_STATE_DOWN) return ADS9224R_STATUS_ERROR;
 
 	HAL_TIM_PWM_Stop(&prvADS9224R_TIMER_CS_HANDLER, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Stop(&prvADS9224R_TIMER_SCLK_HANDLER, TIM_CHANNEL_4);
 	HAL_TIM_PWM_Stop(&prvADS9224R_TIMER_CONVST_HANDLER, TIM_CHANNEL_4);
 
-	HAL_SPI_DMAStop(&prvADS9224R_SPI_S_SDOA_HANDLER);
-	HAL_SPI_DMAStop(&prvADS9224R_SPI_S_SDOB_HANDLER);
+//	HAL_SPI_DMAStop(&prvADS9224R_SPI_S_SDOA_HANDLER);
+//	HAL_SPI_DMAStop(&prvADS9224R_SPI_S_SDOB_HANDLER);
 
 	/*If previous transfer is stopped at the middle of the packet, this part  of the code
 	 * return DMA to inital state*/
-	LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_0);
-	LL_DMA_SetDataLength(DMA2, LL_DMA_STREAM_0, 500);
-	LL_DMA_EnableStream(DMA2, LL_DMA_STREAM_0);
-	LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_1);
-	LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_1, 500);
-	LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
+//	LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_0);
+//	LL_DMA_SetDataLength(DMA2, LL_DMA_STREAM_0, 500);
+//	LL_DMA_EnableStream(DMA2, LL_DMA_STREAM_0);
+//	LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_1);
+//	LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_1, 500);
+//	LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
+
 
 	prvADS9224R_DATA.acqState = ADS9224R_ACQ_STATE_INACTIVE;
+
+	/*When stop is triggered, everything should be return to initial state*/
+	/*Deinitialize all timers*/
+	if(prvADS9224R_TIMER_CONVST_DeInit() != ADS9224R_STATUS_OK) return ADS9224R_STATUS_ERROR;
+	if(prvADS9224R_TIMER_CS_DeInit() != ADS9224R_STATUS_OK) return ADS9224R_STATUS_ERROR;
+	if(prvADS9224R_TIMER_SCLK_DeInit() != ADS9224R_STATUS_OK) return ADS9224R_STATUS_ERROR;
+
+
+	HAL_SPI_DeInit(&prvADS9224R_SPI_S_SDOB_HANDLER);
+	HAL_SPI_DeInit(&prvADS9224R_SPI_S_SDOA_HANDLER);
+
+	HAL_DMA_DeInit(&prvADS9224R_SPI_S_DMA_SDOB_HANDLER);
+	HAL_DMA_DeInit(&prvADS9224R_SPI_S_DMA_SDOA_HANDLER);
+
+
+	/*Reset ADC*/
+	if(prvADS9224R_PowerDown(1000) != ADS9224R_STATUS_OK) return ADS9224R_STATUS_ERROR;
+
+	if(prvADS9224R_PowerUp(1000) != ADS9224R_STATUS_OK) return ADS9224R_STATUS_ERROR;
+
+	/*Set to config state*/
+	if(prvADS9224R_CONF_SetState() != ADS9224R_STATUS_OK) return ADS9224R_STATUS_ERROR;
+
+	for(uint8_t i =0; i < 8; i++)
+	{
+		if(prvADS9224R_CONF_SPI_Master_ReadReg(i, &registersContent[i], 1000) != ADS9224R_STATUS_OK) return ADS9224R_STATUS_ERROR;
+	}
+
+	/*This part of the code was used during testing to confirm that it is possible to set and read registers*/
+	/*
+	if(ADS9224R_SetPatternState(ADS9224R_FPATTERN_STATE_ENABLED, 1000) != ADS9224R_STATUS_OK) return ADS9224R_STATUS_ERROR;
+	if(ADS9224R_SetPatternState(ADS9224R_FPATTERN_STATE_DISABLED, 1000) != ADS9224R_STATUS_OK) return ADS9224R_STATUS_ERROR;
+	*/
+
 	return ADS9224R_STATUS_OK;
 }
 ads9224r_status_t   ADS9224R_SetConfig(ads9224r_config_t *config)

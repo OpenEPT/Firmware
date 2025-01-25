@@ -155,10 +155,37 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
 	if(htim_base->Instance==TIM1)
 	{
 		__HAL_RCC_TIM1_CLK_DISABLE();
+		HAL_GPIO_DeInit(GPIOE, GPIO_PIN_11|GPIO_PIN_13|GPIO_PIN_14);
 	}
 	if(htim_base->Instance==TIM2)
 	{
-		__HAL_RCC_TIM1_CLK_DISABLE();
+		__HAL_RCC_TIM2_CLK_DISABLE();
+	}
+
+	if(htim_base->Instance==TIM4)
+	{
+		__HAL_RCC_TIM4_CLK_DISABLE();
+
+
+		HAL_GPIO_DeInit(GPIOE, GPIO_PIN_0);
+		HAL_GPIO_DeInit(GPIOE, GPIO_PIN_12);
+
+	}
+	if(htim_base->Instance==TIM5)
+	{
+		__HAL_RCC_TIM5_CLK_DISABLE();
+
+
+		HAL_GPIO_DeInit(GPIOA, GPIO_PIN_3);
+
+	}
+	if(htim_base->Instance==TIM8)
+	{
+		__HAL_RCC_TIM8_CLK_DISABLE();
+
+		HAL_GPIO_DeInit(GPIOC, GPIO_PIN_9);
+		HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0);
+
 	}
 }
 drv_timer_status_t DRV_Timer_Init_Instance(drv_timer_instance_t instance, drv_timer_config_t* config)
