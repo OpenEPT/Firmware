@@ -260,7 +260,7 @@ static void prvENERGY_DEBUGGER_Task()
 
 			    // Configure the pin for the button
 			    drv_gpio_pin_init_conf_t button_pin_conf;
-			    button_pin_conf.mode = DRV_GPIO_PIN_MODE_IT_RISING;
+			    button_pin_conf.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
 			    button_pin_conf.pullState = DRV_GPIO_PIN_PULL_NOPULL;
 			    //Definisati pin preko makroa
 			    if (DRV_GPIO_Pin_Init(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN, &button_pin_conf) != DRV_GPIO_STATUS_OK)
