@@ -54,6 +54,12 @@ typedef struct
 
 typedef struct
 {
+	uint32_t 	packetID;
+	uint8_t     dmaID;
+}energy_debugger_id_t;
+
+typedef struct
+{
 	uint8_t 	name[ENERGY_DEBUGGER_MESSAGE_BUFFER_LENTH];
 	uint8_t     nameLength;
 }energy_debugger_ebp_name_t;
@@ -61,7 +67,7 @@ typedef struct
 typedef struct
 {
 	energy_debugger_ebp_name_t 	name;
-	uint32_t 					id;
+	energy_debugger_id_t 	    id;
 }energy_debugger_breakpoint_info_t;
 
 static 	TaskHandle_t 						prvENERGY_DEBUGGER_TASK_HANDLE;
@@ -97,9 +103,10 @@ static void prvEDEBUGGING_ButtonPressedCallback(uint16_t GPIO_Pin)
 	BaseType_t *pxHigherPriorityTaskWoken = pdFALSE;
 	DRV_GPIO_ClearInterruptFlag(GPIO_Pin);
 	uint32_t tmpPacketCounter = 0;
+	energy_debugger_id_t id;
 
 	//Set energy breakpoint marker
-	DRV_AIN_Stream_SetCapture(&tmpPacketCounter);
+	DRV_AIN_Stream_SetCapture(&id.packetID, &id.dmaID);
 
     // Increment the button click counter
     prvENERGY_DEBUGGER_DATA.buttonClickCounter++;
@@ -114,7 +121,7 @@ static void prvEDEBUGGING_ButtonPressedCallback(uint16_t GPIO_Pin)
     }
     //xTaskNotifyFromISR(prvENERGY_DEBUGGER_TASK_HANDLE, 0x01, eSetBits, pxHigherPriorityTaskWoken);
 
-    xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_ID, &tmpPacketCounter, pxHigherPriorityTaskWoken);
+    xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_ID, &id, pxHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 }
 static void prvENERGY_DEBUGGER_Client_Task(void* pvParam)
@@ -172,10 +179,11 @@ static void prvENERGY_DEBUGGER_Client_Task(void* pvParam)
 					linkData.taskState = ENERGY_DEBUGGER_STATE_ERROR;
 					break;
 				}
-				*((uint32_t*)&tcpBuffer) = ebp.id;
-				memcpy(&tcpBuffer[4], ebp.name.name, ebp.name.nameLength);
+				*((uint32_t*)&tcpBuffer) = ebp.id.packetID;
+				*((((uint32_t*)&tcpBuffer) + 4)) = ebp.id.dmaID;
+				memcpy(&tcpBuffer[8], ebp.name.name, ebp.name.nameLength);
 				LOGGING_Write("Energy point client service",LOGGING_MSG_TYPE_INFO,  "New EP info received\r\n");
-				if(netconn_write(conn, tcpBuffer, ebp.name.nameLength + 4, NETCONN_COPY) != ERR_OK)
+				if(netconn_write(conn, tcpBuffer, ebp.name.nameLength + 8, NETCONN_COPY) != ERR_OK)
 				{
 					LOGGING_Write("Energy point client service", LOGGING_MSG_TYPE_WARNNING,  "Unable to send EP message\r\n");
 				}
@@ -199,7 +207,7 @@ static void prvENERGY_DEBUGGER_Task()
 		LOGGING_Write("Energy Debugger", LOGGING_MSG_TYPE_INFO, "Energy Debugger service started\r\n");
 		uint8_t  data;
 		drv_uart_config_t channelConfig;
-		uint32_t id;
+        energy_debugger_id_t 		      id;
 		energy_debugger_ebp_name_t		  ebpName;
 		energy_debugger_breakpoint_info_t ebp;
 		memset(&ebp, 0, sizeof(energy_debugger_breakpoint_info_t));
@@ -291,10 +299,12 @@ static void prvENERGY_DEBUGGER_Task()
 
 
 				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "Energy point successfully received\r\n");
-				ebp.id = id;
+				ebp.id.packetID = id.packetID;
+				ebp.id.dmaID = id.dmaID;
 				memcpy(&ebp.name, &ebpName, sizeof(energy_debugger_ebp_name_t));
 				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "Energy point name: %s\r\n", ebpName.name);
-				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "Energy point ID: %d\r\n", id);
+				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "Energy point Packet ID: %d\r\n", id.packetID);
+				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "Energy point DMA ID: %d\r\n", id.dmaID);
 
 				//send info
 				for(int i = 0; i < prvENERGY_DEBUGGER_DATA.activeConnectionsNo; i++)
@@ -369,7 +379,7 @@ energy_debugger_status_t ENERGY_DEBUGGER_Init(uint32_t timeout)
 
     prvENERGY_DEBUGGER_QUEUE_ID =  xQueueCreate(
     		ENERGY_DEBUGGER_ID_QUEUE_LENTH,
-			sizeof(uint32_t));
+			sizeof(energy_debugger_id_t));
 
     if(prvENERGY_DEBUGGER_QUEUE_ID == NULL ) return ENERGY_DEBUGGER_STATE_ERROR;
 

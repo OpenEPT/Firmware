@@ -12,6 +12,7 @@
 #include "string.h"
 #include "main.h"
 #include "ADS9224R/ads9224r.h"
+#include "stm32h7xx_ll_dma.h"
 
 
 static ADC_HandleTypeDef 				prvDRV_AIN_DEVICE_ADC_HANDLER;
@@ -200,9 +201,9 @@ static void							prvDRV_AIN_DMAHalfComplitedCallback(DMA_HandleTypeDef *_hdma)
 	/* Set buffer marker */
 	prvDRV_AIN_ADC_DATA_SAMPLES[prvDRV_AIN_ADC_ACTIVE_BUFFER][2] = DRV_AIN_ADC_BUFFER_MARKER;
 
-	if(prvDRV_AIN_CAPTURE_EVENT == 1)
+	if(prvDRV_AIN_CAPTURE_EVENT >= 1)
 	{
-		prvDRV_AIN_ADC_DATA_SAMPLES[prvDRV_AIN_ADC_ACTIVE_BUFFER][3] = 1;
+		prvDRV_AIN_ADC_DATA_SAMPLES[prvDRV_AIN_ADC_ACTIVE_BUFFER][3] = prvDRV_AIN_CAPTURE_EVENT;
 		prvDRV_AIN_CAPTURE_EVENT = 0;
 	}
 	else
@@ -758,12 +759,13 @@ drv_ain_status 						DRV_AIN_Stream_SubmitAddr(drv_ain_adc_t adc, uint32_t addr,
 	return DRV_AIN_STATUS_OK;
 }
 
-drv_ain_status 						DRV_AIN_Stream_SetCapture(uint32_t* packetCounter)
+drv_ain_status 						DRV_AIN_Stream_SetCapture(uint32_t* packetCounter, uint32_t* dmaCounter)
 {
 	//TODO: Should be protected
-	prvDRV_AIN_CAPTURE_EVENT = 1;
+	prvDRV_AIN_CAPTURE_EVENT += 1;
 
 	*packetCounter = prvDRV_AIN_ADC_BUFFER_COUNTER;
+	*dmaCounter = LL_DMA_GetDataLength(DMA2, LL_DMA_STREAM_0);
 
 	return DRV_AIN_STATUS_OK;
 }
