@@ -221,7 +221,7 @@ drv_gpio_status_t DRV_GPIO_Pin_ToogleFromISR(drv_gpio_port_t port, drv_gpio_pin 
 }
 
 
-drv_gpio_status_t DRV_GPIO_Pin_EnableInt(drv_gpio_port_t port, drv_gpio_pin pin, uint32_t pri, drv_gpio_pin_isr_callback callback)
+drv_gpio_status_t DRV_GPIO_Pin_EnableInt(drv_gpio_port_t port, drv_gpio_pin pin, uint32_t pri, drv_gpio_pin_isr_callback callback, drv_gpio_pin_init_conf_t* conf)
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 	drv_gpio_status_t status = DRV_GPIO_STATUS_OK;
@@ -232,7 +232,7 @@ drv_gpio_status_t DRV_GPIO_Pin_EnableInt(drv_gpio_port_t port, drv_gpio_pin pin,
 
 	/*Configure GPIO pin : PC13 */
 	GPIO_InitStruct.Pin  = 1 << pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+	GPIO_InitStruct.Mode = prvDRV_GPIO_Pin_GetModeCode(conf->mode);;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init((GPIO_TypeDef*)prvDRV_GPIO_PORTS[port].portInstance, &GPIO_InitStruct);
 
@@ -281,7 +281,7 @@ drv_gpio_status_t DRV_GPIO_Pin_EnableInt(drv_gpio_port_t port, drv_gpio_pin pin,
 	return DRV_GPIO_STATUS_OK;
 }
 
-drv_gpio_status_t DRV_GPIO_RegisterCallback(drv_gpio_port_t port, drv_gpio_pin pin, drv_gpio_pin_isr_callback callback, uint32_t priority)
+drv_gpio_status_t DRV_GPIO_RegisterCallback(drv_gpio_port_t port, drv_gpio_pin pin, drv_gpio_pin_isr_callback callback, uint32_t priority, drv_gpio_pin_init_conf_t* conf)
 {
     // Ensure the port is initialized
     if(prvDRV_GPIO_PORTS[port].initState != DRV_GPIO_PORT_INIT_STATUS_INITIALIZED || prvDRV_GPIO_PORTS[port].lock == NULL)
@@ -295,7 +295,7 @@ drv_gpio_status_t DRV_GPIO_RegisterCallback(drv_gpio_port_t port, drv_gpio_pin p
     prvDRV_GPIO_PINS_INTERRUPTS[pin] = callback;
 
     // Enable the interrupt for the specified pin
-    drv_gpio_status_t status = DRV_GPIO_Pin_EnableInt(port, pin, priority, callback);
+    drv_gpio_status_t status = DRV_GPIO_Pin_EnableInt(port, pin, priority, callback, conf);
 
     return status;
 }

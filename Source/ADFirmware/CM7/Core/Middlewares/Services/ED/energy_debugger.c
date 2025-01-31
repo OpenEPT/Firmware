@@ -101,7 +101,7 @@ static void prvEDEBUGGING_SerialCharReceived(uint8_t data)
 static void prvEDEBUGGING_ButtonPressedCallback(uint16_t GPIO_Pin)
 {
 	BaseType_t *pxHigherPriorityTaskWoken = pdFALSE;
-	DRV_GPIO_ClearInterruptFlag(GPIO_Pin);
+	//DRV_GPIO_ClearInterruptFlag(GPIO_Pin);
 	uint32_t tmpPacketCounter = 0;
 	energy_debugger_id_t id;
 
@@ -180,7 +180,7 @@ static void prvENERGY_DEBUGGER_Client_Task(void* pvParam)
 					break;
 				}
 				*((uint32_t*)&tcpBuffer) = ebp.id.packetID;
-				*((((uint32_t*)&tcpBuffer) + 4)) = ebp.id.dmaID;
+				*((((uint32_t*)&tcpBuffer) + 1)) = ebp.id.dmaID;
 				memcpy(&tcpBuffer[8], ebp.name.name, ebp.name.nameLength);
 				LOGGING_Write("Energy point client service",LOGGING_MSG_TYPE_INFO,  "New EP info received\r\n");
 				if(netconn_write(conn, tcpBuffer, ebp.name.nameLength + 8, NETCONN_COPY) != ERR_OK)
@@ -271,7 +271,7 @@ static void prvENERGY_DEBUGGER_Task()
 			    }
 
 			    // Register the button press callback
-			    if (DRV_GPIO_RegisterCallback(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN, prvEDEBUGGING_ButtonPressedCallback, ENERGY_DEBUGGER_BUTTON_ISR_PRIO) != DRV_GPIO_STATUS_OK)
+			    if (DRV_GPIO_RegisterCallback(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN, prvEDEBUGGING_ButtonPressedCallback, ENERGY_DEBUGGER_BUTTON_ISR_PRIO, &button_pin_conf) != DRV_GPIO_STATUS_OK)
 			    {
 					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_ERROR,  "Unable to register sync callback\r\n");
 					prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
