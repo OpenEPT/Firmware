@@ -73,11 +73,14 @@ drv_gpio_status_t DRV_GPIO_Init()
 
 drv_gpio_status_t DRV_GPIO_Port_Init(drv_gpio_port_t port)
 {
-	if(prvDRV_GPIO_PORTS[port].lock != NULL) return DRV_GPIO_STATUS_ERROR;
+	if(prvDRV_GPIO_PORTS[port].lock == NULL){
 
-	prvDRV_GPIO_PORTS[port].lock = xSemaphoreCreateMutex();
+		prvDRV_GPIO_PORTS[port].lock = xSemaphoreCreateMutex();
 
-	if(prvDRV_GPIO_PORTS[port].lock == NULL)  return DRV_GPIO_STATUS_ERROR;
+		if(prvDRV_GPIO_PORTS[port].lock == NULL)  return DRV_GPIO_STATUS_ERROR;
+	}
+
+
 
 	prvDRV_GPIO_PORTS[port].initState = DRV_GPIO_PORT_INIT_STATUS_INITIALIZED;
 
@@ -278,6 +281,52 @@ drv_gpio_status_t DRV_GPIO_Pin_EnableInt(drv_gpio_port_t port, drv_gpio_pin pin,
 
 	if(xSemaphoreGive(prvDRV_GPIO_PORTS[port].lock) == pdFALSE ) return DRV_GPIO_STATUS_ERROR;
 
+	return DRV_GPIO_STATUS_OK;
+}
+
+drv_gpio_status_t 		DRV_GPIO_Pin_DisableInt(drv_gpio_port_t port, drv_gpio_pin pin)
+{
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	drv_gpio_status_t status = DRV_GPIO_STATUS_OK;
+	if(prvDRV_GPIO_PORTS[port].initState != DRV_GPIO_PORT_INIT_STATUS_INITIALIZED || prvDRV_GPIO_PORTS[port].lock == NULL) return DRV_GPIO_STATUS_ERROR;
+	if(pin > DRV_GPIO_PIN_MAX_NUMBER || pin > DRV_GPIO_INTERRUPTS_MAX_NUMBER) return DRV_GPIO_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvDRV_GPIO_PORTS[port].lock, portMAX_DELAY) == pdFALSE ) return DRV_GPIO_STATUS_ERROR;
+
+	if(pin >= 10  && pin <= 15)
+	{
+		HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
+	}
+	if(pin >= 5  && pin <= 9)
+	{
+		HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+	}
+	if(pin < 5)
+	{
+		switch(pin)
+		{
+		case 0:
+			HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+			break;
+		case 1:
+			HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+			break;
+		case 2:
+			HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+			break;
+		case 3:
+			HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+			break;
+		case 4:
+			HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+			break;
+		default:
+			/*Never ends here*/
+			break;
+		}
+	}
+
+	if(xSemaphoreGive(prvDRV_GPIO_PORTS[port].lock) == pdFALSE ) return DRV_GPIO_STATUS_ERROR;
 	return DRV_GPIO_STATUS_OK;
 }
 

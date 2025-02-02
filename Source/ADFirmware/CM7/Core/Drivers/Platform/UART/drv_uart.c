@@ -334,7 +334,6 @@ drv_uart_status_t	DRV_UART_Instance_Init(drv_uart_instance_t instance, drv_uart_
 	case DRV_UART_INSTANCE_7:
 		prvDRV_UART_INSTANCES[instance].deviceHandler.Instance = UART7;
 		break;
-
 	}
 
 	/*TODO: Only baudrate is configurable*/
@@ -356,6 +355,50 @@ drv_uart_status_t	DRV_UART_Instance_Init(drv_uart_instance_t instance, drv_uart_
 
 	prvDRV_UART_INSTANCES[instance].initState = DRV_UART_INITIALIZATION_STATUS_INIT;
 
+	return	DRV_UART_STATUS_OK;
+}
+drv_uart_status_t	DRV_UART_Instance_DisableISR(drv_uart_instance_t instance)
+{
+	switch(instance)
+	{
+	case DRV_UART_INSTANCE_1:
+		HAL_NVIC_DisableIRQ(USART1_IRQn);
+		break;
+	case DRV_UART_INSTANCE_3:
+		HAL_NVIC_DisableIRQ(USART3_IRQn);
+		break;
+	case DRV_UART_INSTANCE_4:
+		HAL_NVIC_DisableIRQ(UART4_IRQn);
+		break;
+	case DRV_UART_INSTANCE_6:
+		HAL_NVIC_DisableIRQ(USART6_IRQn);
+		break;
+	case DRV_UART_INSTANCE_7:
+		HAL_NVIC_DisableIRQ(UART7_IRQn);
+		break;
+	}
+	return	DRV_UART_STATUS_OK;
+}
+drv_uart_status_t	DRV_UART_Instance_EnableISR(drv_uart_instance_t instance)
+{
+	switch(instance)
+	{
+	case DRV_UART_INSTANCE_1:
+		HAL_NVIC_EnableIRQ(USART1_IRQn);
+		break;
+	case DRV_UART_INSTANCE_3:
+		HAL_NVIC_EnableIRQ(USART3_IRQn);
+		break;
+	case DRV_UART_INSTANCE_4:
+		HAL_NVIC_EnableIRQ(UART4_IRQn);
+		break;
+	case DRV_UART_INSTANCE_6:
+		HAL_NVIC_EnableIRQ(USART6_IRQn);
+		break;
+	case DRV_UART_INSTANCE_7:
+		HAL_NVIC_EnableIRQ(UART7_IRQn);
+		break;
+	}
 	return	DRV_UART_STATUS_OK;
 }
 drv_uart_status_t	DRV_UART_TransferData(drv_uart_instance_t instance, uint8_t* buffer, uint8_t size, uint32_t timeout)

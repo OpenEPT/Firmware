@@ -1381,6 +1381,56 @@ static void prvCONTROL_CreateStatusLink(const char* arguments, uint16_t argument
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Status link successfully created\r\n");
 	}
 }
+
+/**
+ * @brief	Enable Energy Points
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_SetEPEnable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	if(ENERGY_DEBUGGER_SetEnable(1) == ENERGY_DEBUGGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Energy Points enabled\r\n");
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to enable Energy Points \r\n");
+		return;
+	}
+}
+
+/**
+ * @brief	Disable Energy Points
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_SetEPDisable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	if(ENERGY_DEBUGGER_SetEnable(0) == ENERGY_DEBUGGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Energy Points disabled\r\n");
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to disable Energy Points \r\n");
+		return;
+	}
+}
+
+
+
+
 //TODO: This function is introduced for testing purposes only. Remove it in production phase!
 /**
  * @brief	Send message over status link
@@ -1699,6 +1749,10 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 
 
 	CMPARSE_AddCommand("device rgb setcolor",     		prvCONTROL_SetRGBColor);
+
+
+	CMPARSE_AddCommand("device ep enable",     			prvCONTROL_SetEPEnable);
+	CMPARSE_AddCommand("device ep disable",     		prvCONTROL_SetEPDisable);
 
 
 	return CONTROL_STATUS_OK;

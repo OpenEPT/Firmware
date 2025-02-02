@@ -115,6 +115,7 @@ drv_gpio_status_t 		DRV_GPIO_Pin_SetStateFromISR(drv_gpio_port_t port, drv_gpio_
 drv_gpio_pin_state_t 	DRV_GPIO_Pin_ReadState(drv_gpio_port_t port, drv_gpio_pin pin);
 drv_gpio_status_t 		DRV_GPIO_Pin_ToogleFromISR(drv_gpio_port_t port, drv_gpio_pin pin);
 drv_gpio_status_t 		DRV_GPIO_Pin_EnableInt(drv_gpio_port_t port, drv_gpio_pin pin, uint32_t pri, drv_gpio_pin_isr_callback callback, drv_gpio_pin_init_conf_t* conf);
+drv_gpio_status_t 		DRV_GPIO_Pin_DisableInt(drv_gpio_port_t port, drv_gpio_pin pin);
 drv_gpio_status_t 		DRV_GPIO_RegisterCallback(drv_gpio_port_t port, drv_gpio_pin pin, drv_gpio_pin_isr_callback callback, uint32_t priority, drv_gpio_pin_init_conf_t* conf);
 void 					DRV_GPIO_ClearInterruptFlag(uint16_t GPIO_Pin);
 

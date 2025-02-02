@@ -31,6 +31,14 @@ typedef enum{
 	EP_LINK_STATE_DOWN		/*!< Link is down */
 }energy_debugger_link_state_t;
 
+/**
+ * @brief Link state
+ */
+typedef enum{
+	EP_COMM_STATUS_ESTABLISHED,		/*!< Link is up */
+	EP_COMM_STATUS_DISCONNECTED		/*!< Link is down */
+}energy_debugger_comm_status_t;
+
 typedef struct
 {
 
@@ -77,6 +85,8 @@ static  volatile energy_debugger_ebp_name_t prvENERGY_DEBUGGER_EBP_LAST_NAME;
 
 static energy_debugger_data_t				prvENERGY_DEBUGGER_DATA;
 
+static uint8_t								prvENERGY_DEBUGGER_ENABLED;
+
 
 
 
@@ -93,6 +103,12 @@ static void prvEDEBUGGING_SerialCharReceived(uint8_t data)
 	    xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_EBP_NAME, &prvENERGY_DEBUGGER_EBP_LAST_NAME, pxHigherPriorityTaskWoken);
 		memset(&prvENERGY_DEBUGGER_EBP_LAST_NAME, 0, sizeof(energy_debugger_ebp_name_t));
 	    portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
+	}
+	if((prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength + 1) == ENERGY_DEBUGGER_MESSAGE_BUFFER_LENTH)
+	{
+		//Prevent buffer overflow
+		memset(&prvENERGY_DEBUGGER_EBP_LAST_NAME, 0, sizeof(energy_debugger_ebp_name_t));
+		prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength = 0;
 	}
 
 }
@@ -210,6 +226,7 @@ static void prvENERGY_DEBUGGER_Task()
         energy_debugger_id_t 		      id;
 		energy_debugger_ebp_name_t		  ebpName;
 		energy_debugger_breakpoint_info_t ebp;
+		energy_debugger_comm_status_t	  comStatus = EP_COMM_STATUS_DISCONNECTED;
 		memset(&ebp, 0, sizeof(energy_debugger_breakpoint_info_t));
 		memset(&ebpName, 0, sizeof(energy_debugger_ebp_name_t));
 		for(;;)
@@ -237,22 +254,6 @@ static void prvENERGY_DEBUGGER_Task()
 					prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
 					break;
 				}
-				//Todo Ovo treba ukloniti iz koda, zamenili smo USART6 -> UART4
-				/*
-				if(DRV_UART_Instance_Init(DRV_UART_INSTANCE_6, &channelConfig) != DRV_UART_STATUS_OK)
-			    {
-					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_ERROR,  "Unable to initialize serial port\r\n");
-					prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
-			    	break;
-			    }
-
-				if(DRV_UART_Instance_RegisterRxCallback(DRV_UART_INSTANCE_6, prvEDEBUGGING_SerialCharReceived)!= DRV_UART_STATUS_OK)
-			    {
-					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_ERROR,  "Unable to initialize serial port\r\n");
-					prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
-			    	break;
-			    }
-			    */
 
 			    // Initialize the GPIO port
 			    if (DRV_GPIO_Port_Init(ENERGY_DEBUGGER_BUTTON_PORT) != DRV_GPIO_STATUS_OK)
@@ -280,9 +281,13 @@ static void prvENERGY_DEBUGGER_Task()
 			    prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_SERVICE;
 				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "Energy point service successfully initialized\r\n");
 
+				ENERGY_DEBUGGER_SetEnable(0);
+
 				break;
 			case ENERGY_DEBUGGER_STATE_SERVICE:
 				//Wait for new debugger name
+				memset(&ebp, 0, sizeof(energy_debugger_breakpoint_info_t));
+				memset(&ebpName, 0, sizeof(energy_debugger_ebp_name_t));
 				if(xQueueReceive(prvENERGY_DEBUGGER_QUEUE_EBP_NAME, &ebpName, portMAX_DELAY) != pdTRUE)
 				{
 					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_ERROR,  "Unable to get EP info from callback\r\n");
@@ -290,37 +295,75 @@ static void prvENERGY_DEBUGGER_Task()
 			    	break;
 				}
 
-				//Get id
-				if(xQueueReceive(prvENERGY_DEBUGGER_QUEUE_ID, &id, 0) != pdTRUE)
+				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "Energy debugger message received\r\n");
+				if(ebpName.name[0] == '0')
 				{
-					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_WARNNING,  "EP ID mismatch\r\n");
-					continue;
-				}
-
-
-				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "Energy point successfully received\r\n");
-				ebp.id.packetID = id.packetID;
-				ebp.id.dmaID = id.dmaID;
-				memcpy(&ebp.name, &ebpName, sizeof(energy_debugger_ebp_name_t));
-				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "Energy point name: %s\r\n", ebpName.name);
-				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "Energy point Packet ID: %d\r\n", id.packetID);
-				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "Energy point DMA ID: %d\r\n", id.dmaID);
-
-				//send info
-				for(int i = 0; i < prvENERGY_DEBUGGER_DATA.activeConnectionsNo; i++)
-				{
-					if(xQueueSendToBack(prvENERGY_DEBUGGER_DATA.activeLink[i].ebp, &ebp, 0) != pdTRUE)
+					//config message
+					if(strncmp((char*)ebpName.name, "0:START\r", 6) == 0)
 					{
-						LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_ERROR,  "Unable to send EP info\r\n");
-						prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
+						DRV_UART_TransferData(DRV_UART_INSTANCE_4, "OK\r", 3, 1000);
+						ENERGY_DEBUGGER_SetEnable(1);
+						comStatus = EP_COMM_STATUS_ESTABLISHED;
+						LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "EP Link with DUT is established\r\n");
+						break;;
+					}
+					if(strncmp((char*)ebpName.name, "0:STOP\r", 6) == 0)
+					{
+						DRV_UART_TransferData(DRV_UART_INSTANCE_4, "OK\r", 3, 1000);
+						ENERGY_DEBUGGER_SetEnable(0);
+						LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "EP Link with DUT is disconnected\r\n");
+						comStatus = EP_COMM_STATUS_DISCONNECTED;
+						break;;
+					}
+					DRV_UART_TransferData(DRV_UART_INSTANCE_4, "ERROR\r", 6, 1000);
+					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_WARNNING,  "Undefined command received from DUT\r\n");
+					break;
+				}
+				if(ebpName.name[0] == '1')
+				{
+					//ebp message
+					if(comStatus != EP_COMM_STATUS_ESTABLISHED)
+					{
+						LOGGING_Write("Energy point service", LOGGING_MSG_TYPE_WARNNING,  "Start EP from DUT\r\n");
 						break;
 					}
+
+					//Get id
+					if(xQueueReceive(prvENERGY_DEBUGGER_QUEUE_ID, &id, 0) != pdTRUE)
+					{
+						LOGGING_Write("Energy point service", LOGGING_MSG_TYPE_WARNNING,  "EP ID mismatch\r\n");
+						break;
+					}
+
+					LOGGING_Write("Energy point service", LOGGING_MSG_TYPE_INFO,  "Energy point successfully received\r\n");
+					ebp.id.packetID = id.packetID;
+					ebp.id.dmaID = id.dmaID;
+					memcpy(&ebp.name, &ebpName, sizeof(energy_debugger_ebp_name_t));
+					ebp.name.name[ebp.name.nameLength] = '\n';
+					ebp.name.nameLength += 1;
+					LOGGING_Write("Energy point service", LOGGING_MSG_TYPE_INFO,  "Energy point name: %s\n", ebpName.name);
+					LOGGING_Write("Energy point service", LOGGING_MSG_TYPE_INFO,  "Energy point Packet ID: %d\r\n", id.packetID);
+					LOGGING_Write("Energy point service", LOGGING_MSG_TYPE_INFO,  "Energy point DMA ID: %d\r\n", id.dmaID);
+
+					//send info
+					for(int i = 0; i < prvENERGY_DEBUGGER_DATA.activeConnectionsNo; i++)
+					{
+						if(xQueueSendToBack(prvENERGY_DEBUGGER_DATA.activeLink[i].ebp, &ebp, 0) != pdTRUE)
+						{
+							LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_ERROR,  "Unable to send EP info\r\n");
+							prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
+							break;
+						}
+					}
+					break;
 				}
-
-				//clear buffer
-				memset(&ebp, 0, sizeof(energy_debugger_breakpoint_info_t));
-				memset(&ebpName, 0, sizeof(energy_debugger_ebp_name_t));
-
+				if(ebpName.name[0] == '2')
+				{
+					LOGGING_Write("Energy point service", LOGGING_MSG_TYPE_INFO,  "Info messages received from DUT:\r\n");
+					LOGGING_Write("Energy point service", LOGGING_MSG_TYPE_INFO,  "%s\n", ebpName.name);
+					break;
+				}
+				LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_WARNNING,  "Undefined message received from DUT\r\n");
 				break;
 			case ENERGY_DEBUGGER_STATE_ERROR:
 				SYSTEM_ReportError(SYSTEM_ERROR_LEVEL_LOW);
@@ -361,6 +404,29 @@ energy_debugger_status_t ENERGY_DEBUGGER_CreateLink(energy_debugger_connection_i
 
     return ENERGY_DEBUGGER_STATUS_OK;
 }
+energy_debugger_status_t ENERGY_DEBUGGER_SetEnable(uint8_t enableStatus)
+{
+	if(enableStatus == 1)
+	{
+	    drv_gpio_pin_init_conf_t button_pin_conf;
+	    button_pin_conf.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
+	    button_pin_conf.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+		xQueueReset(prvENERGY_DEBUGGER_QUEUE_ID);
+		for(int i = 0; i < prvENERGY_DEBUGGER_DATA.activeConnectionsNo; i++)
+		{
+			xQueueReset(prvENERGY_DEBUGGER_DATA.activeLink[i].ebp);
+		}
+		//DRV_UART_Instance_EnableISR(DRV_UART_INSTANCE_4);
+	    DRV_GPIO_RegisterCallback(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN, prvEDEBUGGING_ButtonPressedCallback, ENERGY_DEBUGGER_BUTTON_ISR_PRIO, &button_pin_conf);
+	}
+	else
+	{
+		DRV_GPIO_Pin_DisableInt(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN);
+		//DRV_UART_Instance_DisableISR(DRV_UART_INSTANCE_4);
+
+	}
+    return ENERGY_DEBUGGER_STATUS_OK;
+}
 
 energy_debugger_status_t ENERGY_DEBUGGER_Init(uint32_t timeout)
 {
@@ -375,8 +441,6 @@ energy_debugger_status_t ENERGY_DEBUGGER_Init(uint32_t timeout)
             ENERGY_DEBUGGER_TASK_PRIO,
             &prvENERGY_DEBUGGER_TASK_HANDLE) != pdTRUE) return ENERGY_DEBUGGER_STATUS_ERROR;
 
-
-
     prvENERGY_DEBUGGER_QUEUE_ID =  xQueueCreate(
     		ENERGY_DEBUGGER_ID_QUEUE_LENTH,
 			sizeof(energy_debugger_id_t));
@@ -389,7 +453,7 @@ energy_debugger_status_t ENERGY_DEBUGGER_Init(uint32_t timeout)
 
     if(prvENERGY_DEBUGGER_QUEUE_EBP_NAME == NULL ) return ENERGY_DEBUGGER_STATE_ERROR;
 
-
+    prvENERGY_DEBUGGER_ENABLED = 0;
 
     return ENERGY_DEBUGGER_STATUS_OK;
 }

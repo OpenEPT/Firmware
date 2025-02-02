@@ -48,5 +48,6 @@ typedef struct
 
 energy_debugger_status_t ENERGY_DEBUGGER_Init(uint32_t timeout);
 energy_debugger_status_t ENERGY_DEBUGGER_CreateLink(energy_debugger_connection_info* serverInfo, uint32_t timeout);
+energy_debugger_status_t ENERGY_DEBUGGER_SetEnable(uint8_t enableStatus);
 
 #endif /* CORE_MIDDLEWARES_SERVICES_ED_ENERGY_DEBUGGER_H_ */

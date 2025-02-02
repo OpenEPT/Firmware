@@ -67,6 +67,8 @@ drv_uart_status_t	DRV_UART_Init();
 drv_uart_status_t	DRV_UART_Instance_Init(drv_uart_instance_t instance, drv_uart_config_t* config);
 drv_uart_status_t	DRV_UART_Instance_TransferData(drv_uart_instance_t instance, uint8_t* buffer, uint8_t size, uint32_t timeout);
 drv_uart_status_t	DRV_UART_Instance_RegisterRxCallback(drv_uart_instance_t instance, drv_uart_rx_isr_callback rxcb);
+drv_uart_status_t	DRV_UART_Instance_DisableISR(drv_uart_instance_t instance);
+drv_uart_status_t	DRV_UART_Instance_EnableISR(drv_uart_instance_t instance);
 
 
 #endif /* CORE_DRIVERS_PLATFORM_UART_UART_H_ */
