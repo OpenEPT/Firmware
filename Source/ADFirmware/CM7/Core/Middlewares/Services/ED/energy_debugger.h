@@ -2,7 +2,7 @@
  * energy_debugger.h
  *
  *  Created on: Jun 23, 2024
- *      Author: Pavle Lakic & Dimitrije Lilic
+ *      Author: Haris Turkmanovic, Pavle Lakic & Dimitrije Lilic
  */
 
 #ifndef CORE_MIDDLEWARES_SERVICES_ED_ENERGY_DEBUGGER_H_

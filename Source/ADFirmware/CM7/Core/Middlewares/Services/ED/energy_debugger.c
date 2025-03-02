@@ -2,7 +2,7 @@
  * energy_debugger.c
  *
  *  Created on: Jun 23, 2024
- *      Author: Pavle Lakic & Dimitrije Lilic
+ *      Author: Haris Turkmanovic, Pavle Lakic & Dimitrije Lilic
  */
 
 #include "energy_debugger.h"
@@ -79,7 +79,7 @@ typedef struct
 }energy_debugger_breakpoint_info_t;
 
 static 	TaskHandle_t 						prvENERGY_DEBUGGER_TASK_HANDLE;
-static  QueueHandle_t						prvENERGY_DEBUGGER_QUEUE_ID;
+static  QueueHandle_t						prvENERGY_DEBUGGER_QUEUE_VALUES;
 static  QueueHandle_t						prvENERGY_DEBUGGER_QUEUE_EBP_NAME;
 static  volatile energy_debugger_ebp_name_t prvENERGY_DEBUGGER_EBP_LAST_NAME;
 
@@ -92,7 +92,7 @@ static uint8_t								prvENERGY_DEBUGGER_ENABLED;
 
 
 
-static void prvEDEBUGGING_SerialCharReceived(uint8_t data)
+static void prvEDEBUGGING_SerialISR(uint8_t data)
 {
 	BaseType_t *pxHigherPriorityTaskWoken = pdFALSE;
 	prvENERGY_DEBUGGER_EBP_LAST_NAME.name[prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength] = data;
@@ -114,7 +114,7 @@ static void prvEDEBUGGING_SerialCharReceived(uint8_t data)
 }
 
 
-static void prvEDEBUGGING_ButtonPressedCallback(uint16_t GPIO_Pin)
+static void prvEDEBUGGING_SyncISR(uint16_t GPIO_Pin)
 {
 	BaseType_t *pxHigherPriorityTaskWoken = pdFALSE;
 	//DRV_GPIO_ClearInterruptFlag(GPIO_Pin);
@@ -137,7 +137,7 @@ static void prvEDEBUGGING_ButtonPressedCallback(uint16_t GPIO_Pin)
     }
     //xTaskNotifyFromISR(prvENERGY_DEBUGGER_TASK_HANDLE, 0x01, eSetBits, pxHigherPriorityTaskWoken);
 
-    xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_ID, &id, pxHigherPriorityTaskWoken);
+    xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_VALUES, &id, pxHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 }
 static void prvENERGY_DEBUGGER_Client_Task(void* pvParam)
@@ -218,7 +218,7 @@ static void prvENERGY_DEBUGGER_Client_Task(void* pvParam)
 	}
 }
 
-static void prvENERGY_DEBUGGER_Task()
+static void prvENERGY_DEBUGGER_EPP_Task()
 {
 		LOGGING_Write("Energy Debugger", LOGGING_MSG_TYPE_INFO, "Energy Debugger service started\r\n");
 		uint8_t  data;
@@ -248,7 +248,7 @@ static void prvENERGY_DEBUGGER_Task()
 					break;
 				}
 
-				if(DRV_UART_Instance_RegisterRxCallback(DRV_UART_INSTANCE_4, prvEDEBUGGING_SerialCharReceived)!= DRV_UART_STATUS_OK)
+				if(DRV_UART_Instance_RegisterRxCallback(DRV_UART_INSTANCE_4, prvEDEBUGGING_SerialISR)!= DRV_UART_STATUS_OK)
 				{
 					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_ERROR,  "Unable to initialize serial port\r\n");
 					prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
@@ -272,7 +272,7 @@ static void prvENERGY_DEBUGGER_Task()
 			    }
 
 			    // Register the button press callback
-			    if (DRV_GPIO_RegisterCallback(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN, prvEDEBUGGING_ButtonPressedCallback, ENERGY_DEBUGGER_BUTTON_ISR_PRIO, &button_pin_conf) != DRV_GPIO_STATUS_OK)
+			    if (DRV_GPIO_RegisterCallback(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN, prvEDEBUGGING_SyncISR, ENERGY_DEBUGGER_BUTTON_ISR_PRIO, &button_pin_conf) != DRV_GPIO_STATUS_OK)
 			    {
 					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_ERROR,  "Unable to register sync callback\r\n");
 					prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
@@ -329,7 +329,7 @@ static void prvENERGY_DEBUGGER_Task()
 					}
 
 					//Get id
-					if(xQueueReceive(prvENERGY_DEBUGGER_QUEUE_ID, &id, 0) != pdTRUE)
+					if(xQueueReceive(prvENERGY_DEBUGGER_QUEUE_VALUES, &id, 0) != pdTRUE)
 					{
 						LOGGING_Write("Energy point service", LOGGING_MSG_TYPE_WARNNING,  "EP ID mismatch\r\n");
 						break;
@@ -411,13 +411,13 @@ energy_debugger_status_t ENERGY_DEBUGGER_SetEnable(uint8_t enableStatus)
 	    drv_gpio_pin_init_conf_t button_pin_conf;
 	    button_pin_conf.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
 	    button_pin_conf.pullState = DRV_GPIO_PIN_PULL_NOPULL;
-		xQueueReset(prvENERGY_DEBUGGER_QUEUE_ID);
+		xQueueReset(prvENERGY_DEBUGGER_QUEUE_VALUES);
 		for(int i = 0; i < prvENERGY_DEBUGGER_DATA.activeConnectionsNo; i++)
 		{
 			xQueueReset(prvENERGY_DEBUGGER_DATA.activeLink[i].ebp);
 		}
 		//DRV_UART_Instance_EnableISR(DRV_UART_INSTANCE_4);
-	    DRV_GPIO_RegisterCallback(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN, prvEDEBUGGING_ButtonPressedCallback, ENERGY_DEBUGGER_BUTTON_ISR_PRIO, &button_pin_conf);
+	    DRV_GPIO_RegisterCallback(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN, prvEDEBUGGING_SyncISR, ENERGY_DEBUGGER_BUTTON_ISR_PRIO, &button_pin_conf);
 	}
 	else
 	{
@@ -434,18 +434,18 @@ energy_debugger_status_t ENERGY_DEBUGGER_Init(uint32_t timeout)
 	memset(&prvENERGY_DEBUGGER_DATA, 0, sizeof(energy_debugger_data_t));
 
 
-    if(xTaskCreate(prvENERGY_DEBUGGER_Task,
+    if(xTaskCreate(prvENERGY_DEBUGGER_EPP_Task,
             ENERGY_DEBUGGER_TASK_NAME,
             ENERGY_DEBUGGER_STACK_SIZE,
             NULL,
             ENERGY_DEBUGGER_TASK_PRIO,
             &prvENERGY_DEBUGGER_TASK_HANDLE) != pdTRUE) return ENERGY_DEBUGGER_STATUS_ERROR;
 
-    prvENERGY_DEBUGGER_QUEUE_ID =  xQueueCreate(
+    prvENERGY_DEBUGGER_QUEUE_VALUES =  xQueueCreate(
     		ENERGY_DEBUGGER_ID_QUEUE_LENTH,
 			sizeof(energy_debugger_id_t));
 
-    if(prvENERGY_DEBUGGER_QUEUE_ID == NULL ) return ENERGY_DEBUGGER_STATE_ERROR;
+    if(prvENERGY_DEBUGGER_QUEUE_VALUES == NULL ) return ENERGY_DEBUGGER_STATE_ERROR;
 
     prvENERGY_DEBUGGER_QUEUE_EBP_NAME =  xQueueCreate(
     		CONF_ENERGY_DEBUGGER_EBP_NAMES_QUEUE_LENGTH,
