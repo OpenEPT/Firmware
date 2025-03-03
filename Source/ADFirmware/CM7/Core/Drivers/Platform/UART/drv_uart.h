@@ -28,6 +28,7 @@ typedef enum
 	DRV_UART_INSTANCE_3	= 1,
 	DRV_UART_INSTANCE_7	= 2,
 	DRV_UART_INSTANCE_6	= 3,
+	DRV_UART_INSTANCE_4 = 4,
 }drv_uart_instance_t;
 
 typedef enum

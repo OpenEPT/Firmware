@@ -1,0 +1,10 @@
+09:52:47 **** Incremental Build of configuration Debug for project ADFirmware_CM7 ****
+make -j16 all 
+arm-none-eabi-size  ADFirmware_CM7.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 230796	    152	 385651	 616599	  96897	ADFirmware_CM7.elf
+Finished building: default.size.stdout
+ 
+
+09:52:48 Build Finished. 0 errors, 0 warnings. (took 764ms)
+
