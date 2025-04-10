@@ -73,8 +73,8 @@ static void prvSYSTEM_Task()
 
 	prvSYSTEM_DATA.linkStatus    = SYSTEM_LINK_STATUS_DOWN;
 	prvSYSTEM_DATA.rgbValue.red = 0;
-	prvSYSTEM_DATA.rgbValue.green = 50;
-	prvSYSTEM_DATA.rgbValue.blue = 0;
+	prvSYSTEM_DATA.rgbValue.green = 0;
+	prvSYSTEM_DATA.rgbValue.blue = 50;
 
 	for(;;)
 	{
@@ -167,7 +167,7 @@ static void prvSYSTEM_Task()
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Discharge Profile Control service successfully initialized\r\n");
 
 			xSemaphoreGive(prvSYSTEM_DATA.initSig);
-			prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.green, prvSYSTEM_DATA.rgbValue.blue);
+			prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
 			prvSYSTEM_DATA.state = SYSTEM_STATE_SERVICE;
 			break;
 		case SYSTEM_STATE_SERVICE:
@@ -175,7 +175,7 @@ static void prvSYSTEM_Task()
 			xTaskNotifyWait(0x0, 0xffffffff, &notifyValue, portMAX_DELAY);
 			if((notifyValue & SYSTEM_MASK_RGB_SET_COLOR) != 0)
 			{
-				prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.green, prvSYSTEM_DATA.rgbValue.blue);
+				prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
 			}
 			break;
 		case SYSTEM_STATE_ERROR:
@@ -222,15 +222,21 @@ system_status_t SYSTEM_Start()
 
 system_status_t SYSTEM_ReportError(system_error_level_t errorLevel)
 {
+	prvSYSTEM_DATA.rgbValue.red = 50;
+	prvSYSTEM_DATA.rgbValue.blue = 0;
+	prvSYSTEM_DATA.rgbValue.green = 0;
 	switch(errorLevel)
 	{
 	case SYSTEM_ERROR_LEVEL_LOW:
+		prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
 		if(DRV_GPIO_Pin_SetState(SYSTEM_ERROR_STATUS_DIODE_PORT, SYSTEM_ERROR_STATUS_DIODE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK) return SYSTEM_STATUS_ERROR;
 		break;
 	case SYSTEM_ERROR_LEVEL_MEDIUM:
+		prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
 		if(DRV_GPIO_Pin_SetState(SYSTEM_ERROR_STATUS_DIODE_PORT, SYSTEM_ERROR_STATUS_DIODE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK) return SYSTEM_STATUS_ERROR;
 		break;
 	case SYSTEM_ERROR_LEVEL_HIGH:
+		prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
 		if(DRV_GPIO_Pin_SetState(SYSTEM_ERROR_STATUS_DIODE_PORT, SYSTEM_ERROR_STATUS_DIODE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK) return SYSTEM_STATUS_ERROR;
 		break;
 	}

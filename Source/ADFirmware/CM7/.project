@@ -37,18 +37,18 @@
 		<link>
 			<name>Core/Drivers/Device</name>
 			<type>2</type>
-			<locationURI>PROJECT_PATH/Drivers</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers</locationURI>
 		</link>
 		<link>
 			<name>Core/Middlewares/Third_Party</name>
 			<type>2</type>
-			<locationURI>PROJECT_PATH/Middlewares/Third_Party</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Middlewares/Third_Party</locationURI>
 		</link>
 	</linkedResources>
 	<variableList>
 		<variable>
 			<name>PROJECT_PATH</name>
-			<value>file:/C:/Users/Haris/Documents/OpenEPT/OpenEPTOrganization/Firmware/Source/ADFirmware</value>
+			<value>file:/home/elektronika/Desktop/Projects/OpenEPT/Firmware/Source/ADFirmware</value>
 		</variable>
 	</variableList>
 </projectDescription>

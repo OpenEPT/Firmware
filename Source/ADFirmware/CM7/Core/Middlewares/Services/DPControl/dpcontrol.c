@@ -22,6 +22,7 @@
 #define 	DPCONTROL_MASK_SET_ACTIVE_STATUS	0x00000002
 #define 	DPCONTROL_MASK_SET_LOAD_STATE		0x00000004
 #define 	DPCONTROL_MASK_SET_BAT_STATE		0x00000008
+#define 	DPCONTROL_MASK_SET_UV_DETECTED		0x00000010
 
 typedef struct
 {
@@ -43,14 +44,25 @@ typedef struct
 
 static	dpcontrol_data_t				prvDPCONTROL_DATA;
 
+
+static void prvDPCONTROL_UnderVoltageCB(drv_gpio_pin pin)
+{
+	BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+
+	xTaskNotifyFromISR(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_SET_UV_DETECTED, eSetBits, &pxHigherPriorityTaskWoken);
+
+	portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
+}
+
 static void prvDPCONTROL_TaskFunc(void* pvParameters){
 	uint32_t	value;
 	uint32_t	aoutValue;
-	dpcontrol_active_status_t activeStatus;
+	dpcontrol_active_status_t 	activeStatus;
 	dpcontrol_load_state_t		loadState;
 	dpcontrol_bat_state_t		batState;
 	drv_gpio_pin_init_conf_t 	loadPinConfig;
 	drv_gpio_pin_init_conf_t 	batPinConfig;
+	drv_gpio_pin_init_conf_t 	underVoltagePinConfig;
 
 	for(;;){
 		switch(prvDPCONTROL_DATA.state)
@@ -75,6 +87,21 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			if(DRV_GPIO_Pin_Init(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, &loadPinConfig) != DRV_GPIO_STATUS_OK)
 			{
 				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize battery control pin\r\n");
+			}
+
+			// Configure the pin for the button
+			underVoltagePinConfig.mode = DRV_GPIO_PIN_MODE_IT_RISING;
+			underVoltagePinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+			//Definisati pin preko makroa
+			if (DRV_GPIO_Pin_Init(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, &underVoltagePinConfig) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register UnderVoltage GPIO\r\n");
+			}
+
+			// Register the button press callback
+			if (DRV_GPIO_RegisterCallback(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, prvDPCONTROL_UnderVoltageCB, CONF_DPCONTROL_UV_ISR_PRIO) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register UnderVoltage callback\r\n");
 			}
 
 
@@ -221,6 +248,11 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 					break;
 				}
 				xSemaphoreGive(prvDPCONTROL_DATA.initSig);
+			}
+
+			if(value & DPCONTROL_MASK_SET_UV_DETECTED)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNNING,  "Under Voltage detected\r\n");
 			}
 			break;
 		case DPCONTROL_STATE_ERROR:

@@ -25,6 +25,7 @@
 #include "sstream.h"
 
 #include "drv_ain.h"
+#include "drv_gpio.h"
 
 
 #define  	SSTREAM_TASK_START_BIT						0x00000001
@@ -115,6 +116,9 @@ static void prvSSTREAM_StreamTaskFunc(void* pvParam)
 	err_t					error;
 	unsigned int			testPacketcounter = 0;
 
+	system_rgb_value_t 		rgb;
+
+
 	LOGGING_Write("SStream service", LOGGING_MSG_TYPE_INFO,  "Samples stream task created\r\n");
 	for(;;)
 	{
@@ -149,11 +153,14 @@ static void prvSSTREAM_StreamTaskFunc(void* pvParam)
 				connectionData->state = SSTREAM_STATE_ERROR;
 				break;
 			}
+			rgb.red = 0;
+			rgb.green = 50;
+			rgb.blue = 0;
+			SYSTEM_SetRGB(rgb);
 			connectionData->state = SSTREAM_STATE_SERVICE;
 			break;
 		case SSTREAM_STATE_SERVICE:
 			xQueueReceive(prvSSTREAM_PACKET_QUEUE, &packetData, portMAX_DELAY);
-			ITM_SendChar('b');
 
 			p = pbuf_alloc(PBUF_TRANSPORT, 2*(CONF_AIN_MAX_BUFFER_SIZE + DRV_AIN_ADC_BUFFER_OFFSET), PBUF_RAM);
 
@@ -196,6 +203,7 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 	uint32_t				notifyValue = 0;
 	TickType_t				blockingTime = portMAX_DELAY;
 
+	drv_gpio_pin_init_conf_t 	acqStateLED;
 	sstream_control_data_t			*connectionData;
 	connectionData 			= (sstream_control_data_t*)pvParam;
 
@@ -207,6 +215,20 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 		switch(connectionData->state)
 		{
 		case SSTREAM_STATE_INIT:
+
+			/* Init Acqusition State Diode */
+			acqStateLED.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
+			acqStateLED.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+
+			if(DRV_GPIO_Port_Init(SSTREAM_LED_PORT) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize stream LED port\r\n");
+			}
+			if(DRV_GPIO_Pin_Init(SSTREAM_LED_PORT, SSTREAM_LED_PIN, &acqStateLED) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize stream LED ppin\r\n");
+			}
+
 			/* Try to configure default resolution */
 			if(DRV_AIN_SetResolution(DRV_AIN_ADC_3, SSTREAM_AIN_DEFAULT_RESOLUTION) == DRV_AIN_STATUS_OK)
 			{
@@ -305,6 +327,7 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 				if(DRV_AIN_Start(connectionData->ainConfig.adc) == DRV_AIN_STATUS_OK)
 				{
 					LOGGING_Write("SStream service", LOGGING_MSG_TYPE_INFO,  "Stream started \r\n");
+					DRV_GPIO_Pin_SetState(SSTREAM_LED_PORT, SSTREAM_LED_PIN, DRV_GPIO_PIN_STATE_SET);
 				}
 				else
 				{
@@ -337,6 +360,7 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 				if(DRV_AIN_Stop(DRV_AIN_ADC_3) == DRV_AIN_STATUS_OK)
 				{
 					LOGGING_Write("SStream service", LOGGING_MSG_TYPE_INFO,  "Stream stoped \r\n");
+					DRV_GPIO_Pin_SetState(SSTREAM_LED_PORT, SSTREAM_LED_PIN, DRV_GPIO_PIN_STATE_RESET);
 				}
 				else
 				{

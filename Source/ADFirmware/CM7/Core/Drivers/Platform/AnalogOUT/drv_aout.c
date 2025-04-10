@@ -90,6 +90,7 @@ static drv_aout_status_t prvDRV_AOUT_Init()
 	sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
 	sConfig.DAC_UserTrimming	 = DAC_TRIMMING_FACTORY;
 	if (HAL_DAC_ConfigChannel(&prvDRV_AOUT_DAC_HANDLER, &sConfig, DAC_CHANNEL_2) != HAL_OK) return DRV_AOUT_STATUS_ERROR;
+	if (HAL_DACEx_SelfCalibrate(&prvDRV_AOUT_DAC_HANDLER, &sConfig, DAC_CHANNEL_2) != HAL_OK) return DRV_AOUT_STATUS_ERROR;
 
 	return DRV_AOUT_STATUS_OK;
 }
