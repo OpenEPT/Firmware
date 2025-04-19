@@ -32,6 +32,7 @@
 #include "energy_debugger.h"
 #include "CMParse/cmparse.h"
 #include "dpcontrol.h"
+#include "charger.h"
 
 
 /**
@@ -440,6 +441,126 @@ static void prvCONTROL_SetDACActiveStatus(const char* arguments, uint16_t argume
 }
 
 /**
+ * @brief	Enable charging
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_ChargingEnable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	if(CHARGER_SetChargingState(CHARGER_CHARGING_ENABLE, 1000) == CHARGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service",  LOGGING_MSG_TYPE_INFO, "Charging successfully enabled\r\n");
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to enable charging\r\n");
+		return;
+	}
+}
+
+/**
+ * @brief	Disable charging
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_ChargingDisable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	if(CHARGER_SetChargingState(CHARGER_CHARGING_DISABLE, 1000) == CHARGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Charging successfully disabled\r\n");
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to disable Charging\r\n");
+		return;
+	}
+}
+
+/**
+ * @brief	Set charging current value
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_ChargingCurrentSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	cmparse_value_t				value;
+	uint32_t					current;
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain current value\r\n");
+		return;
+	}
+	sscanf(value.value, "%lu", &current);
+
+	if(CHARGER_SetChargingCurrent(current, 1000) == CHARGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Charging current %d [mA] set\r\n", current);
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set charging current\r\n");
+		return;
+	}
+}
+
+/**
+ * @brief	Get charger register content
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_ChargerReadReg(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	cmparse_value_t				value;
+	uint32_t					regAddr;
+	uint8_t						regVal;
+	char						responseContent[50];
+	uint32_t					responseContentSize;
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "reg", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain current value\r\n");
+		return;
+	}
+	sscanf(value.value, "%x", &regAddr);
+
+	if(CHARGER_GetRegContent(regAddr, &regVal, 1000) == CHARGER_STATUS_OK)
+	{
+		responseContentSize = 0;
+		memset(responseContent, 50, 0);
+		responseContentSize = sprintf(responseContent, "OK: 0x%x",regVal);
+		prvCONTROL_PrepareOkResponse(response, responseSize, responseContent, responseContentSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Reg  %d successfully read\r\n", regAddr);
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to read register current\r\n");
+		return;
+	}
+}
+
+/**
  * @brief	Enable load
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
@@ -452,7 +573,7 @@ static void prvCONTROL_SetLoadEnable(const char* arguments, uint16_t argumentsLe
 	if(DPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_ENABLE, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Load status successfully set\r\n");
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Load status successfully set\r\n");
 	}
 	else
 	{
@@ -474,7 +595,7 @@ static void prvCONTROL_SetLoadDisable(const char* arguments, uint16_t argumentsL
 	if(DPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_DISABLE, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Load status successfully set\r\n");
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Load status successfully set\r\n");
 	}
 	else
 	{
@@ -496,12 +617,58 @@ static void prvCONTROL_SetBatEnable(const char* arguments, uint16_t argumentsLen
 	if(DPCONTROL_SetBatState(DPCONTROL_LOAD_STATE_ENABLE, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Load status successfully set\r\n");
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Load status successfully set\r\n");
 	}
 	else
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set load status\r\n");
+		return;
+	}
+}
+
+/**
+ * @brief	Enable power path
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_SetPPathEnable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	if(DPCONTROL_SetPPathState(DPCONTROL_PPATH_STATE_ENABLE, 1000) == DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Power Path status successfully set\r\n");
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set Power Path status\r\n");
+		return;
+	}
+}
+
+/**
+ * @brief	Disable power path
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_SetPPathDisable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	if(DPCONTROL_SetPPathState(DPCONTROL_PPATH_STATE_DISABLE, 1000) == DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Power Path status successfully set\r\n");
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set Power Path status\r\n");
 		return;
 	}
 }
@@ -518,7 +685,7 @@ static void prvCONTROL_SetBatDisable(const char* arguments, uint16_t argumentsLe
 	if(DPCONTROL_SetBatState(DPCONTROL_BAT_STATE_DISABLE, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Load status successfully set\r\n");
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Load status successfully set\r\n");
 	}
 	else
 	{
@@ -1696,9 +1863,17 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("device load disable", 			prvCONTROL_SetLoadDisable);
 	CMPARSE_AddCommand("device bat enable", 			prvCONTROL_SetBatEnable);
 	CMPARSE_AddCommand("device bat disable", 			prvCONTROL_SetBatDisable);
+	CMPARSE_AddCommand("device ppath enable", 			prvCONTROL_SetPPathEnable);
+	CMPARSE_AddCommand("device ppath disable", 			prvCONTROL_SetPPathDisable);
 
 
 	CMPARSE_AddCommand("device rgb setcolor",     		prvCONTROL_SetRGBColor);
+
+
+	CMPARSE_AddCommand("charger charging enable",       prvCONTROL_ChargingEnable);
+	CMPARSE_AddCommand("charger charging disable",      prvCONTROL_ChargingDisable);
+	CMPARSE_AddCommand("charger charging current set",  prvCONTROL_ChargingCurrentSet);
+	CMPARSE_AddCommand("charger reg read",  			prvCONTROL_ChargerReadReg);
 
 
 	return CONTROL_STATUS_OK;

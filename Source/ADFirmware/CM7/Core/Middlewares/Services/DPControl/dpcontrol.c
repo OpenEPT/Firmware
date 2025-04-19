@@ -22,7 +22,8 @@
 #define 	DPCONTROL_MASK_SET_ACTIVE_STATUS	0x00000002
 #define 	DPCONTROL_MASK_SET_LOAD_STATE		0x00000004
 #define 	DPCONTROL_MASK_SET_BAT_STATE		0x00000008
-#define 	DPCONTROL_MASK_SET_UV_DETECTED		0x00000010
+#define 	DPCONTROL_MASK_SET_PPATH_STATE		0x00000010
+#define 	DPCONTROL_MASK_SET_UV_DETECTED		0x00000020
 
 typedef struct
 {
@@ -40,6 +41,7 @@ typedef struct
 	dpcontrol_aout_data_t			aoutData;
 	dpcontrol_load_state_t			loadState;
 	dpcontrol_bat_state_t			batState;
+	dpcontrol_ppath_state_t			pathState;
 }dpcontrol_data_t;
 
 static	dpcontrol_data_t				prvDPCONTROL_DATA;
@@ -60,8 +62,10 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 	dpcontrol_active_status_t 	activeStatus;
 	dpcontrol_load_state_t		loadState;
 	dpcontrol_bat_state_t		batState;
+	dpcontrol_ppath_state_t		ppathState;
 	drv_gpio_pin_init_conf_t 	loadPinConfig;
 	drv_gpio_pin_init_conf_t 	batPinConfig;
+	drv_gpio_pin_init_conf_t 	gpioPinConfig;
 	drv_gpio_pin_init_conf_t 	underVoltagePinConfig;
 
 	for(;;){
@@ -85,6 +89,15 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize battery control port\r\n");
 			}
 			if(DRV_GPIO_Pin_Init(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, &loadPinConfig) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize battery control pin\r\n");
+			}
+
+			if(DRV_GPIO_Port_Init(DPCONTROL_GPIO_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize battery control port\r\n");
+			}
+			if(DRV_GPIO_Pin_Init(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, &loadPinConfig) != DRV_GPIO_STATUS_OK)
 			{
 				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize battery control pin\r\n");
 			}
@@ -249,6 +262,48 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				}
 				xSemaphoreGive(prvDPCONTROL_DATA.initSig);
 			}
+			if(value & DPCONTROL_MASK_SET_PPATH_STATE)
+			{
+				if(xSemaphoreTake(prvDPCONTROL_DATA.guard, portMAX_DELAY) != pdTRUE)
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_ERROR,  "Unable to take semaphore\r\n");
+					prvDPCONTROL_DATA.state = DPCONTROL_STATE_ERROR;
+					break;
+				}
+
+				ppathState = prvDPCONTROL_DATA.pathState;
+
+				if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE)
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_ERROR,  "Unable to return semaphore\r\n");
+					prvDPCONTROL_DATA.state = DPCONTROL_STATE_ERROR;
+					break;
+				}
+				switch(ppathState)
+				{
+				case DPCONTROL_PPATH_STATE_ENABLE:
+					if(DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
+					{
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to enable power path\r\n");
+					}
+					else
+					{
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Power path successfully enabled\r\n");
+					}
+					break;
+				case DPCONTROL_PPATH_STATE_DISABLE:
+					if(DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
+					{
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to disable power path\r\n");
+					}
+					else
+					{
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Power path successfully disabled\r\n");
+					}
+					break;
+				}
+				xSemaphoreGive(prvDPCONTROL_DATA.initSig);
+			}
 
 			if(value & DPCONTROL_MASK_SET_UV_DETECTED)
 			{
@@ -344,6 +399,20 @@ dpcontrol_status_t  DPCONTROL_SetBatState(dpcontrol_bat_state_t state, uint32_t 
 	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
 
 	if(xTaskNotify(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_SET_BAT_STATE, eSetBits) != pdTRUE) return DPCONTROL_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvDPCONTROL_DATA.initSig, pdMS_TO_TICKS(timeout)) != pdPASS) return DPCONTROL_STATUS_ERROR;
+
+	return DPCONTROL_STATUS_OK;
+}
+dpcontrol_status_t  DPCONTROL_SetPPathState(dpcontrol_ppath_state_t state, uint32_t timeout)
+{
+	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	prvDPCONTROL_DATA.pathState = state;
+
+	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	if(xTaskNotify(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_SET_PPATH_STATE, eSetBits) != pdTRUE) return DPCONTROL_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvDPCONTROL_DATA.initSig, pdMS_TO_TICKS(timeout)) != pdPASS) return DPCONTROL_STATUS_ERROR;
 

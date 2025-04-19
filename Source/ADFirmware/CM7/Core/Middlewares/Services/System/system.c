@@ -33,6 +33,7 @@
 #include "sstream.h"
 #include "energy_debugger.h"
 #include "dpcontrol.h"
+#include "charger.h"
 
 #define  SYSTEM_MASK_RGB_SET_COLOR	0x00000001
 
@@ -133,6 +134,12 @@ static void prvSYSTEM_Task()
 				break;
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Logging service successfully initialized\r\n");
+			if(CHARGER_Init(2000) != CHARGER_STATUS_OK)
+			{
+				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
+				break;
+			}
+			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Charger service successfully initialized\r\n");
 			if(ENERGY_DEBUGGER_Init(2000) != ENERGY_DEBUGGER_STATUS_OK)
 			{
 				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;

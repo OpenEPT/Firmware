@@ -73,9 +73,10 @@ drv_gpio_status_t DRV_GPIO_Init()
 
 drv_gpio_status_t DRV_GPIO_Port_Init(drv_gpio_port_t port)
 {
-	if(prvDRV_GPIO_PORTS[port].lock != NULL) return DRV_GPIO_STATUS_ERROR;
-
-	prvDRV_GPIO_PORTS[port].lock = xSemaphoreCreateMutex();
+	if(prvDRV_GPIO_PORTS[port].lock == NULL)
+	{
+		prvDRV_GPIO_PORTS[port].lock = xSemaphoreCreateMutex();
+	}
 
 	if(prvDRV_GPIO_PORTS[port].lock == NULL)  return DRV_GPIO_STATUS_ERROR;
 

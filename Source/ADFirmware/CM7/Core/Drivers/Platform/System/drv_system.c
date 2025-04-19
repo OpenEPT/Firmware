@@ -15,6 +15,7 @@
 #include "drv_timer.h"
 #include "drv_aout.h"
 #include "drv_spi.h"
+#include "drv_i2c.h"
 
 #ifndef HSEM_ID_0
 #define HSEM_ID_0 (0U) /* HW semaphore 0*/
@@ -195,6 +196,7 @@ drv_system_status_t	DRV_SYSTEM_InitDrivers()
 
 	if(DRV_Timer_Init() != DRV_TIMER_STATUS_OK) return DRV_SYSTEM_STATUS_ERROR;
 	if(DRV_AOUT_Init() != DRV_AOUT_STATUS_OK) return DRV_SYSTEM_STATUS_ERROR;
+	if(DRV_I2C_Init() != DRV_AOUT_STATUS_OK) return DRV_SYSTEM_STATUS_ERROR;
 
 
 	return DRV_SYSTEM_STATUS_OK;
