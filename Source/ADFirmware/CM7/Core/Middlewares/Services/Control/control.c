@@ -1527,26 +1527,46 @@ control_status_link_instance_t statusLinkInstance;
  */
 static void prvCONTROL_CreateStatusLink(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
-	control_status_link_ip_info_t statusLinkServer;
-	char instanceNoStr[10];
-	uint32_t size;
-	statusLinkServer.ip[0] = 192;
-	statusLinkServer.ip[1] = 168;
-	statusLinkServer.ip[2] = 2;
-	statusLinkServer.ip[3] = 100;
-	statusLinkServer.portNo = 48569;
 
-	if(CONTROL_StatusLinkCreate(&statusLinkInstance, statusLinkServer, 2000) != CONTROL_STATUS_OK)
+	cmparse_value_t					value;
+	control_status_link_ip_info_t	connectionInfo = {0};
+	ip_addr_t						ip = {0};
+	uint32_t						size = 0;
+	char 							instanceNoStr[10];
+
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "ip", &value) != CMPARSE_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNNING, "Unable to create status link\r\n");
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain ip address\r\n");
+		return;
 	}
-	else
+	//sscanf(value.value, "%hhu.%hhu.%hhu.%hhu", &connectionInfo.serverIp[0], &connectionInfo.serverIp[1], &connectionInfo.serverIp[2], &connectionInfo.serverIp[3]);
+	ipaddr_aton(value.value, &ip);
+	connectionInfo.ip[0] = (uint8_t)ip.addr;
+	connectionInfo.ip[1] = (uint8_t)(ip.addr>>8);
+	connectionInfo.ip[2] = (uint8_t)(ip.addr>>16);
+	connectionInfo.ip[3] = (uint8_t)(ip.addr>>24);
+
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "port", &value) != CMPARSE_STATUS_OK)
 	{
-		size = sprintf(instanceNoStr,"%d",(int)statusLinkInstance.linkInstanceNo);
-		prvCONTROL_PrepareOkResponse(response, responseSize, instanceNoStr, size);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Status link successfully created\r\n");
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain port number\r\n");
+		return;
 	}
+	sscanf(value.value, "%hu", &connectionInfo.portNo);
+
+	if(CONTROL_StatusLinkCreate(&statusLinkInstance, connectionInfo, 2000) != CONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to create stream channel\r\n");
+		return;
+	}
+
+	size = sprintf(instanceNoStr,"%d",(int)statusLinkInstance.linkInstanceNo);
+	prvCONTROL_PrepareOkResponse(response, responseSize, instanceNoStr, size);
+
 }
 //TODO: This function is introduced for testing purposes only. Remove it in production phase!
 /**
@@ -1571,13 +1591,10 @@ static void prvCONTROL_StatusLinkSendMessage(const char* arguments, uint16_t arg
 	if(CONTROL_StatusLinkSendMessage(&statusLinkInstance, value.value, value.size, 2000) != CONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNNING, "Unable to send message\r\n");
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to send stream message\r\n");
+		return;
 	}
-	else
-	{
-		prvCONTROL_PrepareOkResponse(response, responseSize, "", 0);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "message successfully sent\r\n");
-	}
+	prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 }
 /**
  * @brief	Main control service task
@@ -1748,7 +1765,8 @@ static void prvCONTROL_StatusLinkTaskFunc(void* pvParameter)
 			IP_ADDR4(&remote_ip, linkInstance.ipInfo.ip[0], linkInstance.ipInfo.ip[1], linkInstance.ipInfo.ip[2], linkInstance.ipInfo.ip[3]);
 
 			LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_INFO,  "Try to create status link connection with server:\r\n");
-			LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_INFO,  "Server IP: %d.%d.%d.%d\r\n",linkInstance.ipInfo.ip[0],
+			LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_INFO,  "Server IP: %d.%d.%d.%d\r\n",
+					linkInstance.ipInfo.ip[0],
 					linkInstance.ipInfo.ip[1],
 					linkInstance.ipInfo.ip[2],
 					linkInstance.ipInfo.ip[3]);
@@ -1901,12 +1919,6 @@ control_status_t 	CONTROL_StatusLinkCreate(control_status_link_instance_t* statu
 	if(prvCONTROL_DATA.numberOfStatusLinks > CONFIG_CONTROL_STATUS_LINK_MAX_NO) return CONTROL_STATUS_ERROR;
 	statusLinkInstance->linkInstanceNo = prvCONTROL_DATA.numberOfStatusLinks;
 	memcpy(&statusLinkInstance->ipInfo, &statusServerIp, sizeof(control_status_link_ip_info_t));
-	if(xTaskCreate(prvCONTROL_StatusLinkTaskFunc,
-			CONTROL_STATUS_LINK_TASK_NAME,
-			CONTROL_STATUS_LINK_TASK_STACK,
-			statusLinkInstance,
-			CONTROL_STATUS_LINK_TASK_PRIO,
-			&prvCONTROL_STATUS_LINK_DATA[prvCONTROL_DATA.numberOfStatusLinks].taskHandle) != pdPASS) return CONTROL_STATUS_ERROR;
 
 	prvCONTROL_STATUS_LINK_DATA[statusLinkInstance->linkInstanceNo].initSig = xSemaphoreCreateBinary();
 
@@ -1916,12 +1928,20 @@ control_status_t 	CONTROL_StatusLinkCreate(control_status_link_instance_t* statu
 
 	if(prvCONTROL_STATUS_LINK_DATA[statusLinkInstance->linkInstanceNo].guard == NULL) return CONTROL_STATUS_ERROR;
 
-	prvCONTROL_STATUS_LINK_DATA[statusLinkInstance->linkInstanceNo].messageQueue	= xQueueCreate(CONTROL_STATUS_LINK_MESSAGES_MAX_NO, sizeof(control_status_message_t));
+	prvCONTROL_STATUS_LINK_DATA[statusLinkInstance->linkInstanceNo].messageQueue =
+			xQueueCreate(CONTROL_STATUS_LINK_MESSAGES_MAX_NO, sizeof(control_status_message_t));
 
 	if(prvCONTROL_STATUS_LINK_DATA[statusLinkInstance->linkInstanceNo].messageQueue == NULL) return CONTROL_STATUS_ERROR;
 
 	prvCONTROL_STATUS_LINK_DATA[statusLinkInstance->linkInstanceNo].state = CONTROL_STATE_INIT;
 	prvCONTROL_STATUS_LINK_DATA[statusLinkInstance->linkInstanceNo].linkState = CONTROL_LINK_STATE_DOWN;
+
+	if(xTaskCreate(prvCONTROL_StatusLinkTaskFunc,
+				CONTROL_STATUS_LINK_TASK_NAME,
+				CONTROL_STATUS_LINK_TASK_STACK,
+				statusLinkInstance,
+				CONTROL_STATUS_LINK_TASK_PRIO,
+				&prvCONTROL_STATUS_LINK_DATA[prvCONTROL_DATA.numberOfStatusLinks].taskHandle) != pdPASS) return CONTROL_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvCONTROL_STATUS_LINK_DATA[statusLinkInstance->linkInstanceNo].initSig, timeout) != pdPASS) return CONTROL_STATUS_ERROR;
 
