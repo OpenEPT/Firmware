@@ -22,6 +22,10 @@
 #define	DPCONTROL_GPIO_DISABLE_PIN		CONF_DPCONTROL_GPIO_DISABLE_PIN
 
 
+#define	DPCONTROL_LATCH_PORT			CONF_DPCONTROL_LATCH_PORT
+#define	DPCONTROL_LATCH_PIN				CONF_DPCONTROL_LATCH_PIN
+
+
 typedef enum{
 	DPCONTROL_STATUS_OK = 0,
 	DPCONTROL_STATUS_ERROR
@@ -64,3 +68,4 @@ dpcontrol_status_t 	DPCONTROL_SetActivestatus(dpcontrol_active_status_t activeSt
 dpcontrol_status_t  DPCONTROL_SetLoadState(dpcontrol_load_state_t state, uint32_t timeout);
 dpcontrol_status_t  DPCONTROL_SetBatState(dpcontrol_bat_state_t state, uint32_t timeout);
 dpcontrol_status_t  DPCONTROL_SetPPathState(dpcontrol_ppath_state_t state, uint32_t timeout);
+dpcontrol_status_t  DPCONTROL_LatchTriger(uint32_t timeout);

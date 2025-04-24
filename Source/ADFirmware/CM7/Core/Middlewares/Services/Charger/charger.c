@@ -21,9 +21,10 @@
 #define  	CHARGER_TASK_SET_CURRENT_TERMINATION_VALUE		0x00000004
 #define  	CHARGER_TASK_SET_VOLTAGE_TERMINATION_VALUE		0x00000008
 #define  	CHARGER_TASK_REG_READ							0x00000010
+#define  	CHARGER_TASK_PROCESS_INT						0x00000020
 
 
-#define		CHARGER_DEFAULT_CURRENT_TERMINATION_VALUE	1 //%
+#define		CHARGER_DEFAULT_CURRENT_TERMINATION_VALUE	5 //%
 #define		CHARGER_DEFAULT_VOLTAGE_TERMINATION_VALUE	4.35 //%
 #define		CHARGER_DEFAULT_CURRENT_CHARGING_VALUE		100 //mA
 #define		CHARGER_DEFAULT_CURRENT_ILIM_VALUE			3 	//200 mA
@@ -56,15 +57,25 @@ typedef struct
 	TaskHandle_t					taskHandle;
 	charger_charging_info_t			chargingInfo;
 	charger_reg_content_t			regContent;
+	uint16_t						intStatus;
 }charger_data_t;
 
 
 static	charger_data_t				prvCHARGER_DATA;
 
+static void prvCHARGER_CB(uint16_t chargerFlag)
+{
+	BaseType_t *pxHigherPriorityTaskWoken = pdFALSE;
+	prvCHARGER_DATA.intStatus = chargerFlag;
+	xTaskNotifyFromISR(prvCHARGER_DATA.taskHandle, CHARGER_TASK_PROCESS_INT, eSetBits, pxHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
+}
+
 
 static void prvCHARGER_TaskFunc(void* pvParameters)
 {
 	uint32_t				notifyValue = 0;
+	uint16_t				intMask = 0xFFFF;
 	for(;;){
 		switch(prvCHARGER_DATA.state)
 		{
@@ -80,6 +91,22 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to establish connection with charger\r\n");
+				break;
+			}
+
+			intMask &= ~(BQ25150_MASK_CHARGE_DONE | BQ25150_MASK_CHRG_CV | BQ25150_MASK_BAT_UVLO_FAULT);
+
+			if(BQ25150_SetChargerIntMask(intMask, 1000) != BQ25150_STATUS_OK)
+			{
+				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable all interrupts \r\n");
+				break;
+			}
+
+			if(BQ25150_RegCallback(prvCHARGER_CB) != BQ25150_STATUS_OK)
+			{
+				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to register CB\r\n");
 				break;
 			}
 
@@ -135,6 +162,7 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				{
 					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Charging status successfully set\r\n");
 				}
+				xSemaphoreGive(prvCHARGER_DATA.initSig);
 			}
 			if(notifyValue & CHARGER_TASK_SET_CURRENT_CHARGING_VALUE)
 			{
@@ -146,6 +174,7 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				{
 					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Charging current set\r\n");
 				}
+				xSemaphoreGive(prvCHARGER_DATA.initSig);
 			}
 			if(notifyValue & CHARGER_TASK_REG_READ)
 			{
@@ -157,8 +186,22 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				{
 					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Register successfully read\r\n");
 				}
+				xSemaphoreGive(prvCHARGER_DATA.initSig);
 			}
-			xSemaphoreGive(prvCHARGER_DATA.initSig);
+			if(notifyValue & CHARGER_TASK_PROCESS_INT)
+			{
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Interrupt detected \r\n");
+				if(prvCHARGER_DATA.intStatus & BQ25150_MASK_CHARGE_DONE)
+				{
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Charging done \r\n");
+					prvCHARGER_DATA.intStatus &= ~BQ25150_MASK_CHARGE_DONE;
+				}
+				if(prvCHARGER_DATA.intStatus & BQ25150_MASK_CHRG_CV)
+				{
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "CV Phase detected \r\n");
+					prvCHARGER_DATA.intStatus &= ~BQ25150_MASK_CHRG_CV;
+				}
+			}
 			break;
 		case CHARGER_STATE_ERROR:
 			SYSTEM_ReportError(SYSTEM_ERROR_LEVEL_LOW);

@@ -550,7 +550,7 @@ static void prvCONTROL_ChargerReadReg(const char* arguments, uint16_t argumentsL
 		memset(responseContent, 50, 0);
 		responseContentSize = sprintf(responseContent, "OK: 0x%x",regVal);
 		prvCONTROL_PrepareOkResponse(response, responseSize, responseContent, responseContentSize);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Reg  %d successfully read\r\n", regAddr);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Reg  %d successfully read\r\n", regAddr);
 	}
 	else
 	{
@@ -672,6 +672,29 @@ static void prvCONTROL_SetPPathDisable(const char* arguments, uint16_t arguments
 		return;
 	}
 }
+/**
+ * @brief	Trigger protection latch
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_LatchTrigger(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	if(DPCONTROL_LatchTriger(1000) == DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Latch successfully triggered\r\n");
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to trigger latch\r\n");
+		return;
+	}
+}
+
 /**
  * @brief	Disable battery
  * @param	arguments: arguments defined within control message
@@ -1588,7 +1611,7 @@ static void prvCONTROL_StatusLinkSendMessage(const char* arguments, uint16_t arg
 		return;
 	}
 
-	if(CONTROL_StatusLinkSendMessage(&statusLinkInstance, value.value, value.size, 2000) != CONTROL_STATUS_OK)
+	if(CONTROL_StatusLinkSendMessage(value.value, value.size, 2000) != CONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to send stream message\r\n");
@@ -1793,6 +1816,7 @@ static void prvCONTROL_StatusLinkTaskFunc(void* pvParameter)
 
 			LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_INFO,  "Status link with id %d sucesfully created\r\n");
 			prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].state = CONTROL_STATE_SERVICE;
+			prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].linkState = CONTROL_LINK_STATE_UP;
 			break;
 		case CONTROL_STATE_SERVICE:
 			if(xQueueReceive(prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageQueue, &message, portMAX_DELAY) != pdPASS)
@@ -1823,6 +1847,7 @@ static void prvCONTROL_StatusLinkTaskFunc(void* pvParameter)
  * @}
  */
 control_status_t 	CONTROL_Init(uint32_t initTimeout){
+
 	if(xTaskCreate(
 			prvCONTROL_TaskFunc,
 			CONTROL_TASK_NAME,
@@ -1883,6 +1908,7 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("device bat disable", 			prvCONTROL_SetBatDisable);
 	CMPARSE_AddCommand("device ppath enable", 			prvCONTROL_SetPPathEnable);
 	CMPARSE_AddCommand("device ppath disable", 			prvCONTROL_SetPPathDisable);
+	CMPARSE_AddCommand("device latch trigger", 			prvCONTROL_LatchTrigger);
 
 
 	CMPARSE_AddCommand("device rgb setcolor",     		prvCONTROL_SetRGBColor);
@@ -1953,13 +1979,34 @@ control_status_t 	CONTROL_StatusLinkCreate(control_status_link_instance_t* statu
 
 }
 
-control_status_t 	CONTROL_StatusLinkSendMessage(control_status_link_instance_t* statusLinkInstance, const char* message, uint32_t messageSize, uint32_t timeout)
+control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, uint32_t messageSize, uint32_t timeout)
 {
+	if(prvCONTROL_STATUS_LINK_DATA[0].linkState != CONTROL_LINK_STATE_UP) return CONTROL_STATUS_ERROR;
 	control_status_message_t messageData;
-	if(prvCONTROL_STATUS_LINK_DATA[statusLinkInstance->linkInstanceNo].linkState != CONTROL_LINK_STATE_UP) return CONTROL_STATUS_ERROR;
 	if(messageSize > CONTROL_BUFFER_SIZE) return CONTROL_STATUS_ERROR;
 	memcpy(messageData.message, message, messageSize);
 	messageData.messageSize = messageSize;
-	if(xQueueSend(prvCONTROL_STATUS_LINK_DATA[statusLinkInstance->linkInstanceNo].messageQueue,&messageData,timeout) != pdPASS) return CONTROL_STATUS_ERROR;
+	if(xQueueSend(prvCONTROL_STATUS_LINK_DATA[0].messageQueue,&messageData,timeout) != pdPASS) return CONTROL_STATUS_ERROR;
+	return CONTROL_STATUS_OK;
+}
+
+/**
+ * @brief	Send status message over control link from ISR
+ *
+ * @param	message: message to send
+ * @param	messageSize: message size
+ * @param	timeout: timeout interval to wait for message to be sent over status link
+ * @retval	::control_status_t
+ */
+control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, uint32_t messageSize, uint32_t timeout)
+{
+	if(prvCONTROL_STATUS_LINK_DATA[0].linkState != CONTROL_LINK_STATE_UP) return CONTROL_STATUS_ERROR;
+	control_status_message_t messageData;
+	BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+	if(messageSize > CONTROL_BUFFER_SIZE) return CONTROL_STATUS_ERROR;
+	memcpy(messageData.message, message, messageSize);
+	messageData.messageSize = messageSize;
+	if(xQueueSendFromISR(prvCONTROL_STATUS_LINK_DATA[0].messageQueue,&messageData, &pxHigherPriorityTaskWoken) != pdPASS) return CONTROL_STATUS_ERROR;
+	portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 	return CONTROL_STATUS_OK;
 }

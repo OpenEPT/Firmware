@@ -277,6 +277,7 @@ void EXTI9_5_IRQHandler(void)
 void EXTI0_IRQHandler(void)
 {
 	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+	__HAL_GPIO_EXTI_CLEAR_IT(0x1 << EXTI_LINE0);
 }
 void EXTI1_IRQHandler(void)
 {

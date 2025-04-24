@@ -70,8 +70,8 @@ typedef enum{
  * @brief Link state
  */
 typedef enum{
-	CONTROL_LINK_STATE_UP,		/*!< Link is up */
-	CONTROL_LINK_STATE_DOWN		/*!< Link is down */
+	CONTROL_LINK_STATE_DOWN,		/*!< Link is down */
+	CONTROL_LINK_STATE_UP			/*!< Link is up */
 }control_link_state_t;
 /**
  * @brief Status link IP info
@@ -131,14 +131,22 @@ control_status_t 	CONTROL_StatusLinkCreate(control_status_link_instance_t* statu
 /**
  * @brief	Send status message over control link
  *
- * @param	control_status_link_instance_t: pointer to previously created status link
- * 			to control link.  See ::control_status_link_instance_t structure
  * @param	message: message to send
  * @param	messageSize: message size
  * @param	timeout: timeout interval to wait for message to be sent over status link
  * @retval	::control_status_t
  */
-control_status_t 	CONTROL_StatusLinkSendMessage(control_status_link_instance_t* statusLinkInstance, const char* message, uint32_t messageSize, uint32_t timeout);
+control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, uint32_t messageSize, uint32_t timeout);
+
+/**
+ * @brief	Send status message over control link from ISR
+ *
+ * @param	message: message to send
+ * @param	messageSize: message size
+ * @param	timeout: timeout interval to wait for message to be sent over status link
+ * @retval	::control_status_t
+ */
+control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, uint32_t messageSize, uint32_t timeout);
 /**
  * @}
  */

@@ -13,10 +13,17 @@
 
 #define		BQ250150_CHARGE_EN_PORT		4
 #define		BQ250150_CHARGE_EN_PIN		8
+#define		BQ250150_CHARGE_INT_PORT	4
+#define		BQ250150_CHARGE_INT_PIN		7
+#define		BQ250150_CHARGE_INT_PRIO	5
 
 #define 	BQ25150_DEV_ADDR			0x6B
 #define 	BQ25150_DEV_ID				0x20
 
+#define 	BQ25150_REG_IFLAG0			0x03
+#define 	BQ25150_REG_IFLAG1			0x04
+#define 	BQ25150_REG_MASK0			0x07
+#define 	BQ25150_REG_MASK1			0x08
 #define 	BQ25150_REG_VBAT_CTRL		0x12
 #define 	BQ25150_REG_ICHG_CTRL		0x13
 #define 	BQ25150_REG_TERMCTRL		0x15
@@ -25,6 +32,19 @@
 #define 	BQ25150_REG_ICCTRL2			0x37
 #define 	BQ25150_REG_ID				0x6F
 
+
+
+bq25150_intcb prvBQ25150_CB;
+
+static void prvBQ25150_IntCallback(uint16_t GPIO_Pin)
+{
+	uint16_t intFlags = 0;
+	if(BQ25150_GetChargerIntFlags(&intFlags, 1000) != BQ25150_STATUS_OK) return;
+	if(prvBQ25150_CB != 0)
+	{
+		prvBQ25150_CB(intFlags);
+	}
+}
 
 static bq25150_status_t prvBQ25150_ReadReg(uint8_t reg, uint8_t* data, uint32_t timeout)
 {
@@ -80,15 +100,36 @@ bq25150_status_t BQ25150_Init()
 
 	drv_gpio_pin_init_conf_t 	chargeEnPin;
 
-	if(DRV_I2C_Instance_Init(DRV_I2C_INSTANCE_1, 0) != DRV_I2C_STATUS_OK) return BQ25150_STATUS_ERROR;
+	if(DRV_I2C_Instance_Init(DRV_I2C_INSTANCE_1, 0) != DRV_I2C_STATUS_OK)
+		return BQ25150_STATUS_ERROR;
 
 	/* Init Acqusition State Diode */
 	chargeEnPin.mode		 = DRV_GPIO_PIN_MODE_OUTPUT_PP;
 	chargeEnPin.pullState	 = DRV_GPIO_PIN_PULL_NOPULL;
 
-	if(DRV_GPIO_Port_Init(BQ250150_CHARGE_EN_PORT) != DRV_GPIO_STATUS_OK) return BQ25150_STATUS_ERROR;
-	if(DRV_GPIO_Pin_Init(BQ250150_CHARGE_EN_PORT, BQ250150_CHARGE_EN_PIN, &chargeEnPin) != DRV_GPIO_STATUS_OK) return BQ25150_STATUS_ERROR;
-    return BQ25150_STATUS_OK;
+	if(DRV_GPIO_Port_Init(BQ250150_CHARGE_EN_PORT) != DRV_GPIO_STATUS_OK)
+		return BQ25150_STATUS_ERROR;
+	if(DRV_GPIO_Pin_Init(BQ250150_CHARGE_EN_PORT, BQ250150_CHARGE_EN_PIN, &chargeEnPin) != DRV_GPIO_STATUS_OK)
+		return BQ25150_STATUS_ERROR;
+
+	// Configure the pin for the button
+	drv_gpio_pin_init_conf_t button_pin_conf;
+	button_pin_conf.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
+	button_pin_conf.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+
+
+	if(DRV_GPIO_Port_Init(BQ250150_CHARGE_INT_PORT) != DRV_GPIO_STATUS_OK)
+		return BQ25150_STATUS_ERROR;
+
+	if (DRV_GPIO_Pin_Init(BQ250150_CHARGE_INT_PORT, BQ250150_CHARGE_INT_PIN, &button_pin_conf) != DRV_GPIO_STATUS_OK)
+		return BQ25150_STATUS_ERROR;
+
+	if (DRV_GPIO_RegisterCallback(BQ250150_CHARGE_INT_PORT, BQ250150_CHARGE_INT_PIN, prvBQ25150_IntCallback, BQ250150_CHARGE_INT_PRIO) != DRV_GPIO_STATUS_OK)
+		return BQ25150_STATUS_ERROR;
+
+	prvBQ25150_CB = 0;
+
+	return BQ25150_STATUS_OK;
 }
 
 bq25150_status_t BQ25150_Ping(uint32_t timeout)
@@ -101,6 +142,40 @@ bq25150_status_t BQ25150_Ping(uint32_t timeout)
     return BQ25150_STATUS_OK;
 }
 
+bq25150_status_t BQ25150_GetChargerIntFlags(uint16_t* intFlags, uint32_t timeout)
+{
+	uint8_t dataLow, dataHigh = 0;
+	if(prvBQ25150_ReadReg(BQ25150_REG_IFLAG0, &dataLow, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+	if(prvBQ25150_ReadReg(BQ25150_REG_IFLAG1, &dataHigh, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+
+	*intFlags = ((0xFF00 & (((uint16_t)dataHigh) << 8)) |  (0x00FF & (((uint16_t)dataLow))));
+
+    return BQ25150_STATUS_OK;
+}
+
+bq25150_status_t BQ25150_SetChargerIntMask(uint16_t mask, uint32_t timeout)
+{
+	uint8_t dataLow, dataHigh = 0;
+
+	dataLow 	= (uint8_t)mask;
+	dataHigh 	= (uint8_t)(mask >> 8);
+
+	if(prvBQ25150_WriteReg(BQ25150_REG_MASK0, dataLow, 1, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+	if(prvBQ25150_WriteReg(BQ25150_REG_MASK1, dataHigh, 1, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+
+    return BQ25150_STATUS_OK;
+}
+bq25150_status_t BQ25150_GetChargerIntMask(uint16_t* mask, uint32_t timeout)
+{
+	uint8_t dataLow, dataHigh = 0;
+
+	if(prvBQ25150_ReadReg(BQ25150_REG_MASK0, &dataLow, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+	if(prvBQ25150_ReadReg(BQ25150_REG_MASK1, &dataHigh, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+
+	*mask = ((0xFF00 & (((uint16_t)dataHigh) << 8)) |  (0x00FF & (((uint16_t)dataLow))));
+
+    return BQ25150_STATUS_OK;
+}
 bq25150_status_t BQ25150_Charge_Enable(uint32_t timeout)
 {
 
@@ -243,6 +318,13 @@ bq25150_status_t BQ25150_Charge_SetStatus(bq25150_charge_status status, uint32_t
 
 		if(DRV_GPIO_Pin_SetState(BQ250150_CHARGE_EN_PORT, BQ250150_CHARGE_EN_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK) return BQ25150_STATUS_ERROR;
 	}
+
+    return BQ25150_STATUS_OK;
+}
+
+bq25150_status_t BQ25150_RegCallback(bq25150_intcb cb)
+{
+	prvBQ25150_CB = cb;
 
     return BQ25150_STATUS_OK;
 }

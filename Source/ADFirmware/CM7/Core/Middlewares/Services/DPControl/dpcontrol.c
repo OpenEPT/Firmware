@@ -15,6 +15,7 @@
 #include	"dpcontrol.h"
 #include	"logging.h"
 #include 	"system.h"
+#include 	"control.h"
 #include 	"drv_aout.h"
 #include 	"drv_gpio.h"
 
@@ -24,6 +25,7 @@
 #define 	DPCONTROL_MASK_SET_BAT_STATE		0x00000008
 #define 	DPCONTROL_MASK_SET_PPATH_STATE		0x00000010
 #define 	DPCONTROL_MASK_SET_UV_DETECTED		0x00000020
+#define 	DPCONTROL_MASK_TRGER_LATCH			0x00000040
 
 typedef struct
 {
@@ -67,6 +69,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 	drv_gpio_pin_init_conf_t 	batPinConfig;
 	drv_gpio_pin_init_conf_t 	gpioPinConfig;
 	drv_gpio_pin_init_conf_t 	underVoltagePinConfig;
+	drv_gpio_pin_init_conf_t 	latchPinConfig;
 
 	for(;;){
 		switch(prvDPCONTROL_DATA.state)
@@ -117,6 +120,17 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register UnderVoltage callback\r\n");
 			}
 
+			latchPinConfig.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
+			latchPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+
+			if(DRV_GPIO_Port_Init(DPCONTROL_LATCH_PORT) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize latch port\r\n");
+			}
+			if(DRV_GPIO_Pin_Init(DPCONTROL_LATCH_PORT, DPCONTROL_LATCH_PIN, &latchPinConfig) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize latch pin\r\n");
+			}
 
 			LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Discharge Profile Control service successfully initialized\r\n");
 			prvDPCONTROL_DATA.state	= DPCONTROL_STATE_SERVICE;
@@ -304,10 +318,32 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				}
 				xSemaphoreGive(prvDPCONTROL_DATA.initSig);
 			}
+			if(value & DPCONTROL_MASK_TRGER_LATCH)
+			{
+				if(DRV_GPIO_Pin_SetState(DPCONTROL_LATCH_PORT, DPCONTROL_LATCH_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to reset latch\r\n");
+				}
+				else
+				{
+					vTaskDelay(pdMS_TO_TICKS(5));
+					if(DRV_GPIO_Pin_SetState(DPCONTROL_LATCH_PORT, DPCONTROL_LATCH_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
+					{
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to reset latch\r\n");
+					}
+					else
+					{
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Latch successfully reset\r\n");
+					}
+				}
+				xSemaphoreGive(prvDPCONTROL_DATA.initSig);
+				break;
+			}
 
 			if(value & DPCONTROL_MASK_SET_UV_DETECTED)
 			{
 				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNNING,  "Under Voltage detected\r\n");
+				CONTROL_StatusLinkSendMessage("Under Voltage detected\r\n", strlen("Under Voltage detected\r\n"), 1000);
 			}
 			break;
 		case DPCONTROL_STATE_ERROR:
@@ -413,6 +449,14 @@ dpcontrol_status_t  DPCONTROL_SetPPathState(dpcontrol_ppath_state_t state, uint3
 	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
 
 	if(xTaskNotify(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_SET_PPATH_STATE, eSetBits) != pdTRUE) return DPCONTROL_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvDPCONTROL_DATA.initSig, pdMS_TO_TICKS(timeout)) != pdPASS) return DPCONTROL_STATUS_ERROR;
+
+	return DPCONTROL_STATUS_OK;
+}
+dpcontrol_status_t  DPCONTROL_LatchTriger(uint32_t timeout)
+{
+	if(xTaskNotify(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_TRGER_LATCH, eSetBits) != pdTRUE) return DPCONTROL_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvDPCONTROL_DATA.initSig, pdMS_TO_TICKS(timeout)) != pdPASS) return DPCONTROL_STATUS_ERROR;
 
