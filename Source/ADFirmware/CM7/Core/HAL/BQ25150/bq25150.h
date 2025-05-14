@@ -53,13 +53,19 @@ typedef enum
 	BQ25150_ILIM_VALUE_600	= 7
 }bq25250_ilim_value_t;
 
-typedef void (*bq25150_intcb)(uint16_t);
+typedef void (*bq25150_intcb)();
 
 bq25150_status_t BQ25150_Init();
 bq25150_status_t BQ25150_Ping(uint32_t timeout);
 bq25150_status_t BQ25150_GetChargerIntFlags(uint16_t* intFlags, uint32_t timeout);
+bq25150_status_t BQ25150_GetADCIntFlags(uint8_t* intFlags, uint32_t timeout);
+bq25150_status_t BQ25150_GetTimerIntFlags(uint8_t* intFlags, uint32_t timeout);
 bq25150_status_t BQ25150_SetChargerIntMask(uint16_t mask, uint32_t timeout);
 bq25150_status_t BQ25150_GetChargerIntMask(uint16_t* mask, uint32_t timeout);
+bq25150_status_t BQ25150_SetADCIntMask(uint8_t mask, uint32_t timeout);
+bq25150_status_t BQ25150_GetADCIntMask(uint8_t* mask, uint32_t timeout);
+bq25150_status_t BQ25150_SetTimerIntMask(uint8_t mask, uint32_t timeout);
+bq25150_status_t BQ25150_GetTimerIntMask(uint8_t* mask, uint32_t timeout);
 bq25150_status_t BQ25150_WDG_SetStatus(bq25150_wdg_status status, uint32_t timeout);
 bq25150_status_t BQ25150_ILim_Set(bq25250_ilim_value_t value, uint32_t timeout);
 bq25150_status_t BQ25150_Charge_SetStatus(bq25150_charge_status status, uint32_t timeout);

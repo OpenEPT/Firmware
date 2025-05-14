@@ -60,12 +60,15 @@ typedef struct
 	QueueHandle_t			messageQueue;
 	control_state_t			state;
 	control_link_state_t	linkState;
+	char					messageBuffer[CONTROL_BUFFER_SIZE];
+	uint32_t				messageBufferSize;
 }control_status_link_data_t;
 
 typedef struct
 {
-	char				message[CONTROL_BUFFER_SIZE];
-	uint32_t			messageSize;
+	char							message[CONTROL_BUFFER_SIZE];
+	uint32_t						messageSize;
+	contol_status_message_type_t	type;
 }control_status_message_t;
 /**
  * @}
@@ -426,10 +429,10 @@ static void prvCONTROL_SetDACActiveStatus(const char* arguments, uint16_t argume
 	sscanf(value.value, "%lu", &enableStatus);
 
 
-	if(DPCONTROL_SetActivestatus(enableStatus, 1000) == DPCONTROL_STATUS_OK)
+	if(DPCONTROL_SetDACStatus(enableStatus, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Active status successfully set\r\n");
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Active status successfully set\r\n");
 	}
 	else
 	{
@@ -439,6 +442,26 @@ static void prvCONTROL_SetDACActiveStatus(const char* arguments, uint16_t argume
 	}
 
 }
+
+static void prvCONTROL_GetDACActiveStatus(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	dpcontrol_dac_status_t	activeState = 0;
+	char						activeStateString[10];
+	uint32_t					activeStateStringLength = 0;
+
+	if(DPCONTROL_GetDACStatus(&activeState, 1000) != DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get DAC status\r\n");
+	}
+	else
+	{
+		memset(activeStateString, 0, 10);
+		activeStateStringLength = sprintf(activeStateString, "%u", (int)activeState);
+		prvCONTROL_PrepareOkResponse(response, responseSize, activeStateString, activeStateStringLength);
+	}
+}
+
 
 /**
  * @brief	Enable charging
@@ -486,6 +509,25 @@ static void prvCONTROL_ChargingDisable(const char* arguments, uint16_t arguments
 	}
 }
 
+static void prvCONTROL_ChargingGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	charger_charging_state_t	chargingState = 0;
+	char						chargingStateString[10];
+	uint32_t					chargingStateStringLength = 0;
+
+	if(CHARGER_GetChargingState(&chargingState, 1000) != DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get Charging status\r\n");
+	}
+	else
+	{
+		memset(chargingStateString, 0, 10);
+		chargingStateStringLength = sprintf(chargingStateString, "%u", (int)chargingState);
+		prvCONTROL_PrepareOkResponse(response, responseSize, chargingStateString, chargingStateStringLength);
+	}
+}
+
 /**
  * @brief	Set charging current value
  * @param	arguments: arguments defined within control message
@@ -510,13 +552,121 @@ static void prvCONTROL_ChargingCurrentSet(const char* arguments, uint16_t argume
 	if(CHARGER_SetChargingCurrent(current, 1000) == CHARGER_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Charging current %d [mA] set\r\n", current);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Charging current %d [mA] set\r\n", current);
 	}
 	else
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set charging current\r\n");
 		return;
+	}
+}
+static void prvCONTROL_ChargingCurrentGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	uint16_t					chargingCurrent = 0;
+	char						chargingCurrentString[10];
+	uint32_t					chargingCurrentStringLength = 0;
+
+	if(CHARGER_GetChargingCurrent(&chargingCurrent, 1000) != CHARGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get Charging current\r\n");
+	}
+	else
+	{
+		memset(chargingCurrentString, 0, 10);
+		chargingCurrentStringLength = sprintf(chargingCurrentString, "%u", (int)chargingCurrent);
+		prvCONTROL_PrepareOkResponse(response, responseSize, chargingCurrentString, chargingCurrentStringLength);
+	}
+}
+
+static void prvCONTROL_ChargingTermCurrentSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	cmparse_value_t				value;
+	uint32_t					current;
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain current value\r\n");
+		return;
+	}
+	sscanf(value.value, "%lu", &current);
+
+	if(CHARGER_SetChargingTermCurrent(current, 1000) == CHARGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Charging termination current set to %d [%]\r\n", current);
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set charging termination current\r\n");
+		return;
+	}
+}
+
+static void prvCONTROL_ChargingTermCurrentGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	uint16_t					chargingTermCurrent = 0;
+	char						chargingTermCurrentString[10];
+	uint32_t					chargingTermCurrentStringLength = 0;
+
+	if(CHARGER_GetChargingTermCurrent(&chargingTermCurrent, 1000) != CHARGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get Charging status\r\n");
+	}
+	else
+	{
+		memset(chargingTermCurrentString, 0, 10);
+		chargingTermCurrentStringLength = sprintf(chargingTermCurrentString, "%u", (int)chargingTermCurrent);
+		prvCONTROL_PrepareOkResponse(response, responseSize, chargingTermCurrentString, chargingTermCurrentStringLength);
+	}
+}
+
+static void prvCONTROL_ChargingTermVoltageSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	cmparse_value_t				value;
+	float						voltage;
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain current value\r\n");
+		return;
+	}
+	sscanf(value.value, "%f", &voltage);
+
+	if(CHARGER_SetChargingTermVoltage(voltage, 1000) == CHARGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Charging termination voltage set to %.2f [V]\r\n", voltage);
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set charging termination voltage\r\n");
+		return;
+	}
+}
+
+static void prvCONTROL_ChargingTermVoltageGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	float						chargingTermVoltage = 0;
+	char						chargingTermVoltageString[10];
+	uint32_t					chargingTermVoltageStringLength = 0;
+
+	if(CHARGER_GetChargingTermVoltage(&chargingTermVoltage, 1000) != CHARGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get Charging termination voltage\r\n");
+	}
+	else
+	{
+		memset(chargingTermVoltageString, 0, 10);
+		chargingTermVoltageStringLength = sprintf(chargingTermVoltageString, "%.2f", chargingTermVoltage);
+		prvCONTROL_PrepareOkResponse(response, responseSize, chargingTermVoltageString, chargingTermVoltageStringLength);
 	}
 }
 
@@ -604,6 +754,27 @@ static void prvCONTROL_SetLoadDisable(const char* arguments, uint16_t argumentsL
 		return;
 	}
 }
+
+static void prvCONTROL_GetLoad(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	dpcontrol_load_state_t		loadState = 0;
+	char						loadStateString[10];
+	uint32_t					loadStateStringLength = 0;
+
+	if(DPCONTROL_GetLoadState(&loadState, 1000) != DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get load status\r\n");
+	}
+	else
+	{
+		memset(loadStateString, 0, 10);
+		loadStateStringLength = sprintf(loadStateString, "%u", (int)loadState);
+		prvCONTROL_PrepareOkResponse(response, responseSize, loadStateString, loadStateStringLength);
+	}
+}
+
+
 /**
  * @brief	Enable battery
  * @param	arguments: arguments defined within control message
@@ -624,6 +795,25 @@ static void prvCONTROL_SetBatEnable(const char* arguments, uint16_t argumentsLen
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set load status\r\n");
 		return;
+	}
+}
+
+static void prvCONTROL_GetBat(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	dpcontrol_bat_state_t		batState = 0;
+	char						batStateString[10];
+	uint32_t					batStateStringLength = 0;
+
+	if(DPCONTROL_GetBatState(&batState, 1000) != DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get bat disable status\r\n");
+	}
+	else
+	{
+		memset(batStateString, 0, 10);
+		batStateStringLength = sprintf(batStateString, "%u", (int)batState);
+		prvCONTROL_PrepareOkResponse(response, responseSize, batStateString, batStateStringLength);
 	}
 }
 
@@ -672,6 +862,83 @@ static void prvCONTROL_SetPPathDisable(const char* arguments, uint16_t arguments
 		return;
 	}
 }
+
+static void prvCONTROL_GetPPath(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	dpcontrol_ppath_state_t		ppathState = 0;
+	char						ppathStateString[10];
+	uint32_t					ppathStateStringLength = 0;
+
+	if(DPCONTROL_GetPPathState(&ppathState, 1000) != DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get ppath status\r\n");
+	}
+	else
+	{
+		memset(ppathStateString, 0, 10);
+		ppathStateStringLength = sprintf(ppathStateString, "%u", (int)ppathState);
+		prvCONTROL_PrepareOkResponse(response, responseSize, ppathStateString, ppathStateStringLength);
+	}
+}
+
+static void prvCONTROL_GetUVoltage(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	dpcontrol_protection_state_t	state = 0;
+	char							stateString[10];
+	uint32_t						stateStringLength = 0;
+
+	if(DPCONTROL_GetUVoltageState(&state, 1000) != DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get protection state\r\n");
+	}
+	else
+	{
+		memset(stateString, 0, 10);
+		stateStringLength = sprintf(stateString, "%u", (int)state);
+		prvCONTROL_PrepareOkResponse(response, responseSize, stateString, stateStringLength);
+	}
+}
+
+static void prvCONTROL_GetOVoltage(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	dpcontrol_protection_state_t	state = 0;
+	char							stateString[10];
+	uint32_t						stateStringLength = 0;
+
+	if(DPCONTROL_GetOVoltageState(&state, 1000) != DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get protection state\r\n");
+	}
+	else
+	{
+		memset(stateString, 0, 10);
+		stateStringLength = sprintf(stateString, "%u", (int)state);
+		prvCONTROL_PrepareOkResponse(response, responseSize, stateString, stateStringLength);
+	}
+}
+
+static void prvCONTROL_GetOCurrent(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	dpcontrol_protection_state_t	state = 0;
+	char							stateString[10];
+	uint32_t						stateStringLength = 0;
+
+	if(DPCONTROL_GetOCurrentState(&state, 1000) != DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get protection state\r\n");
+	}
+	else
+	{
+		memset(stateString, 0, 10);
+		stateStringLength = sprintf(stateString, "%u", (int)state);
+		prvCONTROL_PrepareOkResponse(response, responseSize, stateString, stateStringLength);
+	}
+}
+
 /**
  * @brief	Trigger protection latch
  * @param	arguments: arguments defined within control message
@@ -778,13 +1045,32 @@ static void prvCONTROL_SetDACValue(const char* arguments, uint16_t argumentsLeng
 	if(DPCONTROL_SetValue(dacValue, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "DAC value %d set\r\n", dacValue);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "DAC value %d set\r\n", dacValue);
 	}
 	else
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set DAC value\r\n");
 		return;
+	}
+}
+
+static void prvCONTROL_GetDACValue(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	uint32_t						value = 0;
+	char							valueString[10];
+	uint32_t						valueStringLength = 0;
+
+	if(DPCONTROL_GetValue(&value, 1000) != DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get DAC value\r\n");
+	}
+	else
+	{
+		memset(valueString, 0, 10);
+		valueStringLength = sprintf(valueString, "%u", (int)value);
+		prvCONTROL_PrepareOkResponse(response, responseSize, valueString, valueStringLength);
 	}
 }
 
@@ -1437,7 +1723,7 @@ static void prvCONTROL_StreamCreate(const char* arguments, uint16_t argumentsLen
 	}
 	sscanf(value.value, "%hu", &connectionInfo.serverport);
 
-	if(SSTREAM_CreateChannel(&connectionInfo, 2000) != SSTREAM_STATUS_OK)
+	if(SSTREAM_CreateChannel(&connectionInfo, 3000) != SSTREAM_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to create stream channel\r\n");
@@ -1583,7 +1869,7 @@ static void prvCONTROL_CreateStatusLink(const char* arguments, uint16_t argument
 	if(CONTROL_StatusLinkCreate(&statusLinkInstance, connectionInfo, 2000) != CONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
-		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to create stream channel\r\n");
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to create status link\r\n");
 		return;
 	}
 
@@ -1611,7 +1897,7 @@ static void prvCONTROL_StatusLinkSendMessage(const char* arguments, uint16_t arg
 		return;
 	}
 
-	if(CONTROL_StatusLinkSendMessage(value.value, value.size, 2000) != CONTROL_STATUS_OK)
+	if(CONTROL_StatusLinkSendMessage(value.value, CONTROL_STATUS_MESSAGE_TYPE_INFO, 2000) != CONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to send stream message\r\n");
@@ -1799,12 +2085,12 @@ static void prvCONTROL_StatusLinkTaskFunc(void* pvParameter)
 
 			if(connect_err != ERR_OK)
 			{
-				LOGGING_Write("Control Service(Status)", LOGGING_MSG_TYPE_ERROR,  "There is a problem to connect to status link server\r\n");
+				LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_ERROR,  "There is a problem to connect to status link server\r\n");
 				prvCONTROL_DATA.state = CONTROL_STATE_ERROR;
 				break;
 			}
 
-			LOGGING_Write("Control Service(Status)", LOGGING_MSG_TYPE_INFO,  "Device is successfully connected to status link server\r\n");
+			LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_INFO,  "Device is successfully connected to status link server\r\n");
 			prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].linkState = CONTROL_LINK_STATE_UP;
 
 			if(xSemaphoreGive(prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].initSig) != pdTRUE)
@@ -1825,7 +2111,23 @@ static void prvCONTROL_StatusLinkTaskFunc(void* pvParameter)
 				prvCONTROL_DATA.state = CONTROL_STATE_ERROR;
 				break;
 			}
-			if(netconn_write(conn, message.message, message.messageSize, NETCONN_COPY) != ERR_OK)
+			switch(message.type)
+			{
+			case CONTROL_STATUS_MESSAGE_TYPE_ACTION:
+				prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageBuffer[0] = 1;
+				prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageBufferSize += 1;
+				break;
+			case CONTROL_STATUS_MESSAGE_TYPE_INFO:
+				prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageBuffer[0] = 0;
+				prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageBufferSize += 1;
+				break;
+			}
+			memcpy(&prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageBuffer[1], message.message, message.messageSize);
+			prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageBufferSize += message.messageSize;
+			if(netconn_write(conn,
+					prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageBuffer,
+					prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageBufferSize,
+					NETCONN_COPY) != ERR_OK)
 			{
 				LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_WARNNING,  "Unable to send status message\r\n");
 			}
@@ -1834,6 +2136,8 @@ static void prvCONTROL_StatusLinkTaskFunc(void* pvParameter)
 				LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_INFO,  "Status message successfully sent\r\n");
 			}
 			memset(&message, 0, sizeof(control_status_message_t));
+			memset(prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageBuffer, 0, CONTROL_BUFFER_SIZE);
+			prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageBufferSize = 0;
 			break;
 		case CONTROL_STATE_ERROR:
 			SYSTEM_ReportError(SYSTEM_ERROR_LEVEL_LOW);
@@ -1900,14 +2204,27 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("device adc value get", 			prvCONTROL_GetADCValue);
 
 	CMPARSE_AddCommand("device dac enable set", 		prvCONTROL_SetDACActiveStatus);
+	CMPARSE_AddCommand("device dac enable get", 		prvCONTROL_GetDACActiveStatus);
 	CMPARSE_AddCommand("device dac value set", 			prvCONTROL_SetDACValue);
+	CMPARSE_AddCommand("device dac value get", 			prvCONTROL_GetDACValue);
 
 	CMPARSE_AddCommand("device load enable", 			prvCONTROL_SetLoadEnable);
 	CMPARSE_AddCommand("device load disable", 			prvCONTROL_SetLoadDisable);
+	CMPARSE_AddCommand("device load get", 				prvCONTROL_GetLoad);
+
 	CMPARSE_AddCommand("device bat enable", 			prvCONTROL_SetBatEnable);
 	CMPARSE_AddCommand("device bat disable", 			prvCONTROL_SetBatDisable);
+	CMPARSE_AddCommand("device bat get", 				prvCONTROL_GetBat);
+
 	CMPARSE_AddCommand("device ppath enable", 			prvCONTROL_SetPPathEnable);
 	CMPARSE_AddCommand("device ppath disable", 			prvCONTROL_SetPPathDisable);
+	CMPARSE_AddCommand("device ppath get", 				prvCONTROL_GetPPath);
+
+
+	CMPARSE_AddCommand("device uvoltage get", 		    prvCONTROL_GetUVoltage);
+	CMPARSE_AddCommand("device ovoltage get", 		    prvCONTROL_GetOVoltage);
+	CMPARSE_AddCommand("device ocurrent get", 		    prvCONTROL_GetOCurrent);
+
 	CMPARSE_AddCommand("device latch trigger", 			prvCONTROL_LatchTrigger);
 
 
@@ -1916,8 +2233,16 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 
 	CMPARSE_AddCommand("charger charging enable",       prvCONTROL_ChargingEnable);
 	CMPARSE_AddCommand("charger charging disable",      prvCONTROL_ChargingDisable);
-	CMPARSE_AddCommand("charger charging current set",  prvCONTROL_ChargingCurrentSet);
-	CMPARSE_AddCommand("charger reg read",  			prvCONTROL_ChargerReadReg);
+	CMPARSE_AddCommand("charger charging get",      	prvCONTROL_ChargingGet);
+
+
+	CMPARSE_AddCommand("charger charging current set",  	prvCONTROL_ChargingCurrentSet);
+	CMPARSE_AddCommand("charger charging current get",  	prvCONTROL_ChargingCurrentGet);
+	CMPARSE_AddCommand("charger charging termcurrent set",  prvCONTROL_ChargingTermCurrentSet);
+	CMPARSE_AddCommand("charger charging termcurrent get",  prvCONTROL_ChargingTermCurrentGet);
+	CMPARSE_AddCommand("charger charging termvoltage set",  prvCONTROL_ChargingTermVoltageSet);
+	CMPARSE_AddCommand("charger charging termvoltage get",  prvCONTROL_ChargingTermVoltageGet);
+	CMPARSE_AddCommand("charger reg read",  				prvCONTROL_ChargerReadReg);
 
 
 	return CONTROL_STATUS_OK;
@@ -1979,13 +2304,15 @@ control_status_t 	CONTROL_StatusLinkCreate(control_status_link_instance_t* statu
 
 }
 
-control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, uint32_t messageSize, uint32_t timeout)
+control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, contol_status_message_type_t type, uint32_t timeout)
 {
 	if(prvCONTROL_STATUS_LINK_DATA[0].linkState != CONTROL_LINK_STATE_UP) return CONTROL_STATUS_ERROR;
+	uint32_t messageSize = strlen(message);
 	control_status_message_t messageData;
 	if(messageSize > CONTROL_BUFFER_SIZE) return CONTROL_STATUS_ERROR;
 	memcpy(messageData.message, message, messageSize);
 	messageData.messageSize = messageSize;
+	messageData.type = type;
 	if(xQueueSend(prvCONTROL_STATUS_LINK_DATA[0].messageQueue,&messageData,timeout) != pdPASS) return CONTROL_STATUS_ERROR;
 	return CONTROL_STATUS_OK;
 }
@@ -1998,14 +2325,16 @@ control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, uint32_t me
  * @param	timeout: timeout interval to wait for message to be sent over status link
  * @retval	::control_status_t
  */
-control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, uint32_t messageSize, uint32_t timeout)
+control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, contol_status_message_type_t type, uint32_t timeout)
 {
 	if(prvCONTROL_STATUS_LINK_DATA[0].linkState != CONTROL_LINK_STATE_UP) return CONTROL_STATUS_ERROR;
+	uint32_t messageSize = strlen(message);
 	control_status_message_t messageData;
 	BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
 	if(messageSize > CONTROL_BUFFER_SIZE) return CONTROL_STATUS_ERROR;
 	memcpy(messageData.message, message, messageSize);
 	messageData.messageSize = messageSize;
+	messageData.type = type;
 	if(xQueueSendFromISR(prvCONTROL_STATUS_LINK_DATA[0].messageQueue,&messageData, &pxHigherPriorityTaskWoken) != pdPASS) return CONTROL_STATUS_ERROR;
 	portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 	return CONTROL_STATUS_OK;

@@ -88,6 +88,12 @@ typedef struct{
 	uint32_t						linkInstanceNo;
 	control_status_link_ip_info_t 	ipInfo;
 }control_status_link_instance_t;
+
+typedef enum
+{
+	CONTROL_STATUS_MESSAGE_TYPE_INFO = 0,
+	CONTROL_STATUS_MESSAGE_TYPE_ACTION
+}contol_status_message_type_t;
 /**
  * @}
  */
@@ -136,7 +142,7 @@ control_status_t 	CONTROL_StatusLinkCreate(control_status_link_instance_t* statu
  * @param	timeout: timeout interval to wait for message to be sent over status link
  * @retval	::control_status_t
  */
-control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, uint32_t messageSize, uint32_t timeout);
+control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, contol_status_message_type_t msgType, uint32_t timeout);
 
 /**
  * @brief	Send status message over control link from ISR
@@ -146,7 +152,7 @@ control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, uint32_t me
  * @param	timeout: timeout interval to wait for message to be sent over status link
  * @retval	::control_status_t
  */
-control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, uint32_t messageSize, uint32_t timeout);
+control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, contol_status_message_type_t msgType, uint32_t timeout);
 /**
  * @}
  */

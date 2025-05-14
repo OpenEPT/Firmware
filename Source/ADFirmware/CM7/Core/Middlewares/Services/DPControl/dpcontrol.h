@@ -33,9 +33,9 @@ typedef enum{
 
 typedef enum
 {
-	DPCONTROL_ACTIVE_STATUS_DISABLE = 0,
-	DPCONTROL_ACTIVE_STATUS_ENABLE
-}dpcontrol_active_status_t;
+	DPCONTROL_DAC_STATUS_DISABLE = 0,
+	DPCONTROL_DAC_STATUS_ENABLE
+}dpcontrol_dac_status_t;
 
 typedef enum
 {
@@ -57,6 +57,12 @@ typedef enum
 
 typedef enum
 {
+	DPCONTROL_PROTECTION_STATE_DISABLE = 0,
+	DPCONTROL_PROTECTION_STATE_ENABLE
+}dpcontrol_protection_state_t;
+
+typedef enum
+{
 	DPCONTROL_STATE_INIT,
 	DPCONTROL_STATE_SERVICE,
 	DPCONTROL_STATE_ERROR
@@ -64,8 +70,20 @@ typedef enum
 
 dpcontrol_status_t 	DPCONTROL_Init(uint32_t initTimeout);
 dpcontrol_status_t 	DPCONTROL_SetValue(uint32_t value, uint32_t timeout);
-dpcontrol_status_t 	DPCONTROL_SetActivestatus(dpcontrol_active_status_t activeStatus, uint32_t timeout);
+dpcontrol_status_t 	DPCONTROL_GetValue(uint32_t* value, uint32_t timeout);
+dpcontrol_status_t 	DPCONTROL_SetDACStatus(dpcontrol_dac_status_t activeStatus, uint32_t timeout);
+dpcontrol_status_t 	DPCONTROL_GetDACStatus(dpcontrol_dac_status_t* activeStatus, uint32_t timeout);
 dpcontrol_status_t  DPCONTROL_SetLoadState(dpcontrol_load_state_t state, uint32_t timeout);
+dpcontrol_status_t  DPCONTROL_GetLoadState(dpcontrol_load_state_t* state, uint32_t timeout);
 dpcontrol_status_t  DPCONTROL_SetBatState(dpcontrol_bat_state_t state, uint32_t timeout);
+dpcontrol_status_t  DPCONTROL_GetBatState(dpcontrol_bat_state_t* state, uint32_t timeout);
 dpcontrol_status_t  DPCONTROL_SetPPathState(dpcontrol_ppath_state_t state, uint32_t timeout);
+dpcontrol_status_t  DPCONTROL_GetPPathState(dpcontrol_ppath_state_t* state, uint32_t timeout);
+
+
+dpcontrol_status_t  DPCONTROL_GetUVoltageState(dpcontrol_protection_state_t* state, uint32_t timeout);
+dpcontrol_status_t  DPCONTROL_GetOVoltageState(dpcontrol_protection_state_t* state, uint32_t timeout);
+dpcontrol_status_t  DPCONTROL_GetOCurrentState(dpcontrol_protection_state_t* state, uint32_t timeout);
+
+
 dpcontrol_status_t  DPCONTROL_LatchTriger(uint32_t timeout);

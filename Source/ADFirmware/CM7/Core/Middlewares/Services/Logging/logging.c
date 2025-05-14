@@ -141,16 +141,16 @@ logging_status_t 	LOGGING_Write(char* serviceName, logging_msg_type_t msgType, c
     switch (msgType)
     {
     case LOGGING_MSG_TYPE_INFO:
-    	memcpy(tmpMessageBuffer.buffer + tmpMessageBuffer.size,":", strlen(":"));
-    	tmpMessageBuffer.size += strlen(":");
+    	memcpy(tmpMessageBuffer.buffer + tmpMessageBuffer.size,": ", strlen(": "));
+    	tmpMessageBuffer.size += strlen(": ");
         break;
     case LOGGING_MSG_TYPE_WARNNING:
-    	memcpy(tmpMessageBuffer.buffer + tmpMessageBuffer.size,"[!WARNNING]->", strlen("[!WARNNING]->"));
-    	tmpMessageBuffer.size += strlen("[!WARNNING]");
+    	memcpy(tmpMessageBuffer.buffer + tmpMessageBuffer.size," [WARNNING]: ", strlen(" [WARNNING]: "));
+    	tmpMessageBuffer.size += strlen(" [WARNNING]: ");
         break;
     case LOGGING_MSG_TYPE_ERROR:
-    	memcpy(tmpMessageBuffer.buffer + tmpMessageBuffer.size,"[!ERROR]   ->", strlen("[!ERROR]   ->"));
-    	tmpMessageBuffer.size += strlen("[!ERROR]   ->");
+    	memcpy(tmpMessageBuffer.buffer + tmpMessageBuffer.size," [>>! ERROR !<<]: ", strlen(" [>>! ERROR !<<]: "));
+    	tmpMessageBuffer.size += strlen(" [>>! ERROR !<<]: ");
         break;
     }
 

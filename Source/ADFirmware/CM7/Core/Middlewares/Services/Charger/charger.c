@@ -12,6 +12,7 @@
 #include 	"charger.h"
 #include 	"system.h"
 #include 	"logging.h"
+#include 	"control.h"
 
 #include 	"bq25150.h"
 
@@ -57,16 +58,17 @@ typedef struct
 	TaskHandle_t					taskHandle;
 	charger_charging_info_t			chargingInfo;
 	charger_reg_content_t			regContent;
-	uint16_t						intStatus;
+	uint16_t						chargerIntStatus;
+	uint8_t							adcIntStatus;
+	uint8_t							timerIntStatus;
 }charger_data_t;
 
 
 static	charger_data_t				prvCHARGER_DATA;
 
-static void prvCHARGER_CB(uint16_t chargerFlag)
+static void prvCHARGER_CB()
 {
 	BaseType_t *pxHigherPriorityTaskWoken = pdFALSE;
-	prvCHARGER_DATA.intStatus = chargerFlag;
 	xTaskNotifyFromISR(prvCHARGER_DATA.taskHandle, CHARGER_TASK_PROCESS_INT, eSetBits, pxHigherPriorityTaskWoken);
 	portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 }
@@ -94,14 +96,28 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				break;
 			}
 
-			intMask &= ~(BQ25150_MASK_CHARGE_DONE | BQ25150_MASK_CHRG_CV | BQ25150_MASK_BAT_UVLO_FAULT);
+			intMask &= ~(BQ25150_MASK_CHARGE_DONE | BQ25150_MASK_BAT_UVLO_FAULT);
 
-			if(BQ25150_SetChargerIntMask(intMask, 1000) != BQ25150_STATUS_OK)
-			{
-				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
-				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable all interrupts \r\n");
-				break;
-			}
+//			if(BQ25150_SetChargerIntMask(intMask, 1000) != BQ25150_STATUS_OK)
+//			{
+//				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
+//				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable all charger interrupts \r\n");
+//				break;
+//			}
+//
+//			if(BQ25150_SetADCIntMask(0xFF, 1000) != BQ25150_STATUS_OK)
+//			{
+//				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
+//				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable all ADC interrupts \r\n");
+//				break;
+//			}
+//
+//			if(BQ25150_SetTimerIntMask(0xFF, 1000) != BQ25150_STATUS_OK)
+//			{
+//				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
+//				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable all Timer interrupts \r\n");
+//				break;
+//			}
 
 			if(BQ25150_RegCallback(prvCHARGER_CB) != BQ25150_STATUS_OK)
 			{
@@ -144,6 +160,12 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set Termination current\r\n");
 				break;
 			}
+			if(BQ25150_Charge_Current_Set(prvCHARGER_DATA.chargingInfo.chargingCurrent, 1000) != BQ25150_STATUS_OK)
+			{
+				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set charging current \r\n");
+				break;
+			}
 
 			LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Charger successfully initialized \r\n");
 
@@ -176,6 +198,30 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				}
 				xSemaphoreGive(prvCHARGER_DATA.initSig);
 			}
+			if(notifyValue & CHARGER_TASK_SET_CURRENT_TERMINATION_VALUE)
+			{
+				if(BQ25150_Charge_TermCurrent_Set(prvCHARGER_DATA.chargingInfo.terminationCurrent, 1000) != BQ25150_STATUS_OK)
+				{
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set charging termination current \r\n");
+				}
+				else
+				{
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Charging termination current set\r\n");
+				}
+				xSemaphoreGive(prvCHARGER_DATA.initSig);
+			}
+			if(notifyValue & CHARGER_TASK_SET_VOLTAGE_TERMINATION_VALUE)
+			{
+				if(BQ25150_Charge_RegVoltage_Set(prvCHARGER_DATA.chargingInfo.terminationVoltage, 1000) != BQ25150_STATUS_OK)
+				{
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set charging termination voltage \r\n");
+				}
+				else
+				{
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Charging termination voltage set\r\n");
+				}
+				xSemaphoreGive(prvCHARGER_DATA.initSig);
+			}
 			if(notifyValue & CHARGER_TASK_REG_READ)
 			{
 				if(BQ25150_ReadReg(prvCHARGER_DATA.regContent.addr, &prvCHARGER_DATA.regContent.data, 1000) != BQ25150_STATUS_OK)
@@ -190,17 +236,29 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			}
 			if(notifyValue & CHARGER_TASK_PROCESS_INT)
 			{
-				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Interrupt detected \r\n");
-				if(prvCHARGER_DATA.intStatus & BQ25150_MASK_CHARGE_DONE)
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Interrupt detected \r\n");
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Read interrupt status \r\n");
+				BQ25150_GetChargerIntFlags(&prvCHARGER_DATA.chargerIntStatus, 1000);
+				BQ25150_GetADCIntFlags(&prvCHARGER_DATA.adcIntStatus, 1000);
+				BQ25150_GetTimerIntFlags(&prvCHARGER_DATA.timerIntStatus, 1000);
+
+				if(prvCHARGER_DATA.chargerIntStatus & BQ25150_MASK_CHARGE_DONE)
 				{
-					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Charging done \r\n");
-					prvCHARGER_DATA.intStatus &= ~BQ25150_MASK_CHARGE_DONE;
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNNING,  "Charging done \r\n");
+					CONTROL_StatusLinkSendMessage("charger charging done\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+					prvCHARGER_DATA.chargerIntStatus &= ~BQ25150_MASK_CHARGE_DONE;
 				}
-				if(prvCHARGER_DATA.intStatus & BQ25150_MASK_CHRG_CV)
+				if(prvCHARGER_DATA.chargerIntStatus & BQ25150_MASK_BAT_UVLO_FAULT)
 				{
-					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "CV Phase detected \r\n");
-					prvCHARGER_DATA.intStatus &= ~BQ25150_MASK_CHRG_CV;
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNNING,  "Under voltage detected \r\n");
+					CONTROL_StatusLinkSendMessage("charger uvoltage\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+					prvCHARGER_DATA.chargerIntStatus &= ~BQ25150_MASK_CHARGE_DONE;
 				}
+
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Charger Int:  0x%02X \r\n", prvCHARGER_DATA.chargerIntStatus);
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "ADC Int: 		0x%02X \r\n", prvCHARGER_DATA.adcIntStatus);
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Timer Int:    0x%02X \r\n", prvCHARGER_DATA.timerIntStatus);
+
 			}
 			break;
 		case CHARGER_STATE_ERROR:
@@ -261,6 +319,17 @@ charger_status_t	CHARGER_SetChargingState(charger_charging_state_t state, uint32
 	return CHARGER_STATUS_OK;
 }
 
+charger_status_t	CHARGER_GetChargingState(charger_charging_state_t* state, uint32_t initTimeout)
+{
+	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	*state = prvCHARGER_DATA.chargingInfo.chargingStatus;
+
+	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	return CHARGER_STATUS_OK;
+}
+
 charger_status_t	CHARGER_SetChargingCurrent(uint16_t current, uint32_t initTimeout)
 {
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
@@ -275,6 +344,72 @@ charger_status_t	CHARGER_SetChargingCurrent(uint16_t current, uint32_t initTimeo
 
 
 	if(xSemaphoreTake(prvCHARGER_DATA.initSig, pdMS_TO_TICKS(initTimeout)) != pdPASS) return CHARGER_STATUS_ERROR;
+
+	return CHARGER_STATUS_OK;
+}
+
+charger_status_t	CHARGER_GetChargingCurrent(uint16_t* current, uint32_t initTimeout)
+{
+	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	*current = prvCHARGER_DATA.chargingInfo.chargingCurrent;
+
+	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	return CHARGER_STATUS_OK;
+}
+
+charger_status_t	CHARGER_SetChargingTermCurrent(uint16_t current, uint32_t initTimeout)
+{
+	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	prvCHARGER_DATA.chargingInfo.terminationCurrent = current;
+
+	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	if(xTaskNotify(prvCHARGER_DATA.taskHandle,
+			CHARGER_TASK_SET_CURRENT_TERMINATION_VALUE,
+			eSetBits) != pdPASS) return CHARGER_STATUS_ERROR;
+
+
+	if(xSemaphoreTake(prvCHARGER_DATA.initSig, pdMS_TO_TICKS(initTimeout)) != pdPASS) return CHARGER_STATUS_ERROR;
+
+	return CHARGER_STATUS_OK;
+}
+charger_status_t	CHARGER_GetChargingTermCurrent(uint16_t* current, uint32_t initTimeout)
+{
+	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	*current = prvCHARGER_DATA.chargingInfo.terminationCurrent;
+
+	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	return CHARGER_STATUS_OK;
+}
+charger_status_t	CHARGER_SetChargingTermVoltage(float voltage, uint32_t initTimeout)
+{
+	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	prvCHARGER_DATA.chargingInfo.terminationVoltage = voltage;
+
+	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	if(xTaskNotify(prvCHARGER_DATA.taskHandle,
+			CHARGER_TASK_SET_VOLTAGE_TERMINATION_VALUE,
+			eSetBits) != pdPASS) return CHARGER_STATUS_ERROR;
+
+
+	if(xSemaphoreTake(prvCHARGER_DATA.initSig, pdMS_TO_TICKS(initTimeout)) != pdPASS) return CHARGER_STATUS_ERROR;
+
+	return CHARGER_STATUS_OK;
+}
+charger_status_t	CHARGER_GetChargingTermVoltage(float* voltage, uint32_t initTimeout)
+{
+	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	*voltage = prvCHARGER_DATA.chargingInfo.terminationVoltage;
+
+	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	return CHARGER_STATUS_OK;
 }

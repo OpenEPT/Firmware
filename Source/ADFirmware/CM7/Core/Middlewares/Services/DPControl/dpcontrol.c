@@ -26,11 +26,13 @@
 #define 	DPCONTROL_MASK_SET_PPATH_STATE		0x00000010
 #define 	DPCONTROL_MASK_SET_UV_DETECTED		0x00000020
 #define 	DPCONTROL_MASK_TRGER_LATCH			0x00000040
+#define 	DPCONTROL_MASK_SET_OV_DETECTED		0x00000080
+#define 	DPCONTROL_MASK_SET_OC_DETECTED		0x00000100
 
 typedef struct
 {
 	uint32_t					data;
-	dpcontrol_active_status_t	active;
+	dpcontrol_dac_status_t		active;
 }dpcontrol_aout_data_t;
 
 typedef struct
@@ -44,6 +46,9 @@ typedef struct
 	dpcontrol_load_state_t			loadState;
 	dpcontrol_bat_state_t			batState;
 	dpcontrol_ppath_state_t			pathState;
+	dpcontrol_protection_state_t    underVoltage;
+	dpcontrol_protection_state_t    overVoltage;
+	dpcontrol_protection_state_t    overCurrent;
 }dpcontrol_data_t;
 
 static	dpcontrol_data_t				prvDPCONTROL_DATA;
@@ -58,66 +63,141 @@ static void prvDPCONTROL_UnderVoltageCB(drv_gpio_pin pin)
 	portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
 }
 
+static void prvDPCONTROL_OverVoltageCB(drv_gpio_pin pin)
+{
+	BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+
+	xTaskNotifyFromISR(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_SET_OV_DETECTED, eSetBits, &pxHigherPriorityTaskWoken);
+
+	portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
+}
+
+static void prvDPCONTROL_OverCurrentCB(drv_gpio_pin pin)
+{
+	BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+
+	xTaskNotifyFromISR(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_SET_OC_DETECTED, eSetBits, &pxHigherPriorityTaskWoken);
+
+	portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
+}
+
 static void prvDPCONTROL_TaskFunc(void* pvParameters){
 	uint32_t	value;
 	uint32_t	aoutValue;
-	dpcontrol_active_status_t 	activeStatus;
+	dpcontrol_dac_status_t 	activeStatus;
 	dpcontrol_load_state_t		loadState;
 	dpcontrol_bat_state_t		batState;
 	dpcontrol_ppath_state_t		ppathState;
-	drv_gpio_pin_init_conf_t 	loadPinConfig;
-	drv_gpio_pin_init_conf_t 	batPinConfig;
-	drv_gpio_pin_init_conf_t 	gpioPinConfig;
-	drv_gpio_pin_init_conf_t 	underVoltagePinConfig;
+	drv_gpio_pin_init_conf_t 	controlPinConfig;
+	drv_gpio_pin_init_conf_t 	protectionPinConfig;
 	drv_gpio_pin_init_conf_t 	latchPinConfig;
 
 	for(;;){
 		switch(prvDPCONTROL_DATA.state)
 		{
 		case DPCONTROL_STATE_INIT:
-			loadPinConfig.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
-			loadPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+			controlPinConfig.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
+			controlPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
 
+			/*Initialize Load Disable pin*/
 			if(DRV_GPIO_Port_Init(DPCONTROL_LOAD_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
 			{
 				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize load control port\r\n");
 			}
-			if(DRV_GPIO_Pin_Init(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, &loadPinConfig) != DRV_GPIO_STATUS_OK)
+			if(DRV_GPIO_Pin_Init(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
 			{
 				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize load control pin\r\n");
 			}
 
+			switch(prvDPCONTROL_DATA.loadState)
+			{
+			case DPCONTROL_LOAD_STATE_DISABLE:
+				if(DRV_GPIO_Pin_SetState(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to disable load\r\n");
+				}
+				else
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Load successfully disabled\r\n");
+				}
+				break;
+			case DPCONTROL_LOAD_STATE_ENABLE:
+				if(DRV_GPIO_Pin_SetState(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to enable load\r\n");
+				}
+				else
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Load successfully enabled\r\n");
+				}
+				break;
+			}
+
+
+			/*Initialize Bat Disable pin*/
 			if(DRV_GPIO_Port_Init(DPCONTROL_BAT_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
 			{
 				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize battery control port\r\n");
 			}
-			if(DRV_GPIO_Pin_Init(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, &loadPinConfig) != DRV_GPIO_STATUS_OK)
+			if(DRV_GPIO_Pin_Init(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
 			{
 				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize battery control pin\r\n");
 			}
+			switch(prvDPCONTROL_DATA.batState)
+			{
+			case DPCONTROL_LOAD_STATE_DISABLE:
+				if(DRV_GPIO_Pin_SetState(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to disable Battery\r\n");
+				}
+				else
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Battery successfully disabled\r\n");
+				}
+				break;
+			case DPCONTROL_LOAD_STATE_ENABLE:
+				if(DRV_GPIO_Pin_SetState(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to enable Battery\r\n");
+				}
+				else
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Battery successfully enabled\r\n");
+				}
+				break;
+			}
 
+			/*Initialize PPath Disable pin*/
 			if(DRV_GPIO_Port_Init(DPCONTROL_GPIO_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize battery control port\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize ppath control port\r\n");
 			}
-			if(DRV_GPIO_Pin_Init(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, &loadPinConfig) != DRV_GPIO_STATUS_OK)
+			if(DRV_GPIO_Pin_Init(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize battery control pin\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize ppath control pin\r\n");
 			}
-
-			// Configure the pin for the button
-			underVoltagePinConfig.mode = DRV_GPIO_PIN_MODE_IT_RISING;
-			underVoltagePinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
-			//Definisati pin preko makroa
-			if (DRV_GPIO_Pin_Init(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, &underVoltagePinConfig) != DRV_GPIO_STATUS_OK)
+			switch(prvDPCONTROL_DATA.pathState)
 			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register UnderVoltage GPIO\r\n");
-			}
-
-			// Register the button press callback
-			if (DRV_GPIO_RegisterCallback(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, prvDPCONTROL_UnderVoltageCB, CONF_DPCONTROL_UV_ISR_PRIO) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register UnderVoltage callback\r\n");
+			case DPCONTROL_PPATH_STATE_DISABLE:
+				if(DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to disable Power Path\r\n");
+				}
+				else
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Power Path successfully disabled\r\n");
+				}
+				break;
+			case DPCONTROL_PPATH_STATE_ENABLE:
+				if(DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to enable Power Path\r\n");
+				}
+				else
+				{
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Power Path successfully enabled\r\n");
+				}
+				break;
 			}
 
 			latchPinConfig.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
@@ -132,6 +212,67 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize latch pin\r\n");
 			}
 
+			/* Initialize Under voltage protection interrupt pin*/
+			protectionPinConfig.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
+			protectionPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+			if (DRV_GPIO_Pin_Init(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, &protectionPinConfig) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Under Voltage GPIO\r\n");
+			}
+
+			if (DRV_GPIO_RegisterCallback(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, prvDPCONTROL_UnderVoltageCB, CONF_DPCONTROL_UV_ISR_PRIO) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Under Voltage callback\r\n");
+			}
+			drv_gpio_pin_state_t pinState = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN);
+			prvDPCONTROL_DATA.underVoltage = pinState;
+			if(prvDPCONTROL_DATA.underVoltage == DPCONTROL_PROTECTION_STATE_ENABLE)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNNING,  "Under voltage protection is active\r\n");
+			}
+
+			/* Initialize Over voltage protection interrupt pin*/
+			protectionPinConfig.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
+			protectionPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+			if (DRV_GPIO_Pin_Init(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN, &protectionPinConfig) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Over Voltage GPIO\r\n");
+			}
+
+			if (DRV_GPIO_RegisterCallback(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN, prvDPCONTROL_OverVoltageCB, CONF_DPCONTROL_OV_ISR_PRIO) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Over Voltage callback\r\n");
+			}
+			pinState = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN);
+			prvDPCONTROL_DATA.overVoltage = pinState;
+			if(prvDPCONTROL_DATA.overVoltage == DPCONTROL_PROTECTION_STATE_ENABLE)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNNING,  "Over voltage protection is active\r\n");
+			}
+
+			/* Initialize Over Current protection interrupt pin*/
+			protectionPinConfig.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
+			protectionPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+			if (DRV_GPIO_Pin_Init(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN, &protectionPinConfig) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Over Voltage GPIO\r\n");
+			}
+
+			if (DRV_GPIO_RegisterCallback(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN, prvDPCONTROL_OverCurrentCB, CONF_DPCONTROL_OC_ISR_PRIO) != DRV_GPIO_STATUS_OK)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Over Voltage callback\r\n");
+			}
+			pinState = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN);
+			prvDPCONTROL_DATA.overCurrent = pinState;
+			if(prvDPCONTROL_DATA.overCurrent == DPCONTROL_PROTECTION_STATE_ENABLE)
+			{
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNNING,  "Over Current protection is active\r\n");
+			}
+
+			if(DRV_AOUT_SetValue(prvDPCONTROL_DATA.aoutData.data) != DRV_AOUT_STATUS_OK)
+			{
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to set DAC value\r\n");
+			}
 			LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Discharge Profile Control service successfully initialized\r\n");
 			prvDPCONTROL_DATA.state	= DPCONTROL_STATE_SERVICE;
 			xSemaphoreGive(prvDPCONTROL_DATA.initSig);
@@ -336,14 +477,50 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Latch successfully reset\r\n");
 					}
 				}
-				xSemaphoreGive(prvDPCONTROL_DATA.initSig);
-				break;
+				//xSemaphoreGive(prvDPCONTROL_DATA.initSig);
 			}
 
 			if(value & DPCONTROL_MASK_SET_UV_DETECTED)
 			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNNING,  "Under Voltage detected\r\n");
-				CONTROL_StatusLinkSendMessage("Under Voltage detected\r\n", strlen("Under Voltage detected\r\n"), 1000);
+				drv_gpio_pin_state_t pinState = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN);
+				if (pinState == DRV_GPIO_PIN_STATE_SET)
+				{
+					LOGGING_Write("DPControl",LOGGING_MSG_TYPE_INFO,  "Under Voltage protection enabled\r\n");
+					CONTROL_StatusLinkSendMessage("uvoltage enabled\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+				}
+				else
+				{
+					LOGGING_Write("DPControl",LOGGING_MSG_TYPE_INFO,  "Under Voltage protection disabled\r\n");
+					CONTROL_StatusLinkSendMessage("uvoltage disabled\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+				}
+			}
+			if(value & DPCONTROL_MASK_SET_OV_DETECTED)
+			{
+				drv_gpio_pin_state_t pinState = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN);
+				if (pinState == DRV_GPIO_PIN_STATE_SET)
+				{
+					LOGGING_Write("DPControl",LOGGING_MSG_TYPE_INFO,  "Over Voltage protection enabled\r\n");
+					CONTROL_StatusLinkSendMessage("ovoltage enabled\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+				}
+				else
+				{
+					LOGGING_Write("DPControl",LOGGING_MSG_TYPE_INFO,  "Over Voltage protection disabled\r\n");
+					CONTROL_StatusLinkSendMessage("ovoltage disabled\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+				}
+			}
+			if(value & DPCONTROL_MASK_SET_OC_DETECTED)
+			{
+				drv_gpio_pin_state_t pinState = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN);
+				if (pinState == DRV_GPIO_PIN_STATE_SET)
+				{
+					LOGGING_Write("DPControl",LOGGING_MSG_TYPE_INFO,  "Over Current protection enabled\r\n");
+					CONTROL_StatusLinkSendMessage("ocurrent enabled\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+				}
+				else
+				{
+					LOGGING_Write("DPControl",LOGGING_MSG_TYPE_INFO,  "Over Current protection disabled\r\n");
+					CONTROL_StatusLinkSendMessage("ocurrent disabled\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+				}
 			}
 			break;
 		case DPCONTROL_STATE_ERROR:
@@ -358,13 +535,10 @@ dpcontrol_status_t DPCONTROL_Init(uint32_t initTimeout)
 {
 	memset(&prvDPCONTROL_DATA, 0, sizeof(dpcontrol_data_t));
 
-	if(xTaskCreate(
-			prvDPCONTROL_TaskFunc,
-			DPCONTROL_TASK_NAME,
-			DPCONTROL_TASK_STACK,
-			NULL,
-			DPCONTROL_TASK_PRIO,
-			&prvDPCONTROL_DATA.taskHandle) != pdPASS) return DPCONTROL_STATUS_ERROR;
+	prvDPCONTROL_DATA.loadState = DPCONTROL_LOAD_STATE_DISABLE;
+	prvDPCONTROL_DATA.batState = DPCONTROL_BAT_STATE_ENABLE;
+	prvDPCONTROL_DATA.pathState = DPCONTROL_PPATH_STATE_ENABLE;
+	prvDPCONTROL_DATA.aoutData.data = 85; //100mA
 
 	prvDPCONTROL_DATA.initSig = xSemaphoreCreateBinary();
 
@@ -375,6 +549,14 @@ dpcontrol_status_t DPCONTROL_Init(uint32_t initTimeout)
 	if(prvDPCONTROL_DATA.guard == NULL) return DPCONTROL_STATUS_ERROR;
 
 	prvDPCONTROL_DATA.state = DPCONTROL_STATE_INIT;
+
+	if(xTaskCreate(
+			prvDPCONTROL_TaskFunc,
+			DPCONTROL_TASK_NAME,
+			DPCONTROL_TASK_STACK,
+			NULL,
+			DPCONTROL_TASK_PRIO,
+			&prvDPCONTROL_DATA.taskHandle) != pdPASS) return DPCONTROL_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvDPCONTROL_DATA.initSig, pdMS_TO_TICKS(initTimeout)) != pdPASS) return DPCONTROL_STATUS_ERROR;
 
@@ -396,7 +578,18 @@ dpcontrol_status_t 	DPCONTROL_SetValue(uint32_t value, uint32_t timeout)
 	return DPCONTROL_STATUS_OK;
 }
 
-dpcontrol_status_t 	DPCONTROL_SetActivestatus(dpcontrol_active_status_t activeStatus, uint32_t timeout)
+dpcontrol_status_t 	DPCONTROL_GetValue(uint32_t* value, uint32_t timeout)
+{
+	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	*value = prvDPCONTROL_DATA.aoutData.data;
+
+	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	return DPCONTROL_STATUS_OK;
+}
+
+dpcontrol_status_t 	DPCONTROL_SetDACStatus(dpcontrol_dac_status_t activeStatus, uint32_t timeout)
 {
 	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
 
@@ -410,6 +603,16 @@ dpcontrol_status_t 	DPCONTROL_SetActivestatus(dpcontrol_active_status_t activeSt
 	return DPCONTROL_STATUS_OK;
 
 }
+dpcontrol_status_t 	DPCONTROL_GetDACStatus(dpcontrol_dac_status_t* activeStatus, uint32_t timeout)
+{
+	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	*activeStatus = prvDPCONTROL_DATA.aoutData.active;
+
+	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	return DPCONTROL_STATUS_OK;
+}
 
 dpcontrol_status_t  DPCONTROL_SetLoadState(dpcontrol_load_state_t state, uint32_t timeout)
 {
@@ -422,6 +625,16 @@ dpcontrol_status_t  DPCONTROL_SetLoadState(dpcontrol_load_state_t state, uint32_
 	if(xTaskNotify(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_SET_LOAD_STATE, eSetBits) != pdTRUE) return DPCONTROL_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvDPCONTROL_DATA.initSig, pdMS_TO_TICKS(timeout)) != pdPASS) return DPCONTROL_STATUS_ERROR;
+
+	return DPCONTROL_STATUS_OK;
+}
+dpcontrol_status_t  DPCONTROL_GetLoadState(dpcontrol_load_state_t* state, uint32_t timeout)
+{
+	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	*state = prvDPCONTROL_DATA.loadState;
+
+	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
 
 	return DPCONTROL_STATUS_OK;
 }
@@ -440,6 +653,16 @@ dpcontrol_status_t  DPCONTROL_SetBatState(dpcontrol_bat_state_t state, uint32_t 
 
 	return DPCONTROL_STATUS_OK;
 }
+dpcontrol_status_t  DPCONTROL_GetBatState(dpcontrol_bat_state_t* state, uint32_t timeout)
+{
+	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	*state = prvDPCONTROL_DATA.batState;
+
+	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	return DPCONTROL_STATUS_OK;
+}
 dpcontrol_status_t  DPCONTROL_SetPPathState(dpcontrol_ppath_state_t state, uint32_t timeout)
 {
 	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
@@ -454,11 +677,51 @@ dpcontrol_status_t  DPCONTROL_SetPPathState(dpcontrol_ppath_state_t state, uint3
 
 	return DPCONTROL_STATUS_OK;
 }
+dpcontrol_status_t  DPCONTROL_GetPPathState(dpcontrol_ppath_state_t* state, uint32_t timeout)
+{
+	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	*state = prvDPCONTROL_DATA.pathState;
+
+	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	return DPCONTROL_STATUS_OK;
+}
+dpcontrol_status_t  DPCONTROL_GetUVoltageState(dpcontrol_protection_state_t* state, uint32_t timeout)
+{
+	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	*state = prvDPCONTROL_DATA.underVoltage;
+
+	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	return DPCONTROL_STATUS_OK;
+}
+dpcontrol_status_t  DPCONTROL_GetOVoltageState(dpcontrol_protection_state_t* state, uint32_t timeout)
+{
+	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	*state = prvDPCONTROL_DATA.overVoltage;
+
+	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	return DPCONTROL_STATUS_OK;
+}
+dpcontrol_status_t  DPCONTROL_GetOCurrentState(dpcontrol_protection_state_t* state, uint32_t timeout)
+{
+	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	*state = prvDPCONTROL_DATA.overCurrent;
+
+	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	return DPCONTROL_STATUS_OK;
+}
 dpcontrol_status_t  DPCONTROL_LatchTriger(uint32_t timeout)
 {
 	if(xTaskNotify(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_TRGER_LATCH, eSetBits) != pdTRUE) return DPCONTROL_STATUS_ERROR;
 
-	if(xSemaphoreTake(prvDPCONTROL_DATA.initSig, pdMS_TO_TICKS(timeout)) != pdPASS) return DPCONTROL_STATUS_ERROR;
+	//if(xSemaphoreTake(prvDPCONTROL_DATA.initSig, pdMS_TO_TICKS(timeout)) != pdPASS) return DPCONTROL_STATUS_ERROR;
 
 	return DPCONTROL_STATUS_OK;
 }

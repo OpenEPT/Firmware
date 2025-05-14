@@ -231,11 +231,11 @@ drv_gpio_status_t DRV_GPIO_Pin_EnableInt(drv_gpio_port_t port, drv_gpio_pin pin,
 
 	if(xSemaphoreTake(prvDRV_GPIO_PORTS[port].lock, portMAX_DELAY) == pdFALSE ) return DRV_GPIO_STATUS_ERROR;
 
-	/*Configure GPIO pin : PC13 */
-	GPIO_InitStruct.Pin  = 1 << pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init((GPIO_TypeDef*)prvDRV_GPIO_PORTS[port].portInstance, &GPIO_InitStruct);
+//	/*Configure GPIO pin : PC13 */
+//	GPIO_InitStruct.Pin  = 1 << pin;
+//	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+//	GPIO_InitStruct.Pull = GPIO_NOPULL;
+//	HAL_GPIO_Init((GPIO_TypeDef*)prvDRV_GPIO_PORTS[port].portInstance, &GPIO_InitStruct);
 
 	prvDRV_GPIO_PINS_INTERRUPTS[pin] = callback;
 

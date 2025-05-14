@@ -22,8 +22,12 @@
 
 #define 	BQ25150_REG_IFLAG0			0x03
 #define 	BQ25150_REG_IFLAG1			0x04
+#define 	BQ25150_REG_IFLAG2			0x05
+#define 	BQ25150_REG_IFLAG3			0x06
 #define 	BQ25150_REG_MASK0			0x07
 #define 	BQ25150_REG_MASK1			0x08
+#define 	BQ25150_REG_MASK2			0x09
+#define 	BQ25150_REG_MASK3			0x0A
 #define 	BQ25150_REG_VBAT_CTRL		0x12
 #define 	BQ25150_REG_ICHG_CTRL		0x13
 #define 	BQ25150_REG_TERMCTRL		0x15
@@ -39,10 +43,9 @@ bq25150_intcb prvBQ25150_CB;
 static void prvBQ25150_IntCallback(uint16_t GPIO_Pin)
 {
 	uint16_t intFlags = 0;
-	if(BQ25150_GetChargerIntFlags(&intFlags, 1000) != BQ25150_STATUS_OK) return;
 	if(prvBQ25150_CB != 0)
 	{
-		prvBQ25150_CB(intFlags);
+		prvBQ25150_CB();
 	}
 }
 
@@ -153,15 +156,56 @@ bq25150_status_t BQ25150_GetChargerIntFlags(uint16_t* intFlags, uint32_t timeout
     return BQ25150_STATUS_OK;
 }
 
-bq25150_status_t BQ25150_SetChargerIntMask(uint16_t mask, uint32_t timeout)
+bq25150_status_t BQ25150_GetADCIntFlags(uint8_t* intFlags, uint32_t timeout)
 {
-	uint8_t dataLow, dataHigh = 0;
+	uint8_t data;
 
-	dataLow 	= (uint8_t)mask;
-	dataHigh 	= (uint8_t)(mask >> 8);
+	if(prvBQ25150_ReadReg(BQ25150_REG_IFLAG2, &data, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
 
-	if(prvBQ25150_WriteReg(BQ25150_REG_MASK0, dataLow, 1, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
-	if(prvBQ25150_WriteReg(BQ25150_REG_MASK1, dataHigh, 1, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+	*intFlags = data;
+
+	return BQ25150_STATUS_OK;
+}
+bq25150_status_t BQ25150_GetTimerIntFlags(uint8_t* intFlags, uint32_t timeout)
+{
+	uint8_t data;
+
+	if(prvBQ25150_ReadReg(BQ25150_REG_IFLAG3, &data, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+
+	*intFlags = data;
+
+	return BQ25150_STATUS_OK;
+}
+
+bq25150_status_t BQ25150_SetADCIntMask(uint8_t mask, uint32_t timeout)
+{
+	if(prvBQ25150_WriteReg(BQ25150_REG_MASK2, mask, 1, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+
+    return BQ25150_STATUS_OK;
+}
+bq25150_status_t BQ25150_GetADCIntMask(uint8_t* mask, uint32_t timeout)
+{
+	uint8_t data = 0;
+
+	if(prvBQ25150_ReadReg(BQ25150_REG_MASK2, &data, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+
+	*mask = data;
+
+    return BQ25150_STATUS_OK;
+}
+bq25150_status_t BQ25150_SetTimerIntMask(uint8_t mask, uint32_t timeout)
+{
+	if(prvBQ25150_WriteReg(BQ25150_REG_MASK3, mask, 1, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+
+    return BQ25150_STATUS_OK;
+}
+bq25150_status_t BQ25150_GetTimerIntMask(uint8_t* mask, uint32_t timeout)
+{
+	uint8_t data = 0;
+
+	if(prvBQ25150_ReadReg(BQ25150_REG_MASK3, &data, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+
+	*mask = data;
 
     return BQ25150_STATUS_OK;
 }
@@ -173,6 +217,19 @@ bq25150_status_t BQ25150_GetChargerIntMask(uint16_t* mask, uint32_t timeout)
 	if(prvBQ25150_ReadReg(BQ25150_REG_MASK1, &dataHigh, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
 
 	*mask = ((0xFF00 & (((uint16_t)dataHigh) << 8)) |  (0x00FF & (((uint16_t)dataLow))));
+
+    return BQ25150_STATUS_OK;
+}
+
+bq25150_status_t BQ25150_SetChargerIntMask(uint16_t mask, uint32_t timeout)
+{
+	uint8_t dataLow, dataHigh = 0;
+
+	dataLow 	= (uint8_t)mask;
+	dataHigh 	= (uint8_t)(mask >> 8);
+
+	if(prvBQ25150_WriteReg(BQ25150_REG_MASK0, dataLow, 1, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
+	if(prvBQ25150_WriteReg(BQ25150_REG_MASK1, dataHigh, 1, timeout) != BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
 
     return BQ25150_STATUS_OK;
 }
@@ -277,6 +334,9 @@ bq25150_status_t BQ25150_WDG_SetStatus(bq25150_wdg_status status, uint32_t timeo
 	{
 		regData &= ~(1 << 4);
 	}
+
+	regData &= 0b11111001;
+	regData |= 0b00000100;
 
 	if(prvBQ25150_WriteReg(BQ25150_REG_CHARGERCTRL0, regData, 1, 1000)!= BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
     return BQ25150_STATUS_OK;

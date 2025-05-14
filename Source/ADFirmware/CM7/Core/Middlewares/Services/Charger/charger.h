@@ -35,7 +35,13 @@ typedef enum
 
 charger_status_t 	CHARGER_Init(uint32_t initTimeout);
 charger_status_t	CHARGER_SetChargingState(charger_charging_state_t state, uint32_t initTimeout);
+charger_status_t	CHARGER_GetChargingState(charger_charging_state_t* state, uint32_t initTimeout);
 charger_status_t	CHARGER_SetChargingCurrent(uint16_t current, uint32_t initTimeout);
+charger_status_t	CHARGER_GetChargingCurrent(uint16_t* current, uint32_t initTimeout);
+charger_status_t	CHARGER_SetChargingTermCurrent(uint16_t current, uint32_t initTimeout);
+charger_status_t	CHARGER_GetChargingTermCurrent(uint16_t* current, uint32_t initTimeout);
+charger_status_t	CHARGER_SetChargingTermVoltage(float voltage, uint32_t initTimeout);
+charger_status_t	CHARGER_GetChargingTermVoltage(float* voltage, uint32_t initTimeout);
 charger_status_t	CHARGER_GetRegContent(uint8_t regAddr, uint8_t* regData, uint32_t initTimeout);
 
 
