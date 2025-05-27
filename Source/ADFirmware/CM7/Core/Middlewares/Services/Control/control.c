@@ -34,7 +34,15 @@
 #include "dpcontrol.h"
 #include "charger.h"
 
+/**
+ * @defgroup SERVICES Service
+ * @{
+ */
 
+/**
+ * @defgroup CONTROL_SERVICE Control service
+ * @{
+ */
 /**
  * @defgroup CONTROL_PRIVATE_STRUCTURES Control service private structures defines
  * @{
@@ -75,6 +83,7 @@ typedef struct
  */
 /**
  * @defgroup CONTROL_PRIVATE_DATA Control service private data instances
+ * @{
  */
 static control_data_t				prvCONTROL_DATA;
 static control_status_link_data_t	prvCONTROL_STATUS_LINK_DATA[CONTROL_STATUS_LINK_MAX_NO];
@@ -2317,14 +2326,6 @@ control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, contol_stat
 	return CONTROL_STATUS_OK;
 }
 
-/**
- * @brief	Send status message over control link from ISR
- *
- * @param	message: message to send
- * @param	messageSize: message size
- * @param	timeout: timeout interval to wait for message to be sent over status link
- * @retval	::control_status_t
- */
 control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, contol_status_message_type_t type, uint32_t timeout)
 {
 	if(prvCONTROL_STATUS_LINK_DATA[0].linkState != CONTROL_LINK_STATE_UP) return CONTROL_STATUS_ERROR;
@@ -2339,3 +2340,9 @@ control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, cont
 	portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 	return CONTROL_STATUS_OK;
 }
+/**
+ * @}
+ */
+/**
+ * @}
+ */

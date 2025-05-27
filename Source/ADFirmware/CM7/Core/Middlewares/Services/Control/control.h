@@ -21,6 +21,10 @@
 #ifndef CORE_MIDDLEWARES_SERVICES_CONTROL_CONTROL_H_
 #define CORE_MIDDLEWARES_SERVICES_CONTROL_CONTROL_H_
 /**
+ * @defgroup CONTROL_SERVICE Control service
+ * @{
+ */
+/**
  * @defgroup CONTROL_PUBLIC_DATA Control service public data and defines
  * @{
  */
@@ -143,7 +147,6 @@ control_status_t 	CONTROL_StatusLinkCreate(control_status_link_instance_t* statu
  * @retval	::control_status_t
  */
 control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, contol_status_message_type_t msgType, uint32_t timeout);
-
 /**
  * @brief	Send status message over control link from ISR
  *
@@ -153,6 +156,9 @@ control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, contol_stat
  * @retval	::control_status_t
  */
 control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, contol_status_message_type_t msgType, uint32_t timeout);
+/**
+ * @}
+ */
 /**
  * @}
  */

@@ -336,7 +336,7 @@ bq25150_status_t BQ25150_WDG_SetStatus(bq25150_wdg_status status, uint32_t timeo
 	}
 
 	regData &= 0b11111001;
-	regData |= 0b00000100;
+	regData |= 0b00000110;
 
 	if(prvBQ25150_WriteReg(BQ25150_REG_CHARGERCTRL0, regData, 1, 1000)!= BQ25150_STATUS_OK) return BQ25150_STATUS_ERROR;
     return BQ25150_STATUS_OK;

@@ -1,71 +1,130 @@
-/*
- * charger.c
+/**
+ ******************************************************************************
+ * @file    charger.c
  *
- *  Created on: Apr 12, 2025
- *      Author: elektronika
+ * @brief   Charger service is responsible for configuring, controlling, and
+ *          monitoring the battery charging process via the BQ25150 device.
+ *          It runs as a FreeRTOS task and provides a thread-safe interface
+ *          for setting charging parameters and processing interrupts.
+ *
+ * @author  Haris Turkmanovic
+ * @date    April 2025
+ ******************************************************************************
  */
-#include 	"FreeRTOS.h"
-#include 	"task.h"
-#include 	"queue.h"
-#include 	"semphr.h"
 
-#include 	"charger.h"
-#include 	"system.h"
-#include 	"logging.h"
-#include 	"control.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
 
-#include 	"bq25150.h"
+#include "charger.h"
+#include "system.h"
+#include "logging.h"
+#include "control.h"
+#include "bq25150.h"
 
+/**
+ * @defgroup SERVICES Service
+ * @{
+ */
 
-#define  	CHARGER_TASK_SET_CHARGING_STATUS				0x00000001
-#define  	CHARGER_TASK_SET_CURRENT_CHARGING_VALUE			0x00000002
-#define  	CHARGER_TASK_SET_CURRENT_TERMINATION_VALUE		0x00000004
-#define  	CHARGER_TASK_SET_VOLTAGE_TERMINATION_VALUE		0x00000008
-#define  	CHARGER_TASK_REG_READ							0x00000010
-#define  	CHARGER_TASK_PROCESS_INT						0x00000020
+/**
+ * @defgroup CHARGER_SERVICE Charger service
+ * @{
+ */
 
+/**
+ * @defgroup CHARGER_DEFINES Charger task defines and default values
+ * @{
+ */
+#define CHARGER_TASK_SET_CHARGING_STATUS              0x00000001 /**< Task flag: Set charging enable/disable */
+#define CHARGER_TASK_SET_CURRENT_CHARGING_VALUE       0x00000002 /**< Task flag: Set charging current */
+#define CHARGER_TASK_SET_CURRENT_TERMINATION_VALUE    0x00000004 /**< Task flag: Set termination current */
+#define CHARGER_TASK_SET_VOLTAGE_TERMINATION_VALUE    0x00000008 /**< Task flag: Set termination voltage */
+#define CHARGER_TASK_REG_READ                         0x00000010 /**< Task flag: Read a register */
+#define CHARGER_TASK_PROCESS_INT                      0x00000020 /**< Task flag: Process interrupt */
 
-#define		CHARGER_DEFAULT_CURRENT_TERMINATION_VALUE	5 //%
-#define		CHARGER_DEFAULT_VOLTAGE_TERMINATION_VALUE	4.35 //%
-#define		CHARGER_DEFAULT_CURRENT_CHARGING_VALUE		100 //mA
-#define		CHARGER_DEFAULT_CURRENT_ILIM_VALUE			3 	//200 mA
-#define		CHARGER_DEFAULT_CHARGING_STATE				0 	//Disable
-#define		CHARGER_DEFAULT_WD_STATE					0 	//Disable
+#define CHARGER_DEFAULT_CURRENT_TERMINATION_VALUE     5      /**< Default termination current (%) */
+#define CHARGER_DEFAULT_VOLTAGE_TERMINATION_VALUE     4.35   /**< Default termination voltage (V) */
+#define CHARGER_DEFAULT_CURRENT_CHARGING_VALUE        100    /**< Default charging current (mA) */
+#define CHARGER_DEFAULT_CURRENT_ILIM_VALUE            3      /**< Default input current limit (index value, e.g., 200 mA) */
+#define CHARGER_DEFAULT_CHARGING_STATE                0      /**< Default charging state (disabled) */
+#define CHARGER_DEFAULT_WD_STATE                      0      /**< Default watchdog state (disabled) */
+/**
+ * @}
+ */
 
+/**
+ * @defgroup CHARGER_PRIVATE_STRUCTURES Charger private structures
+ * @{
+ */
 
+/**
+ * @brief Structure representing register content to be read
+ */
 typedef struct
 {
-	uint8_t addr;
-	uint8_t data;
-}charger_reg_content_t;
+    uint8_t addr; /**< Register address */
+    uint8_t data; /**< Register data */
+} charger_reg_content_t;
 
-
+/**
+ * @brief Structure holding charger configuration parameters
+ */
 typedef struct
 {
-	float 					terminationVoltage;
-	uint8_t					terminationCurrent;
-	uint16_t 				chargingCurrent;
-	bq25250_ilim_value_t 	currentLimit;
-	bq25150_charge_status	chargingStatus;
-	bq25150_wdg_status		wdStatus;
-}charger_charging_info_t;
+    float terminationVoltage;                 /**< Target charge termination voltage (V) */
+    uint8_t terminationCurrent;               /**< Charge termination current (%) */
+    uint16_t chargingCurrent;                 /**< Charging current (mA) */
+    bq25250_ilim_value_t currentLimit;        /**< Input current limit setting */
+    bq25150_charge_status chargingStatus;     /**< Charging enable/disable status */
+    bq25150_wdg_status wdStatus;              /**< Watchdog timer enable/disable status */
+} charger_charging_info_t;
 
+/**
+ * @brief Main charger task data structure
+ */
 typedef struct
 {
-	charger_state_t					state;
-	SemaphoreHandle_t				initSig;
-	SemaphoreHandle_t				guard;
-	TaskHandle_t					taskHandle;
-	charger_charging_info_t			chargingInfo;
-	charger_reg_content_t			regContent;
-	uint16_t						chargerIntStatus;
-	uint8_t							adcIntStatus;
-	uint8_t							timerIntStatus;
-}charger_data_t;
+    charger_state_t state;                    /**< Current state of the charger task */
+    SemaphoreHandle_t initSig;                /**< Semaphore for signaling initialization completion */
+    SemaphoreHandle_t guard;                  /**< Mutex for thread-safe parameter access */
+    TaskHandle_t taskHandle;                  /**< FreeRTOS task handle */
+    charger_charging_info_t chargingInfo;     /**< Current charging configuration */
+    charger_reg_content_t regContent;         /**< Register read request */
+    uint16_t chargerIntStatus;                /**< Latest charger interrupt flags */
+    uint8_t adcIntStatus;                     /**< Latest ADC interrupt flags */
+    uint8_t timerIntStatus;                   /**< Latest timer interrupt flags */
+} charger_data_t;
+/**
+ * @}
+ */
 
-
-static	charger_data_t				prvCHARGER_DATA;
-
+/**
+ * @defgroup CHARGER_PRIVATE_DATA Charger private data
+ * @{
+ */
+/**
+ * @brief Static instance of the charger service data
+ */
+static charger_data_t prvCHARGER_DATA;
+/**
+ * @}
+ */
+/**
+ * @defgroup CHARGER_PRIVATE_FUNCTIONS Control service private functions
+ * @{
+ */
+/**
+ * @brief Interrupt callback function registered to the BQ25150 charger.
+ *
+ * This function is triggered by the charger (via ISR) when an interrupt condition occurs.
+ * It notifies the charger task using FreeRTOS's `xTaskNotifyFromISR()` with the
+ * `CHARGER_TASK_PROCESS_INT` flag. If a higher priority task was woken, context switch
+ * is requested via `portYIELD_FROM_ISR`.
+ *
+ * @note This function is designed to be used only in interrupt context.
+ */
 static void prvCHARGER_CB()
 {
 	BaseType_t *pxHigherPriorityTaskWoken = pdFALSE;
@@ -74,6 +133,26 @@ static void prvCHARGER_CB()
 }
 
 
+/**
+ * @brief Charger management task function.
+ *
+ * This is the core task responsible for initializing the BQ25150 charger and handling
+ * configuration commands and interrupts. The task transitions through multiple states:
+ *
+ * - `CHARGER_STATE_INIT`: Performs initialization steps such as:
+ *    - Establishing communication with the charger
+ *    - Configuring voltage/current/termination levels
+ *    - Registering callbacks
+ *
+ * - `CHARGER_STATE_SERVICE`: Waits on notifications from other API calls or interrupts and
+ *   applies requested settings to the charger (e.g. enabling/disabling charging, setting
+ *   voltage/current parameters, reading registers, or handling charger interrupts).
+ *
+ * - `CHARGER_STATE_ERROR`: If any of the initialization steps or operations fail,
+ *   enters an error state and reports it via `SYSTEM_ReportError`.
+ *
+ * @param[in] pvParameters Unused task parameter.
+ */
 static void prvCHARGER_TaskFunc(void* pvParameters)
 {
 	uint32_t				notifyValue = 0;
@@ -268,7 +347,9 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 		}
 	}
 }
-
+/**
+ * @}
+ */
 charger_status_t 	CHARGER_Init(uint32_t initTimeout)
 {
 	if(xTaskCreate(
