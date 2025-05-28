@@ -1,28 +1,5 @@
 var searchData=
 [
-  ['service_223',['Service',['../group___s_e_r_v_i_c_e_s.html',1,'']]],
-  ['sstream_2ec_224',['sstream.c',['../sstream_8c.html',1,'']]],
-  ['sstream_2eh_225',['sstream.h',['../sstream_8h.html',1,'']]],
-  ['sstream_5fconnection_5finfo_226',['sstream_connection_info',['../structsstream__connection__info.html',1,'']]],
-  ['sstream_5fcontrol_5fdata_5ft_227',['sstream_control_data_t',['../structsstream__control__data__t.html',1,'']]],
-  ['sstream_5fdata_5ft_228',['sstream_data_t',['../structsstream__data__t.html',1,'']]],
-  ['sstream_5fpacket_5ft_229',['sstream_packet_t',['../structsstream__packet__t.html',1,'']]],
-  ['sstream_5fstate_5ferror_230',['SSTREAM_STATE_ERROR',['../sstream_8h.html#adbc682211a2a28fe7c62262741330787a0aebf8599f41f13f6b676ba2073d8297',1,'sstream.h']]],
-  ['sstream_5fstate_5finit_231',['SSTREAM_STATE_INIT',['../sstream_8h.html#adbc682211a2a28fe7c62262741330787ae6f23af8ab1fe34344b7653372ee9437',1,'sstream.h']]],
-  ['sstream_5fstate_5fservice_232',['SSTREAM_STATE_SERVICE',['../sstream_8h.html#adbc682211a2a28fe7c62262741330787a9588033276e58dd41f38f6d89a99c7bb',1,'sstream.h']]],
-  ['sstream_5fstate_5ft_233',['sstream_state_t',['../sstream_8h.html#adbc682211a2a28fe7c62262741330787',1,'sstream.h']]],
-  ['sstream_5fstream_5fdata_5ft_234',['sstream_stream_data_t',['../structsstream__stream__data__t.html',1,'']]],
-  ['state_235',['state',['../group___c_h_a_r_g_e_r___s_e_r_v_i_c_e.html#gadbfe5177170a1ec0ee4ac4aa75d550eb',1,'charger_data_t']]],
-  ['stm32h7xx_5fhal_5fconf_2eh_236',['stm32h7xx_hal_conf.h',['../stm32h7xx__hal__conf_8h.html',1,'']]],
-  ['stm32h7xx_5fhal_5fmsp_2ec_237',['stm32h7xx_hal_msp.c',['../stm32h7xx__hal__msp_8c.html',1,'']]],
-  ['stm32h7xx_5fhal_5ftimebase_5ftim_2ec_238',['stm32h7xx_hal_timebase_tim.c',['../stm32h7xx__hal__timebase__tim_8c.html',1,'']]],
-  ['stm32h7xx_5fit_2ec_239',['stm32h7xx_it.c',['../stm32h7xx__it_8c.html',1,'']]],
-  ['stm32h7xx_5fit_2eh_240',['stm32h7xx_it.h',['../stm32h7xx__it_8h.html',1,'']]],
-  ['syscalls_2ec_241',['syscalls.c',['../syscalls_8c.html',1,'']]],
-  ['sysmem_2ec_242',['sysmem.c',['../sysmem_8c.html',1,'']]],
-  ['system_2ec_243',['system.c',['../system_8c.html',1,'']]],
-  ['system_2eh_244',['system.h',['../system_8h.html',1,'']]],
-  ['system_5fdata_5ft_245',['system_data_t',['../structsystem__data__t.html',1,'']]],
-  ['system_5frgb_5fvalue_5ft_246',['system_rgb_value_t',['../structsystem__rgb__value__t.html',1,'']]],
-  ['systemclock_5fconfig_247',['SystemClock_Config',['../main_8c.html#a70af21c671abfcc773614a9a4f63d920',1,'main.c']]]
+  ['regcontent_299',['regContent',['../group___c_h_a_r_g_e_r___s_e_r_v_i_c_e.html#gae56b169b116ab59e19a77d4c0484d789',1,'charger_data_t']]],
+  ['rxbuff_5ft_300',['RxBuff_t',['../struct_rx_buff__t.html',1,'']]]
 ];

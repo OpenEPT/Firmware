@@ -67,52 +67,44 @@ $(function() {
   <div class="summary">
 <a href="#pub-attribs">Data Fields</a>  </div>
   <div class="headertitle">
-<div class="title">dpcontrol_data_t Struct Reference</div>  </div>
+<div class="title">dpcontrol_data_t Struct Reference<div class="ingroups"><a class="el" href="group___s_e_r_v_i_c_e_s.html">Service</a> &raquo; <a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html">DPControl Service</a> &raquo; <a class="el" href="group___d_p_c_o_n_t_r_o_l___s_t_r_u_c_t_u_r_e_s.html">DPControl internal structures</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
+
+<p>Internal data structure for DPControl service.  
+ <a href="structdpcontrol__data__t.html#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a41bd3678e789217e9167d146f7b5ec62"><td class="memItemLeft" align="right" valign="top"><a id="a41bd3678e789217e9167d146f7b5ec62"></a>
-dpcontrol_state_t&#160;</td><td class="memItemRight" valign="bottom"><b>state</b></td></tr>
-<tr class="separator:a41bd3678e789217e9167d146f7b5ec62"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af597a2bf032243c4be723b36797afb4f"><td class="memItemLeft" align="right" valign="top"><a id="af597a2bf032243c4be723b36797afb4f"></a>
-QueueHandle_t&#160;</td><td class="memItemRight" valign="bottom"><b>txMsgQueue</b></td></tr>
-<tr class="separator:af597a2bf032243c4be723b36797afb4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a39b233aa9fde11e8e1a50df5fe456c81"><td class="memItemLeft" align="right" valign="top"><a id="a39b233aa9fde11e8e1a50df5fe456c81"></a>
-SemaphoreHandle_t&#160;</td><td class="memItemRight" valign="bottom"><b>initSig</b></td></tr>
-<tr class="separator:a39b233aa9fde11e8e1a50df5fe456c81"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a95b46e49da35ff9869ee2ccfe17eca28"><td class="memItemLeft" align="right" valign="top"><a id="a95b46e49da35ff9869ee2ccfe17eca28"></a>
-SemaphoreHandle_t&#160;</td><td class="memItemRight" valign="bottom"><b>guard</b></td></tr>
-<tr class="separator:a95b46e49da35ff9869ee2ccfe17eca28"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a856a4dc2365377e5fed42c5e1be72043"><td class="memItemLeft" align="right" valign="top"><a id="a856a4dc2365377e5fed42c5e1be72043"></a>
-TaskHandle_t&#160;</td><td class="memItemRight" valign="bottom"><b>taskHandle</b></td></tr>
-<tr class="separator:a856a4dc2365377e5fed42c5e1be72043"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a01e741f94f3785c6cc333d860acc4273"><td class="memItemLeft" align="right" valign="top"><a id="a01e741f94f3785c6cc333d860acc4273"></a>
-<a class="el" href="structdpcontrol__aout__data__t.html">dpcontrol_aout_data_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>aoutData</b></td></tr>
-<tr class="separator:a01e741f94f3785c6cc333d860acc4273"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8dde8af4944aaee0251b2c2b5f14564c"><td class="memItemLeft" align="right" valign="top"><a id="a8dde8af4944aaee0251b2c2b5f14564c"></a>
-dpcontrol_load_state_t&#160;</td><td class="memItemRight" valign="bottom"><b>loadState</b></td></tr>
-<tr class="separator:a8dde8af4944aaee0251b2c2b5f14564c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6cb009c79bd7be0b0e483c177b80abe2"><td class="memItemLeft" align="right" valign="top"><a id="a6cb009c79bd7be0b0e483c177b80abe2"></a>
-dpcontrol_bat_state_t&#160;</td><td class="memItemRight" valign="bottom"><b>batState</b></td></tr>
-<tr class="separator:a6cb009c79bd7be0b0e483c177b80abe2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0c43b05ccf4422fdab8c4d85feeb424e"><td class="memItemLeft" align="right" valign="top"><a id="a0c43b05ccf4422fdab8c4d85feeb424e"></a>
-dpcontrol_ppath_state_t&#160;</td><td class="memItemRight" valign="bottom"><b>pathState</b></td></tr>
-<tr class="separator:a0c43b05ccf4422fdab8c4d85feeb424e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a13f30c2051fcd9156ff749a50398c778"><td class="memItemLeft" align="right" valign="top"><a id="a13f30c2051fcd9156ff749a50398c778"></a>
-dpcontrol_protection_state_t&#160;</td><td class="memItemRight" valign="bottom"><b>underVoltage</b></td></tr>
-<tr class="separator:a13f30c2051fcd9156ff749a50398c778"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a012ca1fdf2729655f1ad7f2002307d54"><td class="memItemLeft" align="right" valign="top"><a id="a012ca1fdf2729655f1ad7f2002307d54"></a>
-dpcontrol_protection_state_t&#160;</td><td class="memItemRight" valign="bottom"><b>overVoltage</b></td></tr>
-<tr class="separator:a012ca1fdf2729655f1ad7f2002307d54"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a08f276a3a230313bb90fe740efb99388"><td class="memItemLeft" align="right" valign="top"><a id="a08f276a3a230313bb90fe740efb99388"></a>
-dpcontrol_protection_state_t&#160;</td><td class="memItemRight" valign="bottom"><b>overCurrent</b></td></tr>
-<tr class="separator:a08f276a3a230313bb90fe740efb99388"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga41bd3678e789217e9167d146f7b5ec62"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group___d_p_c_o_n_t_r_o_l___p_u_b_l_i_c___t_y_p_e_s.html#ga4bf61d519de171196d41176141e9f4e0">dpcontrol_state_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#ga41bd3678e789217e9167d146f7b5ec62">state</a></td></tr>
+<tr class="separator:ga41bd3678e789217e9167d146f7b5ec62"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf597a2bf032243c4be723b36797afb4f"><td class="memItemLeft" align="right" valign="top">QueueHandle_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#gaf597a2bf032243c4be723b36797afb4f">txMsgQueue</a></td></tr>
+<tr class="separator:gaf597a2bf032243c4be723b36797afb4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga39b233aa9fde11e8e1a50df5fe456c81"><td class="memItemLeft" align="right" valign="top">SemaphoreHandle_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#ga39b233aa9fde11e8e1a50df5fe456c81">initSig</a></td></tr>
+<tr class="separator:ga39b233aa9fde11e8e1a50df5fe456c81"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga95b46e49da35ff9869ee2ccfe17eca28"><td class="memItemLeft" align="right" valign="top">SemaphoreHandle_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#ga95b46e49da35ff9869ee2ccfe17eca28">guard</a></td></tr>
+<tr class="separator:ga95b46e49da35ff9869ee2ccfe17eca28"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga856a4dc2365377e5fed42c5e1be72043"><td class="memItemLeft" align="right" valign="top">TaskHandle_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#ga856a4dc2365377e5fed42c5e1be72043">taskHandle</a></td></tr>
+<tr class="separator:ga856a4dc2365377e5fed42c5e1be72043"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga01e741f94f3785c6cc333d860acc4273"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structdpcontrol__aout__data__t.html">dpcontrol_aout_data_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#ga01e741f94f3785c6cc333d860acc4273">aoutData</a></td></tr>
+<tr class="separator:ga01e741f94f3785c6cc333d860acc4273"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8dde8af4944aaee0251b2c2b5f14564c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group___d_p_c_o_n_t_r_o_l___p_u_b_l_i_c___t_y_p_e_s.html#ga28d2923df28f356efd2762e27918e3bb">dpcontrol_load_state_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#ga8dde8af4944aaee0251b2c2b5f14564c">loadState</a></td></tr>
+<tr class="separator:ga8dde8af4944aaee0251b2c2b5f14564c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6cb009c79bd7be0b0e483c177b80abe2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group___d_p_c_o_n_t_r_o_l___p_u_b_l_i_c___t_y_p_e_s.html#ga4b7ba541f84d61e8544893d853f4c67b">dpcontrol_bat_state_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#ga6cb009c79bd7be0b0e483c177b80abe2">batState</a></td></tr>
+<tr class="separator:ga6cb009c79bd7be0b0e483c177b80abe2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0c43b05ccf4422fdab8c4d85feeb424e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group___d_p_c_o_n_t_r_o_l___p_u_b_l_i_c___t_y_p_e_s.html#ga03d79b8f0a0487f06047e53519643924">dpcontrol_ppath_state_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#ga0c43b05ccf4422fdab8c4d85feeb424e">pathState</a></td></tr>
+<tr class="separator:ga0c43b05ccf4422fdab8c4d85feeb424e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga13f30c2051fcd9156ff749a50398c778"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group___d_p_c_o_n_t_r_o_l___p_u_b_l_i_c___t_y_p_e_s.html#gabf768b418f81ebfba546e693cd9b379c">dpcontrol_protection_state_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#ga13f30c2051fcd9156ff749a50398c778">underVoltage</a></td></tr>
+<tr class="separator:ga13f30c2051fcd9156ff749a50398c778"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga012ca1fdf2729655f1ad7f2002307d54"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group___d_p_c_o_n_t_r_o_l___p_u_b_l_i_c___t_y_p_e_s.html#gabf768b418f81ebfba546e693cd9b379c">dpcontrol_protection_state_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#ga012ca1fdf2729655f1ad7f2002307d54">overVoltage</a></td></tr>
+<tr class="separator:ga012ca1fdf2729655f1ad7f2002307d54"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga08f276a3a230313bb90fe740efb99388"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group___d_p_c_o_n_t_r_o_l___p_u_b_l_i_c___t_y_p_e_s.html#gabf768b418f81ebfba546e693cd9b379c">dpcontrol_protection_state_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___d_p_c_o_n_t_r_o_l___s_e_r_v_i_c_e.html#ga08f276a3a230313bb90fe740efb99388">overCurrent</a></td></tr>
+<tr class="separator:ga08f276a3a230313bb90fe740efb99388"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock">
-<p class="definition">Definition at line <a class="el" href="dpcontrol_8c_source.html#l00038">38</a> of file <a class="el" href="dpcontrol_8c_source.html">dpcontrol.c</a>.</p>
+<div class="textblock"><p>Internal data structure for DPControl service. </p>
+
+<p class="definition">Definition at line <a class="el" href="dpcontrol_8c_source.html#l00075">75</a> of file <a class="el" href="dpcontrol_8c_source.html">dpcontrol.c</a>.</p>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li>/home/elektronika/Desktop/Projects/OpenEPT/Forks/OpenEPT_Firmware/Source/ADFirmware/CM7/Core/Middlewares/Services/DPControl/<a class="el" href="dpcontrol_8c_source.html">dpcontrol.c</a></li>
 </ul>

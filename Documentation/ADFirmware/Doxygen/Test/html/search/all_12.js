@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['wdstatus_262',['wdStatus',['../group___c_h_a_r_g_e_r___s_e_r_v_i_c_e.html#gadfeb874611a5ff902c2794dac793a165',1,'charger_charging_info_t']]]
+  ['vdd_5fvalue_341',['VDD_VALUE',['../stm32h7xx__hal__conf_8h.html#aae550dad9f96d52cfce5e539adadbbb4',1,'stm32h7xx_hal_conf.h']]]
 ];

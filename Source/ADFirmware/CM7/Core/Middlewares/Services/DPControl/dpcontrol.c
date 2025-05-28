@@ -1,59 +1,119 @@
-/*
- * dpcontrol.c
+/**
+ ******************************************************************************
+ * @file    dpcontrol.c
  *
- *  Created on: Nov 5, 2023
- *      Author: Haris
+ * @brief   Discharge Profile Control (DPControl) service is responsible for
+ *          managing output DAC values, enabling/disabling load and battery
+ *          lines, controlling the power path, and monitoring protection events
+ *          such as under-voltage, over-voltage, and over-current conditions.
+ *          The service runs as a FreeRTOS task and uses GPIO and DAC drivers
+ *          for interacting with hardware.
+ *
+ * @author  Haris Turkmanovic
+ * @date    November 2023
+ ******************************************************************************
  */
-#include 	<stdarg.h>
-#include 	<string.h>
 
-#include 	"FreeRTOS.h"
-#include 	"task.h"
-#include 	"semphr.h"
+#include <stdarg.h>
+#include <string.h>
 
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
 
-#include	"dpcontrol.h"
-#include	"logging.h"
-#include 	"system.h"
-#include 	"control.h"
-#include 	"drv_aout.h"
-#include 	"drv_gpio.h"
+#include "dpcontrol.h"
+#include "logging.h"
+#include "system.h"
+#include "control.h"
+#include "drv_aout.h"
+#include "drv_gpio.h"
 
-#define 	DPCONTROL_MASK_SET_VALUE			0x00000001
-#define 	DPCONTROL_MASK_SET_ACTIVE_STATUS	0x00000002
-#define 	DPCONTROL_MASK_SET_LOAD_STATE		0x00000004
-#define 	DPCONTROL_MASK_SET_BAT_STATE		0x00000008
-#define 	DPCONTROL_MASK_SET_PPATH_STATE		0x00000010
-#define 	DPCONTROL_MASK_SET_UV_DETECTED		0x00000020
-#define 	DPCONTROL_MASK_TRGER_LATCH			0x00000040
-#define 	DPCONTROL_MASK_SET_OV_DETECTED		0x00000080
-#define 	DPCONTROL_MASK_SET_OC_DETECTED		0x00000100
+/**
+ * @defgroup SERVICES Services
+ * @{
+ */
 
+/**
+ * @defgroup DPCONTROL_SERVICE DPControl Service
+ * @{
+ */
+
+/**
+ * @defgroup DPCONTROL_DEFINES DPControl internal defines
+ * @{
+ */
+#define DPCONTROL_MASK_SET_VALUE              0x00000001 /**< Set DAC value */
+#define DPCONTROL_MASK_SET_ACTIVE_STATUS      0x00000002 /**< Set DAC active status */
+#define DPCONTROL_MASK_SET_LOAD_STATE         0x00000004 /**< Set load state */
+#define DPCONTROL_MASK_SET_BAT_STATE          0x00000008 /**< Set battery state */
+#define DPCONTROL_MASK_SET_PPATH_STATE        0x00000010 /**< Set power path state */
+#define DPCONTROL_MASK_SET_UV_DETECTED        0x00000020 /**< Under-voltage detected */
+#define DPCONTROL_MASK_TRGER_LATCH            0x00000040 /**< Trigger latch pin */
+#define DPCONTROL_MASK_SET_OV_DETECTED        0x00000080 /**< Over-voltage detected */
+#define DPCONTROL_MASK_SET_OC_DETECTED        0x00000100 /**< Over-current detected */
+/**
+ * @}
+ */
+
+/**
+ * @defgroup DPCONTROL_STRUCTURES DPControl internal structures
+ * @{
+ */
+
+/**
+ * @brief Structure for DAC configuration data
+ */
 typedef struct
 {
-	uint32_t					data;
-	dpcontrol_dac_status_t		active;
-}dpcontrol_aout_data_t;
+    uint32_t data;                     /**< DAC value */
+    dpcontrol_dac_status_t active;    /**< DAC enable/disable status */
+} dpcontrol_aout_data_t;
 
+/**
+ * @brief Internal data structure for DPControl service
+ */
 typedef struct
 {
-	dpcontrol_state_t				state;
-	QueueHandle_t					txMsgQueue;
-	SemaphoreHandle_t				initSig;
-	SemaphoreHandle_t				guard;
-	TaskHandle_t					taskHandle;
-	dpcontrol_aout_data_t			aoutData;
-	dpcontrol_load_state_t			loadState;
-	dpcontrol_bat_state_t			batState;
-	dpcontrol_ppath_state_t			pathState;
-	dpcontrol_protection_state_t    underVoltage;
-	dpcontrol_protection_state_t    overVoltage;
-	dpcontrol_protection_state_t    overCurrent;
-}dpcontrol_data_t;
+    dpcontrol_state_t state;                      /**< Current task state */
+    QueueHandle_t txMsgQueue;                     /**< Message queue (unused in this file) */
+    SemaphoreHandle_t initSig;                    /**< Semaphore to signal initialization complete */
+    SemaphoreHandle_t guard;                      /**< Mutex for shared data protection */
+    TaskHandle_t taskHandle;                      /**< Handle to the FreeRTOS task */
+    dpcontrol_aout_data_t aoutData;               /**< DAC value and active status */
+    dpcontrol_load_state_t loadState;             /**< Load state */
+    dpcontrol_bat_state_t batState;               /**< Battery state */
+    dpcontrol_ppath_state_t pathState;            /**< Power path state */
+    dpcontrol_protection_state_t underVoltage;    /**< Under-voltage protection flag */
+    dpcontrol_protection_state_t overVoltage;     /**< Over-voltage protection flag */
+    dpcontrol_protection_state_t overCurrent;     /**< Over-current protection flag */
+} dpcontrol_data_t;
+/**
+ * @}
+ */
 
-static	dpcontrol_data_t				prvDPCONTROL_DATA;
-
-
+/**
+ * @defgroup DPCONTROL_PRIVATE_DATA DPControl private data
+ * @{
+ */
+/**
+ * @brief Static instance of the DPControl service data
+ */
+static dpcontrol_data_t prvDPCONTROL_DATA;
+/**
+ * @}
+ */
+/**
+ * @defgroup DPCONTROL_PRIVATE_FUNCTIONS DPControl private functions
+ * @{
+ */
+/**
+ * @brief GPIO interrupt callback for Under Voltage detection.
+ *
+ * Triggered on rising/falling edge of the under-voltage GPIO. Notifies the main task
+ * using `xTaskNotifyFromISR` with `DPCONTROL_MASK_SET_UV_DETECTED` flag.
+ *
+ * @param[in] pin GPIO pin that caused the interrupt
+ */
 static void prvDPCONTROL_UnderVoltageCB(drv_gpio_pin pin)
 {
 	BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
@@ -63,6 +123,14 @@ static void prvDPCONTROL_UnderVoltageCB(drv_gpio_pin pin)
 	portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
 }
 
+/**
+ * @brief GPIO interrupt callback for Over Voltage detection.
+ *
+ * Triggered on rising/falling edge of the over-voltage GPIO. Notifies the main task
+ * using `xTaskNotifyFromISR` with `DPCONTROL_MASK_SET_OV_DETECTED` flag.
+ *
+ * @param[in] pin GPIO pin that caused the interrupt
+ */
 static void prvDPCONTROL_OverVoltageCB(drv_gpio_pin pin)
 {
 	BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
@@ -72,6 +140,14 @@ static void prvDPCONTROL_OverVoltageCB(drv_gpio_pin pin)
 	portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
 }
 
+/**
+ * @brief GPIO interrupt callback for Over Current detection.
+ *
+ * Triggered on rising/falling edge of the over-current GPIO. Notifies the main task
+ * using `xTaskNotifyFromISR` with `DPCONTROL_MASK_SET_OC_DETECTED` flag.
+ *
+ * @param[in] pin GPIO pin that caused the interrupt
+ */
 static void prvDPCONTROL_OverCurrentCB(drv_gpio_pin pin)
 {
 	BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
@@ -81,6 +157,23 @@ static void prvDPCONTROL_OverCurrentCB(drv_gpio_pin pin)
 	portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
 }
 
+/**
+ * @brief Main task function for Discharge Profile Control service.
+ *
+ * This task handles:
+ * - Initialization of GPIOs for controlling load, battery, and power path
+ * - DAC value and enable control
+ * - Registration and handling of protection interrupts (under/over-voltage, over-current)
+ * - Processing notifications for various control commands
+ * - Sending status updates through the control link
+ *
+ * The task operates in three states:
+ * - `DPCONTROL_STATE_INIT`: Initializes all control and protection hardware
+ * - `DPCONTROL_STATE_SERVICE`: Waits for commands via `xTaskNotifyWait` and executes them
+ * - `DPCONTROL_STATE_ERROR`: Signals a low-level system error and suspends indefinitely
+ *
+ * @param[in] pvParameters Unused task parameter
+ */
 static void prvDPCONTROL_TaskFunc(void* pvParameters){
 	uint32_t	value;
 	uint32_t	aoutValue;
@@ -530,7 +623,9 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 		}
 	}
 }
-
+/**
+ * @}
+ */
 dpcontrol_status_t DPCONTROL_Init(uint32_t initTimeout)
 {
 	memset(&prvDPCONTROL_DATA, 0, sizeof(dpcontrol_data_t));
