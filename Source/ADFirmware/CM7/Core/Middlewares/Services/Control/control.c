@@ -323,6 +323,55 @@ static void prvCONTROL_SetResolution(const char* arguments, uint16_t argumentsLe
 }
 
 /**
+ * @brief	Set device ADC buffer number of samples
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_SetSamplesNo(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	cmparse_value_t				value;
+	uint32_t					samplesNo;
+	uint32_t					streamID;
+	sstream_connection_info*  	connectionInfo;
+
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "sid", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain stream ID\r\n", samplesNo);
+		return;
+	}
+	sscanf(value.value, "%lu", &streamID);
+
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain number of samples from control message\r\n", samplesNo);
+		return;
+	}
+	sscanf(value.value, "%lu", &samplesNo);
+
+	if(SSTREAM_GetConnectionByID(&connectionInfo, streamID) != SSTREAM_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain stream connection info\r\n");
+		return;
+	}
+
+	if(SSTREAM_SetSamplesNo(connectionInfo, samplesNo, 1000) != SSTREAM_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set %d number of samples\r\n", value);
+		return;
+	}
+	prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+}
+
+/**
  * @brief	Get device resolution by utilizing system service
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
@@ -2211,6 +2260,7 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("device adc coffset get", 		prvCONTROL_GetCurrentoffset);
 	CMPARSE_AddCommand("device adc clk get", 			prvCONTROL_GetADCInputClk);
 	CMPARSE_AddCommand("device adc value get", 			prvCONTROL_GetADCValue);
+	CMPARSE_AddCommand("device adc samplesno set", 		prvCONTROL_SetSamplesNo);
 
 	CMPARSE_AddCommand("device dac enable set", 		prvCONTROL_SetDACActiveStatus);
 	CMPARSE_AddCommand("device dac enable get", 		prvCONTROL_GetDACActiveStatus);

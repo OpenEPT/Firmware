@@ -36,6 +36,8 @@ static uint8_t							prvDRV_AIN_CAPTURE_EVENT;
 
 static uint8_t							prvDRV_AIN_CAPTURE_SINGLE_BUFFER;
 
+static uint8_t							prvDRV_AIN_SAMPLES_NO;
+
 
 /**
   * @brief This function handles ADC3 global interrupt.
@@ -212,7 +214,9 @@ static void							prvDRV_AIN_DMAHalfComplitedCallback(DMA_HandleTypeDef *_hdma)
 
 	if(prvDRV_AIN_ADC_CALLBACK != 0 && prvDRV_AIN_CAPTURE_SINGLE_BUFFER != 1)
 	{
-		prvDRV_AIN_ADC_CALLBACK((uint32_t)&prvDRV_AIN_ADC_DATA_SAMPLES[prvDRV_AIN_ADC_ACTIVE_BUFFER][0], prvDRV_AIN_ADC_ACTIVE_BUFFER);
+		prvDRV_AIN_ADC_CALLBACK((uint32_t)&prvDRV_AIN_ADC_DATA_SAMPLES[prvDRV_AIN_ADC_ACTIVE_BUFFER][0],
+				prvDRV_AIN_ADC_ACTIVE_BUFFER,
+				prvDRV_AIN_SAMPLES_NO*2*2); //*2 for two channels and *2 because each sample is uint16_t (2 bytes)
 	}
 
 	if(prvDRV_AIN_CAPTURE_SINGLE_BUFFER == 1)
@@ -323,6 +327,7 @@ drv_ain_status 						DRV_AIN_Init(drv_ain_adc_t adc, drv_ain_adc_config_t* confi
     prvDRV_AIN_ADC_CONFIG.ch1.channel	= 2;
     prvDRV_AIN_ADC_CONFIG.ch1.sampleTime= DRV_AIN_ADC_SAMPLE_TIME_UKNOWN;
     prvDRV_AIN_ADC_CONFIG.samplingTime  = 1000;
+    prvDRV_AIN_SAMPLES_NO               = DRV_AIN_ADC_BUFFER_MAX_SIZE / 2;
 
 
     /* Initialize DMA */
@@ -399,18 +404,25 @@ drv_ain_status 						DRV_AIN_Start(drv_ain_adc_t adc)
 			if(HAL_ADC_Start_DMA(&prvDRV_AIN_DEVICE_ADC_HANDLER,
 					(uint32_t*)(&prvDRV_AIN_ADC_DATA_SAMPLES[0][DRV_AIN_ADC_BUFFER_OFFSET]),
 					(uint32_t*)(&prvDRV_AIN_ADC_DATA_SAMPLES[DRV_AIN_ADC_BUFFER_NO-1][DRV_AIN_ADC_BUFFER_OFFSET]),
-					DRV_AIN_ADC_BUFFER_MAX_SIZE)!= HAL_OK) return DRV_AIN_STATUS_ERROR;
+					prvDRV_AIN_SAMPLES_NO*2)!= HAL_OK) return DRV_AIN_STATUS_ERROR;
 		break;
 	case DRV_AIN_ADC_ADS9224R:
 		ADS9224R_StartAcquisiton((uint8_t*)&prvDRV_AIN_ADC_DATA_SAMPLES[0][DRV_AIN_ADC_BUFFER_OFFSET],
 				(uint8_t*)&prvDRV_AIN_ADC_DATA_SAMPLES[DRV_AIN_ADC_BUFFER_NO-1][DRV_AIN_ADC_BUFFER_OFFSET],
-				(uint8_t*)&prvDRV_AIN_ADC_DATA_SAMPLES[0][DRV_AIN_ADC_BUFFER_OFFSET + DRV_AIN_ADC_BUFFER_MAX_SIZE/2],
-				(uint8_t*)&prvDRV_AIN_ADC_DATA_SAMPLES[DRV_AIN_ADC_BUFFER_NO-1][DRV_AIN_ADC_BUFFER_OFFSET+ DRV_AIN_ADC_BUFFER_MAX_SIZE/2],
-				2*DRV_AIN_ADC_BUFFER_MAX_SIZE/2);
+				(uint8_t*)&prvDRV_AIN_ADC_DATA_SAMPLES[0][DRV_AIN_ADC_BUFFER_OFFSET + prvDRV_AIN_SAMPLES_NO],
+				(uint8_t*)&prvDRV_AIN_ADC_DATA_SAMPLES[DRV_AIN_ADC_BUFFER_NO-1][DRV_AIN_ADC_BUFFER_OFFSET+ prvDRV_AIN_SAMPLES_NO],
+				prvDRV_AIN_SAMPLES_NO*2);
 		break;
 	default: return DRV_AIN_STATUS_ERROR;
 	}
 	prvDRV_AIN_ACQUISITION_STATUS = DRV_AIN_ADC_ACQUISITION_STATUS_ACTIVE;
+	return DRV_AIN_STATUS_OK;
+}
+drv_ain_status						DRV_AIN_SetSamplesNo(drv_ain_adc_t adc, uint32_t samplesNo)
+{
+	if(prvDRV_AIN_ACQUISITION_STATUS == DRV_AIN_ADC_ACQUISITION_STATUS_ACTIVE) return DRV_AIN_STATUS_ERROR;
+	if(samplesNo > DRV_AIN_ADC_BUFFER_MAX_SIZE/2) return DRV_AIN_STATUS_ERROR;
+	prvDRV_AIN_SAMPLES_NO = samplesNo;
 	return DRV_AIN_STATUS_OK;
 }
 drv_ain_status						DRV_AIN_GetADCValue(drv_ain_adc_t adc, drv_ain_adc_channel_t channel, uint32_t* value)

@@ -22,6 +22,7 @@
 #define 	SSTREAM_STREAM_TASK_STACK_SIZE				CONF_SSTREAM_STREAM_TASK_STACK_SIZE
 
 #define 	SSTREAM_CONNECTIONS_MAX_NO					CONF_SSTREAM_CONNECTIONS_MAX_NO
+#define     SSTREAM_IN_DEFAULT_SAMPLES_NO
 
 #define		SSTREAM_AIN_DEFAULT_RESOLUTION				CONF_SSTREAM_AIN_DEFAULT_RESOLUTION
 #define		SSTREAM_AIN_DEFAULT_CLOCK_DIV				CONF_SSTREAM_AIN_DEFAULT_CLOCK_DIV
@@ -128,6 +129,7 @@ sstream_status_t				SSTREAM_Stop(sstream_connection_info* connectionHandler, uin
 sstream_status_t				SSTREAM_SetResolution(sstream_connection_info* connectionHandler, sstream_adc_resolution_t resolution, uint32_t timeout);
 sstream_status_t				SSTREAM_SetSamplingPeriod(sstream_connection_info* connectionHandler, uint32_t prescaller, uint32_t period, uint32_t timeout);
 sstream_status_t				SSTREAM_SetClkDiv(sstream_connection_info* connectionHandler, sstream_adc_clk_div_t adcClkDiv, uint32_t timeout);
+sstream_status_t				SSTREAM_SetSamplesNo(sstream_connection_info* connectionHandler, uint32_t samplesNo, uint32_t timeout);
 sstream_status_t				SSTREAM_SetChannelSamplingTime(sstream_connection_info* connectionHandler, uint32_t channel, sstream_adc_sampling_time_t stime, uint32_t timeout);
 sstream_status_t				SSTREAM_SetChannelOffset(sstream_connection_info* connectionHandler, uint32_t channel, uint32_t offset, uint32_t timeout);
 sstream_status_t				SSTREAM_SetChannelAvgRatio(sstream_connection_info* connectionHandler, uint32_t channel, sstream_adc_ch_avg_ratio_t avgRatio, uint32_t timeout);

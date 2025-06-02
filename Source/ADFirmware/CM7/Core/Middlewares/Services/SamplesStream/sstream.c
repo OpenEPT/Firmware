@@ -42,6 +42,7 @@
 #define  	SSTREAM_TASK_SET_ADC_CH2_AVERAGING_RATIO	0x00000800
 #define  	SSTREAM_TASK_GET_ADC_CH1_VALUE				0x00001000
 #define  	SSTREAM_TASK_GET_ADC_CH2_VALUE				0x00002000
+#define  	SSTREAM_TASK_SET_SAMPLES_NO					0x00004000
 
 
 
@@ -79,6 +80,7 @@ typedef struct
 {
 	uint32_t 	address;
 	uint8_t		id;
+	uint32_t    size;
 }sstream_packet_t;
 
 
@@ -88,13 +90,14 @@ static uint16_t					prvSSTREAM_TEST_DATA[CONF_AIN_MAX_BUFFER_SIZE];
 QueueHandle_t					prvSSTREAM_PACKET_QUEUE;
 
 
-static void prvSSTREAM_NewPacketSampled(uint32_t packetAddress, uint8_t packetID)
+static void prvSSTREAM_NewPacketSampled(uint32_t packetAddress, uint8_t packetID, uint32_t size)
 {
 	ITM_SendChar('a');
 	BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
 	sstream_packet_t		packetData;
 	packetData.address = packetAddress;
 	packetData.id = packetID;
+	packetData.size = size;
 
 	xQueueSendFromISR(prvSSTREAM_PACKET_QUEUE, &packetData, &pxHigherPriorityTaskWoken);
 
@@ -162,14 +165,14 @@ static void prvSSTREAM_StreamTaskFunc(void* pvParam)
 		case SSTREAM_STATE_SERVICE:
 			xQueueReceive(prvSSTREAM_PACKET_QUEUE, &packetData, portMAX_DELAY);
 
-			p = pbuf_alloc(PBUF_TRANSPORT, 2*(CONF_AIN_MAX_BUFFER_SIZE + DRV_AIN_ADC_BUFFER_OFFSET), PBUF_RAM);
+			p = pbuf_alloc(PBUF_TRANSPORT, packetData.size + (2*DRV_AIN_ADC_BUFFER_OFFSET), PBUF_RAM);
 
 			if(p == NULL)
 			{
 				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_ERROR,  "There is a problem to release create pbuf\r\n");
 			}
 
-			memcpy(p->payload, (void*)packetData.address, 2*(CONF_AIN_MAX_BUFFER_SIZE + DRV_AIN_ADC_BUFFER_OFFSET));
+			memcpy(p->payload, (void*)packetData.address, packetData.size + (2*DRV_AIN_ADC_BUFFER_OFFSET));
 
 			//if(testPacketcounter & 0x05){
 			error = udp_send(pcb, p);
@@ -287,6 +290,18 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 			else
 			{
 				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_ERROR,  "Unable to obtain ADC clock\r\n");
+			}
+
+			/* Try to configure default avg ratio */
+			if(DRV_AIN_SetSamplesNo(DRV_AIN_ADC_ADS9224R, CONF_SSTREAM_AIN_DEFAULT_SAMPLES_NO) == DRV_AIN_STATUS_OK)
+			{
+				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_INFO,  "%d samples per channel set\r\n", CONF_SSTREAM_AIN_DEFAULT_SAMPLES_NO);
+				connectionData->ainConfig.samplesNo = CONF_SSTREAM_AIN_DEFAULT_SAMPLES_NO;
+			}
+			else
+			{
+				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_ERROR,  "There is a problem to set samples per channel\r\n");
+				connectionData->ainConfig.samplesNo = 0;
 			}
 
 			/* Try to configure sampling time */
@@ -567,6 +582,26 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 					break;
 				}
 			}
+
+			if(notifyValue & SSTREAM_TASK_SET_SAMPLES_NO)
+			{
+				/* Try to configure default resolution */
+				if(DRV_AIN_SetSamplesNo(DRV_AIN_ADC_ADS9224R, connectionData->ainConfig.samplesNo) == DRV_AIN_STATUS_OK)
+				{
+					LOGGING_Write("SStream service", LOGGING_MSG_TYPE_INFO,  "%d samples per channel set\r\n", connectionData->ainConfig.samplesNo);
+				}
+				else
+				{
+					LOGGING_Write("SStream service", LOGGING_MSG_TYPE_ERROR,  "Unable to set samples per channel\r\n");
+				}
+
+				if(xSemaphoreGive(connectionData->initSig) != pdTRUE)
+				{
+					LOGGING_Write("SStream service", LOGGING_MSG_TYPE_ERROR,  "There is a problem with ADC configuration\r\n");
+					connectionData->state = SSTREAM_STATE_ERROR;
+					break;
+				}
+			}
 			connectionData->ainConfig.samplingTime = (double)1.0/(double)DRV_AIN_ADC_TIM_INPUT_CLK*
 									((double)connectionData->ainConfig.prescaler + 1.0)*((double)connectionData->ainConfig.period + 1.0)*
 									(double)connectionData->ainConfig.ch1.avgRatio*1000000;
@@ -728,6 +763,23 @@ sstream_status_t				SSTREAM_SetResolution(sstream_connection_info* connectionHan
 	/* Send request to configure AIN*/
 	if(xTaskNotify(prvSSTREAM_DATA.controlInfo[connectionHandler->id].controlTaskHandle,
 			SSTREAM_TASK_SET_ADC_RESOLUTION_BIT,
+			eSetBits) != pdPASS) return SSTREAM_STATUS_ERROR;
+
+	/* Wait until configuration is applied*/
+	if(xSemaphoreTake(prvSSTREAM_DATA.controlInfo[connectionHandler->id].initSig,
+			pdMS_TO_TICKS(timeout)) != pdTRUE) return SSTREAM_STATUS_ERROR;
+	return SSTREAM_STATUS_OK;
+}
+sstream_status_t				SSTREAM_SetSamplesNo(sstream_connection_info* connectionHandler, uint32_t samplesNo, uint32_t timeout)
+{
+
+	if(xSemaphoreTake(prvSSTREAM_DATA.controlInfo[connectionHandler->id].guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return SSTREAM_STATUS_ERROR;
+	prvSSTREAM_DATA.controlInfo[connectionHandler->id].ainConfig.samplesNo = samplesNo;
+	if(xSemaphoreGive(prvSSTREAM_DATA.controlInfo[connectionHandler->id].guard) != pdTRUE) return SSTREAM_STATUS_ERROR;
+
+	/* Send request to configure AIN*/
+	if(xTaskNotify(prvSSTREAM_DATA.controlInfo[connectionHandler->id].controlTaskHandle,
+			SSTREAM_TASK_SET_SAMPLES_NO,
 			eSetBits) != pdPASS) return SSTREAM_STATUS_ERROR;
 
 	/* Wait until configuration is applied*/

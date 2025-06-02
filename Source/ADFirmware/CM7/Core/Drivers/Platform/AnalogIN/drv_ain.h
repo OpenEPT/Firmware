@@ -103,7 +103,7 @@ typedef enum{
 
 typedef uint8_t	drv_ain_adc_channel_t;
 
-typedef void (*drv_ain_adc_stream_callback)(uint32_t, uint8_t);
+typedef void (*drv_ain_adc_stream_callback)(uint32_t, uint8_t, uint32_t);
 
 typedef struct
 {
@@ -123,12 +123,14 @@ typedef struct
 	uint32_t						samplingTime; // us
 	uint32_t						prescaler;
 	uint32_t						period; //nS
+	uint32_t						samplesNo;
 }drv_ain_adc_config_t;
 
 
 drv_ain_status 						DRV_AIN_Init(drv_ain_adc_t adc, drv_ain_adc_config_t* configuration);
 drv_ain_status 						DRV_AIN_Start(drv_ain_adc_t adc);
 drv_ain_status 						DRV_AIN_Stop(drv_ain_adc_t adc);
+drv_ain_status						DRV_AIN_SetSamplesNo(drv_ain_adc_t adc, uint32_t samplesNo);
 drv_ain_adc_acquisition_status_t 	DRV_AIN_GetAcquisitonStatus(drv_ain_adc_t adc);
 drv_ain_status 						DRV_AIN_SetResolution(drv_ain_adc_t adc, drv_ain_adc_resolution_t res);
 drv_ain_status 						DRV_AIN_SetClockDiv(drv_ain_adc_t adc, drv_ain_adc_clock_div_t div);
