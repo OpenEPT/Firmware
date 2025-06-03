@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include "globalConfig.h"
 
+#define DRV_SPI_INSTANCES_MAX_NUMBER	CONF_SPI_INSTANCES_MAX_NUMBER
+
 typedef enum drv_spi_initialization_status_t
 {
 	DRV_SPI_INITIALIZATION_STATUS_NOINIT	=	0,
@@ -25,7 +27,8 @@ typedef enum drv_spi_status_t
 
 typedef enum drv_spi_instance_t
 {
-	DRV_SPI_INSTANCE3 = 0
+	DRV_SPI_INSTANCE3 = 0,
+	DRV_SPI_INSTANCE2 = 1
 }drv_spi_instance_t;
 
 typedef enum drv_spi_mode_t
@@ -90,11 +93,15 @@ typedef struct drv_spi_config_t
 	drv_spi_phase_t		phase;
 }drv_spi_config_t;
 
+typedef void (*drv_spi_rx_isr_callback)(uint8_t* data);
+
 drv_spi_status_t	DRV_SPI_Init();
 drv_spi_status_t	DRV_SPI_Instance_Init(drv_spi_instance_t instance, drv_spi_config_t* config);
 drv_spi_status_t	DRV_SPI_Instance_DeInit(drv_spi_instance_t instance);
-drv_spi_status_t	DRV_SPI_TransmitData(uint8_t* buffer, uint8_t size, uint32_t timeout);
-drv_spi_status_t	DRV_SPI_ReceiveData(uint8_t* buffer, uint8_t size, uint32_t timeout);
+drv_spi_status_t	DRV_SPI_TransmitData(drv_spi_instance_t instance, uint8_t* buffer, uint8_t size, uint32_t timeout);
+drv_spi_status_t	DRV_SPI_ReceiveData(drv_spi_instance_t instance, uint8_t* buffer, uint8_t size, uint32_t timeout);
+drv_spi_status_t	DRV_SPI_Instance_RegisterRxCallback(drv_spi_instance_t instance, drv_spi_rx_isr_callback rxcb);
+drv_spi_status_t	DRV_SPI_EnableITData(drv_spi_instance_t instance, uint8_t* input, uint8_t* output, uint32_t size);
 
 /**/
 void				MX_SPI4_Init();

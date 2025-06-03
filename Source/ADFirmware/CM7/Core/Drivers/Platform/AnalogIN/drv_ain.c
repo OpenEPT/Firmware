@@ -124,9 +124,9 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 		PC2_C     ------> ADC3_INP0
 		PC3_C     ------> ADC3_INP1
 		*/
-		HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC2, SYSCFG_SWITCH_PC2_OPEN);
+		//HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC2, SYSCFG_SWITCH_PC2_OPEN);
 
-		HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC3, SYSCFG_SWITCH_PC3_OPEN);
+		//HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC3, SYSCFG_SWITCH_PC3_OPEN);
 
 		/* ADC3 interrupt Init */
 //	    HAL_NVIC_SetPriority(ADC3_IRQn, 5, 0);

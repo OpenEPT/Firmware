@@ -389,7 +389,7 @@ static ads9224r_status_t prvADS9224R_CONF_SPI_Master_ReadReg(uint8_t reg, uint8_
 	DRV_GPIO_Pin_SetState(ADS9224R_CS_PORT, ADS9224R_CS_PIN, DRV_GPIO_PIN_STATE_RESET);
 
 	/*Transmit command*/
-	if(DRV_SPI_TransmitData(txData, 2, timeout) != DRV_SPI_STATUS_OK) return DRV_SPI_STATUS_ERROR;
+	if(DRV_SPI_TransmitData(DRV_SPI_INSTANCE3, txData, 2, timeout) != DRV_SPI_STATUS_OK) return DRV_SPI_STATUS_ERROR;
 
 	/*CS go high*/
 	DRV_GPIO_Pin_SetState(ADS9224R_CS_PORT, ADS9224R_CS_PIN, DRV_GPIO_PIN_STATE_SET);
@@ -401,7 +401,7 @@ static ads9224r_status_t prvADS9224R_CONF_SPI_Master_ReadReg(uint8_t reg, uint8_
 	DRV_GPIO_Pin_SetState(ADS9224R_CS_PORT, ADS9224R_CS_PIN, DRV_GPIO_PIN_STATE_RESET);
 
 	/*Receive data*/
-	if(DRV_SPI_ReceiveData(data, 1, timeout) != DRV_SPI_STATUS_OK) return DRV_SPI_STATUS_ERROR;
+	if(DRV_SPI_ReceiveData(DRV_SPI_INSTANCE3, data, 1, timeout) != DRV_SPI_STATUS_OK) return DRV_SPI_STATUS_ERROR;
 
 	/*CS go high*/
 	DRV_GPIO_Pin_SetState(ADS9224R_CS_PORT, ADS9224R_CS_PIN, DRV_GPIO_PIN_STATE_SET);
@@ -422,7 +422,7 @@ static ads9224r_status_t prvADS9224R_CONF_SPI_Master_WriteReg(uint8_t reg, uint8
 	DRV_GPIO_Pin_SetState(ADS9224R_CS_PORT, ADS9224R_CS_PIN, DRV_GPIO_PIN_STATE_RESET);
 
 	/*Transmit command*/
-	if(DRV_SPI_TransmitData(txData, 2, timeout) != DRV_SPI_STATUS_OK) return DRV_SPI_STATUS_ERROR;
+	if(DRV_SPI_TransmitData(DRV_SPI_INSTANCE3, txData, 2, timeout) != DRV_SPI_STATUS_OK) return DRV_SPI_STATUS_ERROR;
 
 	/*CS go high*/
 	DRV_GPIO_Pin_SetState(ADS9224R_CS_PORT, ADS9224R_CS_PIN, DRV_GPIO_PIN_STATE_SET);

@@ -74,6 +74,7 @@ typedef struct
 	sstream_control_data_t		controlInfo[CONF_SSTREAM_CONNECTIONS_MAX_NO];
 	sstream_stream_data_t		streamInfo[CONF_SSTREAM_CONNECTIONS_MAX_NO];
 	uint32_t					activeConnectionsNo;
+	sstream_acquistion_state_changed_callback asccb;
 }sstream_data_t;
 
 typedef struct
@@ -337,7 +338,7 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 			notifyValue = ulTaskNotifyTake(pdTRUE, blockingTime);
 			if(notifyValue & SSTREAM_TASK_START_BIT)
 			{
-				connectionData->acquisitionState = SSTREAM_ACQUISITION_STATE_START;
+				connectionData->acquisitionState = SSTREAM_ACQUISITION_STATE_ACTIVE;
 
 				if(DRV_AIN_Start(connectionData->ainConfig.adc) == DRV_AIN_STATUS_OK)
 				{
@@ -346,10 +347,13 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 				}
 				else
 				{
-					LOGGING_Write("SStream service", LOGGING_MSG_TYPE_INFO,  "Unable to start stream\r\n");
+					LOGGING_Write("SStream service", LOGGING_MSG_TYPE_ERROR,  "Unable to start stream\r\n");
 				}
 
 				notifyValue |= SSTREAM_TASK_STREAM_BIT;
+
+
+				prvSSTREAM_DATA.asccb(connectionData->id, SSTREAM_ACQUISITION_STATE_ACTIVE);
 
 				if(xSemaphoreGive(connectionData->initSig) != pdTRUE)
 				{
@@ -370,7 +374,7 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 			}
 			if(notifyValue & SSTREAM_TASK_STOP_BIT)
 			{
-				connectionData->acquisitionState = SSTREAM_ACQUISITION_STATE_STOP;
+				connectionData->acquisitionState = SSTREAM_ACQUISITION_STATE_INACTIVE;
 
 				if(DRV_AIN_Stop(DRV_AIN_ADC_3) == DRV_AIN_STATUS_OK)
 				{
@@ -381,6 +385,8 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 				{
 					LOGGING_Write("SStream service", LOGGING_MSG_TYPE_INFO,  "Unable to stop stream\r\n");
 				}
+
+				prvSSTREAM_DATA.asccb(connectionData->id, SSTREAM_ACQUISITION_STATE_INACTIVE);
 
 				if(xSemaphoreGive(connectionData->initSig) != pdTRUE)
 				{
@@ -703,6 +709,14 @@ sstream_status_t				SSTREAM_GetConnectionByID(sstream_connection_info** connecti
 	}
 
 	return SSTREAM_STATUS_ERROR;
+}
+sstream_acquisition_state_t		SSTREAM_GetAcquisitionState(sstream_connection_info* connectionHandler, uint32_t timeout)
+{
+	sstream_acquisition_state_t acqState;
+	if(xSemaphoreTake(prvSSTREAM_DATA.controlInfo[connectionHandler->id].guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return SSTREAM_STATUS_ERROR;
+	acqState = prvSSTREAM_DATA.controlInfo[connectionHandler->id].acquisitionState;
+	if(xSemaphoreGive(prvSSTREAM_DATA.controlInfo[connectionHandler->id].guard) != pdTRUE) return SSTREAM_STATUS_ERROR;
+	return acqState;
 }
 sstream_status_t				SSTREAM_Start(sstream_connection_info* connectionHandler, sstream_adc_t adc, uint32_t timeout)
 {
@@ -1051,6 +1065,14 @@ sstream_status_t				SSTREAM_GetAdcValue(sstream_connection_info* connectionHandl
 	}
 
 	if(xSemaphoreGive(prvSSTREAM_DATA.controlInfo[connectionHandler->id].guard) != pdTRUE) return SSTREAM_STATUS_ERROR;
+
+	return SSTREAM_STATUS_OK;
+}
+
+sstream_status_t				SSTREAM_RegisterAcquisitionStateChangeCB(sstream_acquistion_state_changed_callback cb)
+{
+
+	prvSSTREAM_DATA.asccb = cb;
 
 	return SSTREAM_STATUS_OK;
 }

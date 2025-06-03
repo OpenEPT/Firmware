@@ -105,8 +105,8 @@ typedef enum{
 
 typedef enum{
 	SSTREAM_ACQUISITION_STATE_UNDEFINED = 0,
-	SSTREAM_ACQUISITION_STATE_STOP,
-	SSTREAM_ACQUISITION_STATE_START,
+	SSTREAM_ACQUISITION_STATE_INACTIVE,
+	SSTREAM_ACQUISITION_STATE_ACTIVE,
 	SSTREAM_ACQUISITION_STATE_STREAM
 }sstream_acquisition_state_t;
 
@@ -118,10 +118,13 @@ typedef struct
 }sstream_connection_info;
 
 
+typedef void (*sstream_acquistion_state_changed_callback)(uint32_t id, sstream_acquisition_state_t);
+
 
 sstream_status_t				SSTREAM_Init(void);
 sstream_status_t				SSTREAM_CreateChannel(sstream_connection_info* connectionHandler, uint32_t timeout);
 sstream_status_t				SSTREAM_GetConnectionByID(sstream_connection_info** connectionHandler, uint32_t id);
+sstream_acquisition_state_t		SSTREAM_GetAcquisitionState(sstream_connection_info* connectionHandler, uint32_t timeout);
 sstream_status_t				SSTREAM_GetConnectionByIP(sstream_connection_info* connectionHandler, uint8_t ip[4], uint16_t port);
 sstream_status_t				SSTREAM_Start(sstream_connection_info* connectionHandler, sstream_adc_t adc, uint32_t timeout);
 sstream_status_t				SSTREAM_StartStream(sstream_connection_info* connectionHandler, uint32_t timeout);
@@ -142,5 +145,6 @@ uint32_t						SSTREAM_GetChannelOffset(sstream_connection_info* connectionHandle
 sstream_adc_ch_avg_ratio_t		SSTREAM_GetChannelAvgRatio(sstream_connection_info* connectionHandler, uint32_t channel, uint32_t timeout);
 uint32_t						SSTREAM_GetAdcInputClk(sstream_connection_info* connectionHandler, uint32_t timeout);
 sstream_status_t				SSTREAM_GetAdcValue(sstream_connection_info* connectionHandler, uint32_t channel, uint32_t* value, uint32_t timeout);
+sstream_status_t				SSTREAM_RegisterAcquisitionStateChangeCB(sstream_acquistion_state_changed_callback cb);
 
 #endif /* CORE_MIDDLEWARES_SERVICES_SAMPLESSTREAM_SSTREAM_H_ */
