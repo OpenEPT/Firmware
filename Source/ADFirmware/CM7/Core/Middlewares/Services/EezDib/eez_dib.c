@@ -16,6 +16,7 @@
 
 #include "system.h"
 #include "logging.h"
+#include "sstream.h"
 
 #define MSG_LEN 10
 
@@ -34,7 +35,9 @@ typedef struct
 	eez_dib_state_t 			mainTaskState;
 	uint8_t						statusData;
 	eez_dib_acq_state_t			acqState;
+	sstream_connection_info* 	streamInfo;
 	SemaphoreHandle_t			guard;
+	uint8_t					    buffer[16];
 } eez_dib_data_t;
 
 static 	TaskHandle_t 			prvEEZ_DIB_TASK_HANDLE;
@@ -69,6 +72,8 @@ static void prvEEZ_DIB_Task()
 
 		uint32_t counter = 0;
 		eez_dib_acq_state_t lastAcqState;
+
+		uint8_t streamID;
 
 		for(;;)
 		{
@@ -133,15 +138,30 @@ static void prvEEZ_DIB_Task()
 				if(lastAcqState == EEZ_DIB_ACQUISIIION_STATE_ACTIVE)
 				{
 					prvEEZ_DIB_DATA.output.data[4] |= EEZ_DIB_STATUS_ACQ_START;
+					if(SSTREAM_GetLastSamples(prvEEZ_DIB_DATA.streamInfo, prvEEZ_DIB_DATA.buffer, 4, 0) == SSTREAM_STATUS_OK)
+					{
+						prvEEZ_DIB_DATA.output.data[0] = prvEEZ_DIB_DATA.buffer[0];
+						prvEEZ_DIB_DATA.output.data[1] = prvEEZ_DIB_DATA.buffer[1];
+						prvEEZ_DIB_DATA.output.data[2] = prvEEZ_DIB_DATA.buffer[4];
+						prvEEZ_DIB_DATA.output.data[3] = prvEEZ_DIB_DATA.buffer[5];
+					}
+					else
+					{
+						prvEEZ_DIB_DATA.output.data[0] = 0;
+						prvEEZ_DIB_DATA.output.data[1] = 0;
+						prvEEZ_DIB_DATA.output.data[2] = 0;
+						prvEEZ_DIB_DATA.output.data[3] = 0;
+					}
 				}
 				else
 				{
 					prvEEZ_DIB_DATA.output.data[4] &= ~EEZ_DIB_STATUS_ACQ_START;
+					prvEEZ_DIB_DATA.output.data[0] = 0;
+					prvEEZ_DIB_DATA.output.data[1] = 0;
+					prvEEZ_DIB_DATA.output.data[2] = 0;
+					prvEEZ_DIB_DATA.output.data[3] = 0;
 				}
-				prvEEZ_DIB_DATA.output.data[0] = 0xD0 + rand() % 255;
-				prvEEZ_DIB_DATA.output.data[1] = 0x07;
-				prvEEZ_DIB_DATA.output.data[2] = 0xD0 + rand() % 255;
-				prvEEZ_DIB_DATA.output.data[3] = 0x40+ rand() % 0x0F;
+
 
 				counter += 4;
 
@@ -187,11 +207,12 @@ eez_dib_status_t EEZ_DIB_Init(uint32_t timeout)
     return EEZ_DIB_STATUS_OK;
 }
 
-eez_dib_status_t EEZ_DIB_SetAcquisitionState(eez_dib_acq_state_t acqState, uint32_t timeout)
+eez_dib_status_t EEZ_DIB_SetAcquisitionState(eez_dib_acq_state_t acqState, uint8_t streamID, uint32_t timeout)
 {
 	if(xSemaphoreTake(prvEEZ_DIB_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return EEZ_DIB_STATUS_ERROR;
 
 	prvEEZ_DIB_DATA.acqState = acqState;
+	SSTREAM_GetConnectionByID(&prvEEZ_DIB_DATA.streamInfo, streamID);
 
 	if(xSemaphoreGive(prvEEZ_DIB_DATA.guard) != pdTRUE) return EEZ_DIB_STATUS_ERROR;
 

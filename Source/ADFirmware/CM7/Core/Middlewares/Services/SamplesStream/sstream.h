@@ -146,5 +146,7 @@ sstream_adc_ch_avg_ratio_t		SSTREAM_GetChannelAvgRatio(sstream_connection_info* 
 uint32_t						SSTREAM_GetAdcInputClk(sstream_connection_info* connectionHandler, uint32_t timeout);
 sstream_status_t				SSTREAM_GetAdcValue(sstream_connection_info* connectionHandler, uint32_t channel, uint32_t* value, uint32_t timeout);
 sstream_status_t				SSTREAM_RegisterAcquisitionStateChangeCB(sstream_acquistion_state_changed_callback cb);
+sstream_status_t				SSTREAM_GetLastSamples(sstream_connection_info* connectionHandler, uint8_t* buffer, uint32_t size, uint32_t timeout);
+
 
 #endif /* CORE_MIDDLEWARES_SERVICES_SAMPLESSTREAM_SSTREAM_H_ */

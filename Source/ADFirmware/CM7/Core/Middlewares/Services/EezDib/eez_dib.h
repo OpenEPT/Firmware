@@ -39,6 +39,6 @@ typedef enum
 }eez_dib_status_t;
 
 eez_dib_status_t EEZ_DIB_Init(uint32_t timeout);
-eez_dib_status_t EEZ_DIB_SetAcquisitionState(eez_dib_acq_state_t acqState, uint32_t timeout);
+eez_dib_status_t EEZ_DIB_SetAcquisitionState(eez_dib_acq_state_t acqState, uint8_t streamID, uint32_t timeout);
 
 #endif /* CORE_MIDDLEWARES_SERVICES_EEZDIB_EEZ_DIB_H_ */
