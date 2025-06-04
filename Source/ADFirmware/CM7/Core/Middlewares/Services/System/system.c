@@ -33,6 +33,8 @@
 #include "sstream.h"
 #include "energy_debugger.h"
 #include "dpcontrol.h"
+#include "charger.h"
+#include "eez_dib.h"
 
 #define  SYSTEM_MASK_RGB_SET_COLOR	0x00000001
 
@@ -62,6 +64,27 @@ static system_status_t prvSYSTEM_SetRGBState(red, blue, green)
 	if(DRV_Timer_Channel_PWM_Start(DRV_TIMER_1, DRV_TIMER_CHANNEL_3, green, portMAX_DELAY) != DRV_TIMER_STATUS_OK) return SYSTEM_STATUS_OK;
 	if(DRV_Timer_Channel_PWM_Start(DRV_TIMER_1, DRV_TIMER_CHANNEL_4, blue, portMAX_DELAY) != DRV_TIMER_STATUS_OK) return SYSTEM_STATUS_OK;
 	return SYSTEM_STATUS_ERROR;
+}
+
+static void prvSYSTEM_AcquisitionStateChanged(uint32_t id, sstream_acquisition_state_t state)
+{
+	if(state == SSTREAM_ACQUISITION_STATE_ACTIVE)
+	{
+		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to active\r\n");
+		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_ACTIVE, id, 0);
+
+	}
+	else if(state == SSTREAM_ACQUISITION_STATE_INACTIVE)
+	{
+		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to inactive\r\n");
+		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_INACTIVE, id, 0);
+	}
+	else
+	{
+		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to undefined state\r\n");
+		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_UNDEF, id, 0);
+	}
+
 }
 
 static void prvSYSTEM_Task()
@@ -133,12 +156,19 @@ static void prvSYSTEM_Task()
 				break;
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Logging service successfully initialized\r\n");
+			if(CHARGER_Init(2000) != CHARGER_STATUS_OK)
+			{
+				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
+				break;
+			}
+			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Charger service successfully initialized\r\n");
 			if(ENERGY_DEBUGGER_Init(2000) != ENERGY_DEBUGGER_STATUS_OK)
 			{
 				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
 				break;
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Energy debugger service successfully initialized\r\n");
+
 			if(NETWORK_Init(2000) != NETWORK_STATUS_OK)
 			{
 				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
@@ -159,12 +189,25 @@ static void prvSYSTEM_Task()
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Samples Stream service successfully initialized\r\n");
 
+			if(SSTREAM_RegisterAcquisitionStateChangeCB(prvSYSTEM_AcquisitionStateChanged) != SSTREAM_STATUS_OK)
+			{
+				LOGGING_Write("System", LOGGING_MSG_TYPE_ERROR, "Unable to register\r\n");
+
+			}
+
 			if(DPCONTROL_Init(2000) != DPCONTROL_STATUS_OK)
 			{
 				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
 				break;
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Discharge Profile Control service successfully initialized\r\n");
+
+			if(EEZ_DIB_Init(2000) != EEZ_DIB_STATUS_OK)
+			{
+				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
+				break;
+			}
+			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "EEZ DIB service successfully initialized\r\n");
 
 			xSemaphoreGive(prvSYSTEM_DATA.initSig);
 			prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);

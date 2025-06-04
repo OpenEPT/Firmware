@@ -48,7 +48,7 @@
 	<variableList>
 		<variable>
 			<name>PROJECT_PATH</name>
-			<value>file:/home/elektronika/Desktop/Projects/OpenEPT/Firmware/Source/ADFirmware</value>
+			<value>file:/home/elektronika/Desktop/Projects/OpenEPT/Forks/OpenEPT_Firmware/Source/ADFirmware</value>
 		</variable>
 	</variableList>
 </projectDescription>

@@ -55,16 +55,6 @@ int main(void)
 		while(1);
 	}
 
-
-	/* Initialize all configured peripherals */
-	MX_DMA_Init();	//AnalogIN
-	MX_ADC1_Init();	//AnalogIN
-	MX_DAC1_Init();	//AnalogOut
-	/* USER CODE BEGIN 2 */
-
-	/* USER CODE END 2 */
-
-
 	while (1);
 }
 

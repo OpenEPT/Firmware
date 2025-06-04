@@ -6,5 +6,6 @@ Firmware/ADFirmware/CM7/*.launch
 Firmware/ConfProject/CM7/Debug/*
 Firmware/ConfProject/CM4/Debug/*
 Firmware/ConfProject/.settings*
+*doxyOutput*
 GUI/build*
 GUI/OpenEPT/.pro*
