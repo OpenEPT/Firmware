@@ -1,8 +1,17 @@
-/*
- * eez_dib.c
+/**
+ ******************************************************************************
+ * @file    eez_dib.c
  *
- *  Created on: May 15, 2025
- *      Author: Haris Turkmanovic & Dimitrije Lilic
+ * @brief   EEZ DIB service is responsible for communication with the main
+ *          EEZ DIB microcontroller via SPI. It handles incoming messages,
+ *          manages acquisition state, and transmits sampled data using a
+ *          buffered protocol.
+ *          It runs as a FreeRTOS task and processes messages received through
+ *          SPI interrupts.
+ *
+ * @author  Haris Turkmanovic & Dimitrije Lilic
+ * @date    May 2025
+ ******************************************************************************
  */
 
 #include <stdlib.h>
@@ -18,183 +27,196 @@
 #include "logging.h"
 #include "sstream.h"
 
-#define MSG_LEN 10
+/**
+ * @defgroup SERVICES Services
+ * @{
+ */
 
-#define EEZ_DIB_STATUS_ACQ_START		0x01
+/**
+ * @defgroup EEZ_DIB_SERVICE EEZ DIB Service
+ * @{
+ */
 
-typedef struct
-{
-    uint8_t         data[MSG_LEN];
-    uint8_t         size;
-}eez_dib_msg_t;
+/**
+ * @defgroup EEZ_DIB_PRIVATE_DEFINES EEZ DIB private defines
+ * @{
+ */
+#define MSG_LEN                         10
+#define EEZ_DIB_STATUS_ACQ_START        0x01
+/**
+ * @}
+ */
 
-typedef struct
-{
-	eez_dib_state_t 			mainTaskState;
-	uint8_t						statusData;
-	eez_dib_acq_state_t			acqState;
-	sstream_connection_info* 	streamInfo;
-	SemaphoreHandle_t			guard;
-	uint8_t					    buffer[16];
+/**
+ * @defgroup EEZ_DIB_PRIVATE_STRUCTURES EEZ DIB private structures
+ * @{
+ */
+typedef struct {
+    uint8_t data[MSG_LEN];      /**< Data content of the received message */
+    uint8_t size;               /**< Actual message size */
+} eez_dib_msg_t;
+
+/**
+ * @brief Structure holding internal EEZ DIB state
+ */
+typedef struct {
+    eez_dib_state_t mainTaskState;               /**< Current task state */
+    uint8_t statusData;                          /**< Status flags */
+    eez_dib_acq_state_t acqState;                /**< Acquisition state */
+    sstream_connection_info* streamInfo;         /**< Pointer to stream info */
+    SemaphoreHandle_t guard;                     /**< Mutex for thread safety */
+    uint8_t buffer[16];                          /**< Temporary data buffer */
 } eez_dib_data_t;
+/**
+ * @}
+ */
 
-static 	TaskHandle_t 			prvEEZ_DIB_TASK_HANDLE;
-static  QueueHandle_t			prvEEZ_DIB_QUEUE_ID;
+/**
+ * @defgroup EEZ_DIB_PRIVATE_DATA EEZ DIB private data
+ * @{
+ */
+static TaskHandle_t prvEEZ_DIB_TASK_HANDLE;
+static QueueHandle_t prvEEZ_DIB_QUEUE_ID;
+static eez_dib_data_t prvEEZ_DIB_DATA;
 
-static eez_dib_data_t			prvEEZ_DIB_DATA;
+static uint8_t prvEEZ_DIB_DATAIN[MSG_LEN] __attribute__((section(".ADCSamplesBufferSPI")));
+static uint8_t prvEEZ_DIB_DATAOUT[MSG_LEN] __attribute__((section(".ADCSamplesBufferSPI")));
+/**
+ * @}
+ */
 
-static uint8_t					prvEEZ_DIB_DATAIN[MSG_LEN] __attribute__((section(".ADCSamplesBufferSPI")));
-static uint8_t					prvEEZ_DIB_DATAOUT[MSG_LEN] __attribute__((section(".ADCSamplesBufferSPI")));
+/**
+ * @defgroup EEZ_DIB_PRIVATE_FUNCTIONS EEZ DIB private functions
+ * @{
+ */
 
-
+/**
+ * @brief SPI RX callback for processing incoming EEZ DIB messages.
+ *
+ * This function is triggered by an SPI interrupt when data is received.
+ * It checks if the termination character is present, and if so, forwards
+ * the received buffer to the main EEZ DIB task via queue.
+ *
+ * @param[in] data Unused input pointer.
+ */
 static void prvEEZDIB_Communication(uint8_t* data)
 {
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
+    if (prvEEZ_DIB_DATAIN[5] == '\r') {
+        if (xQueueSendFromISR(prvEEZ_DIB_QUEUE_ID, prvEEZ_DIB_DATAIN, &xHigherPriorityTaskWoken) != pdTRUE) {
+            while(1); // Fatal error handling
+        }
+        ITM_SendChar('h');
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
 
-	/* If the termination character is received, process the message */
-	if (prvEEZ_DIB_DATAIN[5] == '\r')
-	{
-		/* Send the pointer to the message into the queue */
-		if(xQueueSendFromISR(prvEEZ_DIB_QUEUE_ID, prvEEZ_DIB_DATAIN, &xHigherPriorityTaskWoken) != pdTRUE)
-		{
-			while(1);
-		}
-
-		ITM_SendChar('h');
-
-		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-	}
-
-	/* Reset index to start a new message */
-	//memset(prvEEZ_DIB_DATA.input.data, 0, MSG_LEN);
-	memset(prvEEZ_DIB_DATAIN, 0, MSG_LEN);
+    memset(prvEEZ_DIB_DATAIN, 0, MSG_LEN);
 }
 
+/**
+ * @brief Main EEZ DIB task responsible for SPI message processing.
+ *
+ * The task initializes SPI, registers callbacks, and continuously waits for
+ * messages from the ISR. Based on the acquisition state, it formats outgoing
+ * data accordingly.
+ */
 static void prvEEZ_DIB_Task()
 {
-		LOGGING_Write("Eez Dib", LOGGING_MSG_TYPE_INFO, "Eez Dib service started\r\n");
-		drv_spi_config_t channelConfig;
-		eez_dib_msg_t msgTmp;
+    LOGGING_Write("Eez Dib", LOGGING_MSG_TYPE_INFO, "Eez Dib service started\r\n");
 
-		uint32_t counter = 0;
-		eez_dib_acq_state_t lastAcqState;
+    drv_spi_config_t channelConfig;
+    eez_dib_msg_t msgTmp;
+    eez_dib_acq_state_t lastAcqState;
 
-		uint8_t streamID;
+    for (;;)
+    {
+        switch (prvEEZ_DIB_DATA.mainTaskState)
+        {
+        case EEZ_DIB_STATE_INIT:
+            channelConfig.mode = DRV_SPI_MODE_SLAVE;
+            channelConfig.polarity = DRV_SPI_POLARITY_LOW;
+            channelConfig.phase = DRV_SPI_PHASE_1EDGE;
 
-		for(;;)
-		{
-			switch(prvEEZ_DIB_DATA.mainTaskState)
-			{
-			case EEZ_DIB_STATE_INIT:
+            if (DRV_SPI_Instance_Init(DRV_SPI_INSTANCE2, &channelConfig) != DRV_SPI_STATUS_OK ||
+                DRV_SPI_Instance_RegisterRxCallback(DRV_SPI_INSTANCE2, prvEEZDIB_Communication) != DRV_SPI_STATUS_OK)
+            {
+                LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_ERROR, "Unable to initialize serial port\r\n");
+                prvEEZ_DIB_DATA.mainTaskState = EEZ_DIB_STATE_ERROR;
+                break;
+            }
 
-				channelConfig.mode = DRV_SPI_MODE_SLAVE;
-				channelConfig.polarity = DRV_SPI_POLARITY_LOW;
-				channelConfig.phase	= DRV_SPI_PHASE_1EDGE;
+            if (DRV_SPI_EnableITData(DRV_SPI_INSTANCE2, prvEEZ_DIB_DATAIN, prvEEZ_DIB_DATAOUT, MSG_LEN) != DRV_SPI_STATUS_OK) {
+                LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_ERROR, "Slave RX failed\r\n");
+                break;
+            }
 
-				// Initialize SPI2
-				if(DRV_SPI_Instance_Init(DRV_SPI_INSTANCE2, &channelConfig) != DRV_SPI_STATUS_OK)
-				{
-					LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_ERROR, "Unable to initialize serial port\r\n");
-					prvEEZ_DIB_DATA.mainTaskState = EEZ_DIB_STATE_ERROR;
-					break;
-				}
+            LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_INFO, "Eez Dib service successfully initialized\r\n");
+            prvEEZ_DIB_DATA.mainTaskState = EEZ_DIB_STATE_SERVICE;
+            break;
 
-				if(DRV_SPI_Instance_RegisterRxCallback(DRV_SPI_INSTANCE2, prvEEZDIB_Communication)!= DRV_SPI_STATUS_OK)
-				{
-					LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_ERROR, "Unable to initialize serial port\r\n");
-					prvEEZ_DIB_DATA.mainTaskState = EEZ_DIB_STATE_ERROR;
-					break;
-				}
+        case EEZ_DIB_STATE_SERVICE:
+            if (xQueueReceive(prvEEZ_DIB_QUEUE_ID, &msgTmp, portMAX_DELAY) != pdTRUE)
+            {
+                LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_ERROR, "Message Queue is full\r\n");
+                prvEEZ_DIB_DATA.mainTaskState = EEZ_DIB_STATE_ERROR;
+                break;
+            }
 
-				LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_INFO, "Eez Dib service successfully initialized\r\n");
+            if (xSemaphoreTake(prvEEZ_DIB_DATA.guard, 0) != pdTRUE)
+            {
+                LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_ERROR, "Unable to get resource\r\n");
+                prvEEZ_DIB_DATA.mainTaskState = EEZ_DIB_STATE_ERROR;
+                break;
+            }
 
+            lastAcqState = prvEEZ_DIB_DATA.acqState;
 
-				// Start slave receive FIRST with proper buffer
-				if(DRV_SPI_EnableITData(DRV_SPI_INSTANCE2, prvEEZ_DIB_DATAIN, prvEEZ_DIB_DATAOUT, MSG_LEN) != DRV_SPI_STATUS_OK) {
-					LOGGING_Write("Test", LOGGING_MSG_TYPE_ERROR, "Slave RX failed\r\n");
-					break;
-				}
+            if (xSemaphoreGive(prvEEZ_DIB_DATA.guard) != pdTRUE)
+            {
+                LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_ERROR, "Unable to release resource\r\n");
+                prvEEZ_DIB_DATA.mainTaskState = EEZ_DIB_STATE_ERROR;
+                break;
+            }
 
-				prvEEZ_DIB_DATA.mainTaskState = EEZ_DIB_STATE_SERVICE;
+            if (lastAcqState == EEZ_DIB_ACQUISIIION_STATE_ACTIVE)
+            {
+                prvEEZ_DIB_DATAOUT[4] |= EEZ_DIB_STATUS_ACQ_START;
+                if (SSTREAM_GetLastSamples(prvEEZ_DIB_DATA.streamInfo, prvEEZ_DIB_DATA.buffer, 4, 0) == SSTREAM_STATUS_OK)
+                {
+                    prvEEZ_DIB_DATAOUT[0] = prvEEZ_DIB_DATA.buffer[9];
+                    prvEEZ_DIB_DATAOUT[1] = prvEEZ_DIB_DATA.buffer[8];
+                    prvEEZ_DIB_DATAOUT[2] = prvEEZ_DIB_DATA.buffer[1];
+                    prvEEZ_DIB_DATAOUT[3] = prvEEZ_DIB_DATA.buffer[0];
+                }
+                else
+                {
+                    memset(prvEEZ_DIB_DATAOUT, 0, 4);
+                }
+            }
+            else
+            {
+                prvEEZ_DIB_DATAOUT[4] &= ~EEZ_DIB_STATUS_ACQ_START;
+                prvEEZ_DIB_DATAOUT[0] = 0xAA;
+                prvEEZ_DIB_DATAOUT[1] = 0xBB;
+                prvEEZ_DIB_DATAOUT[2] = 0xCC;
+                prvEEZ_DIB_DATAOUT[3] = 0xDD;
+            }
 
+            prvEEZ_DIB_DATAOUT[5] = 0xA5;
+            prvEEZ_DIB_DATAOUT[6] = 0xA5;
+            break;
 
-				break;
-			case EEZ_DIB_STATE_SERVICE:
-
-				ITM_SendChar('s');
-				if(xQueueReceive(prvEEZ_DIB_QUEUE_ID, &msgTmp, portMAX_DELAY) != pdTRUE)
-				{
-					while(1);
-				}
-
-				ITM_SendChar('a');
-//				LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_INFO, "New MSG Received over SPI\r\n");
-//				LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_INFO, msgTmp.data);
-				if(xSemaphoreTake(prvEEZ_DIB_DATA.guard, 0) != pdTRUE)
-				{
-					LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_ERROR, "Unable to get resource\r\n");
-					prvEEZ_DIB_DATA.mainTaskState = EEZ_DIB_STATE_ERROR;
-					break;
-				}
-
-				lastAcqState = prvEEZ_DIB_DATA.acqState;
-
-				if(xSemaphoreGive(prvEEZ_DIB_DATA.guard) != pdTRUE)
-				{
-					LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_ERROR, "Unable to release resource\r\n");
-					prvEEZ_DIB_DATA.mainTaskState = EEZ_DIB_STATE_ERROR;
-					break;
-				}
-				if(lastAcqState == EEZ_DIB_ACQUISIIION_STATE_ACTIVE)
-				{
-					prvEEZ_DIB_DATAOUT[4] |= EEZ_DIB_STATUS_ACQ_START;
-					if(SSTREAM_GetLastSamples(prvEEZ_DIB_DATA.streamInfo, prvEEZ_DIB_DATA.buffer, 4, 0) == SSTREAM_STATUS_OK)
-					{
-						prvEEZ_DIB_DATAOUT[0] = prvEEZ_DIB_DATA.buffer[9];
-						prvEEZ_DIB_DATAOUT[1] = prvEEZ_DIB_DATA.buffer[8];
-						prvEEZ_DIB_DATAOUT[2] = prvEEZ_DIB_DATA.buffer[1];
-						prvEEZ_DIB_DATAOUT[3] = prvEEZ_DIB_DATA.buffer[0];
-					}
-					else
-					{
-						prvEEZ_DIB_DATAOUT[0] = 0;
-						prvEEZ_DIB_DATAOUT[1] = 0;
-						prvEEZ_DIB_DATAOUT[2] = 0;
-						prvEEZ_DIB_DATAOUT[3] = 0;
-					}
-				}
-				else
-				{
-					prvEEZ_DIB_DATAOUT[4] &= ~EEZ_DIB_STATUS_ACQ_START;
-					prvEEZ_DIB_DATAOUT[0] = 0xAA;
-					prvEEZ_DIB_DATAOUT[1] = 0xBB;
-					prvEEZ_DIB_DATAOUT[2] = 0xCC;
-					prvEEZ_DIB_DATAOUT[3] = 0xDD;
-				}
-
-				ITM_SendChar('r');
-
-				counter += 4;
-
-//				if(DRV_SPI_EnableITData(DRV_SPI_INSTANCE2,
-//						prvEEZ_DIB_DATA.input.data,
-//						prvEEZ_DIB_DATA.output.data, MSG_LEN) != DRV_SPI_STATUS_OK)
-//				{
-//					while(1);
-//				}
-
-				ITM_SendChar('i');
-				break;
-
-			case EEZ_DIB_STATE_ERROR:
-				SYSTEM_ReportError(SYSTEM_ERROR_LEVEL_LOW);
-				vTaskDelay(portMAX_DELAY);
-				break;
-			}
-
-		}
+        case EEZ_DIB_STATE_ERROR:
+            SYSTEM_ReportError(SYSTEM_ERROR_LEVEL_LOW);
+            vTaskDelay(portMAX_DELAY);
+            break;
+        }
+    }
 }
+/**
+ * @}
+ */
 
 eez_dib_status_t EEZ_DIB_Init(uint32_t timeout)
 {
@@ -234,4 +256,11 @@ eez_dib_status_t EEZ_DIB_SetAcquisitionState(eez_dib_acq_state_t acqState, uint8
 
 	return EEZ_DIB_STATUS_ERROR;
 }
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
 
