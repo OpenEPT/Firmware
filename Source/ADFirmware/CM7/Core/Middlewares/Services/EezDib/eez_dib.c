@@ -30,8 +30,6 @@ typedef struct
 
 typedef struct
 {
-	eez_dib_msg_t				input;
-	eez_dib_msg_t				output;
 	eez_dib_state_t 			mainTaskState;
 	uint8_t						statusData;
 	eez_dib_acq_state_t			acqState;
@@ -45,6 +43,9 @@ static  QueueHandle_t			prvEEZ_DIB_QUEUE_ID;
 
 static eez_dib_data_t			prvEEZ_DIB_DATA;
 
+static uint8_t					prvEEZ_DIB_DATAIN[MSG_LEN] __attribute__((section(".ADCSamplesBufferSPI")));
+static uint8_t					prvEEZ_DIB_DATAOUT[MSG_LEN] __attribute__((section(".ADCSamplesBufferSPI")));
+
 
 static void prvEEZDIB_Communication(uint8_t* data)
 {
@@ -52,16 +53,22 @@ static void prvEEZDIB_Communication(uint8_t* data)
 
 
 	/* If the termination character is received, process the message */
-	if (prvEEZ_DIB_DATA.input.data[5] == '\r')
+	if (prvEEZ_DIB_DATAIN[5] == '\r')
 	{
 		/* Send the pointer to the message into the queue */
-		xQueueSendFromISR(prvEEZ_DIB_QUEUE_ID, &prvEEZ_DIB_DATA.input, &xHigherPriorityTaskWoken);
+		if(xQueueSendFromISR(prvEEZ_DIB_QUEUE_ID, prvEEZ_DIB_DATAIN, &xHigherPriorityTaskWoken) != pdTRUE)
+		{
+			while(1);
+		}
 
-		/* Reset index to start a new message */
-		memset(prvEEZ_DIB_DATA.input.data, 0, MSG_LEN);
+		ITM_SendChar('h');
 
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	}
+
+	/* Reset index to start a new message */
+	//memset(prvEEZ_DIB_DATA.input.data, 0, MSG_LEN);
+	memset(prvEEZ_DIB_DATAIN, 0, MSG_LEN);
 }
 
 static void prvEEZ_DIB_Task()
@@ -104,7 +111,7 @@ static void prvEEZ_DIB_Task()
 
 
 				// Start slave receive FIRST with proper buffer
-				if(DRV_SPI_EnableITData(DRV_SPI_INSTANCE2,prvEEZ_DIB_DATA.input.data, prvEEZ_DIB_DATA.output.data, MSG_LEN) != DRV_SPI_STATUS_OK) {
+				if(DRV_SPI_EnableITData(DRV_SPI_INSTANCE2, prvEEZ_DIB_DATAIN, prvEEZ_DIB_DATAOUT, MSG_LEN) != DRV_SPI_STATUS_OK) {
 					LOGGING_Write("Test", LOGGING_MSG_TYPE_ERROR, "Slave RX failed\r\n");
 					break;
 				}
@@ -114,10 +121,14 @@ static void prvEEZ_DIB_Task()
 
 				break;
 			case EEZ_DIB_STATE_SERVICE:
+
+				ITM_SendChar('s');
 				if(xQueueReceive(prvEEZ_DIB_QUEUE_ID, &msgTmp, portMAX_DELAY) != pdTRUE)
 				{
 					while(1);
 				}
+
+				ITM_SendChar('a');
 //				LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_INFO, "New MSG Received over SPI\r\n");
 //				LOGGING_Write("Eez Dib service", LOGGING_MSG_TYPE_INFO, msgTmp.data);
 				if(xSemaphoreTake(prvEEZ_DIB_DATA.guard, 0) != pdTRUE)
@@ -137,36 +148,43 @@ static void prvEEZ_DIB_Task()
 				}
 				if(lastAcqState == EEZ_DIB_ACQUISIIION_STATE_ACTIVE)
 				{
-					prvEEZ_DIB_DATA.output.data[4] |= EEZ_DIB_STATUS_ACQ_START;
+					prvEEZ_DIB_DATAOUT[4] |= EEZ_DIB_STATUS_ACQ_START;
 					if(SSTREAM_GetLastSamples(prvEEZ_DIB_DATA.streamInfo, prvEEZ_DIB_DATA.buffer, 4, 0) == SSTREAM_STATUS_OK)
 					{
-						prvEEZ_DIB_DATA.output.data[0] = prvEEZ_DIB_DATA.buffer[0];
-						prvEEZ_DIB_DATA.output.data[1] = prvEEZ_DIB_DATA.buffer[1];
-						prvEEZ_DIB_DATA.output.data[2] = prvEEZ_DIB_DATA.buffer[4];
-						prvEEZ_DIB_DATA.output.data[3] = prvEEZ_DIB_DATA.buffer[5];
+						prvEEZ_DIB_DATAOUT[0] = prvEEZ_DIB_DATA.buffer[9];
+						prvEEZ_DIB_DATAOUT[1] = prvEEZ_DIB_DATA.buffer[8];
+						prvEEZ_DIB_DATAOUT[2] = prvEEZ_DIB_DATA.buffer[1];
+						prvEEZ_DIB_DATAOUT[3] = prvEEZ_DIB_DATA.buffer[0];
 					}
 					else
 					{
-						prvEEZ_DIB_DATA.output.data[0] = 0;
-						prvEEZ_DIB_DATA.output.data[1] = 0;
-						prvEEZ_DIB_DATA.output.data[2] = 0;
-						prvEEZ_DIB_DATA.output.data[3] = 0;
+						prvEEZ_DIB_DATAOUT[0] = 0;
+						prvEEZ_DIB_DATAOUT[1] = 0;
+						prvEEZ_DIB_DATAOUT[2] = 0;
+						prvEEZ_DIB_DATAOUT[3] = 0;
 					}
 				}
 				else
 				{
-					prvEEZ_DIB_DATA.output.data[4] &= ~EEZ_DIB_STATUS_ACQ_START;
-					prvEEZ_DIB_DATA.output.data[0] = 0;
-					prvEEZ_DIB_DATA.output.data[1] = 0;
-					prvEEZ_DIB_DATA.output.data[2] = 0;
-					prvEEZ_DIB_DATA.output.data[3] = 0;
+					prvEEZ_DIB_DATAOUT[4] &= ~EEZ_DIB_STATUS_ACQ_START;
+					prvEEZ_DIB_DATAOUT[0] = 0xAA;
+					prvEEZ_DIB_DATAOUT[1] = 0xBB;
+					prvEEZ_DIB_DATAOUT[2] = 0xCC;
+					prvEEZ_DIB_DATAOUT[3] = 0xDD;
 				}
 
+				ITM_SendChar('r');
 
 				counter += 4;
 
-				DRV_SPI_EnableITData(DRV_SPI_INSTANCE2, prvEEZ_DIB_DATA.input.data, prvEEZ_DIB_DATA.output.data, MSG_LEN);
+//				if(DRV_SPI_EnableITData(DRV_SPI_INSTANCE2,
+//						prvEEZ_DIB_DATA.input.data,
+//						prvEEZ_DIB_DATA.output.data, MSG_LEN) != DRV_SPI_STATUS_OK)
+//				{
+//					while(1);
+//				}
 
+				ITM_SendChar('i');
 				break;
 
 			case EEZ_DIB_STATE_ERROR:
@@ -182,10 +200,8 @@ eez_dib_status_t EEZ_DIB_Init(uint32_t timeout)
 {
     // Create the main task
 	memset(&prvEEZ_DIB_DATA, 0, sizeof(eez_dib_data_t));
-
-
-
-
+	memset(prvEEZ_DIB_DATAIN, 0, MSG_LEN);
+	memset(prvEEZ_DIB_DATAOUT, 0, MSG_LEN);
 
     prvEEZ_DIB_QUEUE_ID =  xQueueCreate(
     		EEZ_DIB_ID_QUEUE_LENTH,

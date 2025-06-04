@@ -25,6 +25,10 @@ static drv_spi_handle_t 		prvDRV_SPI_INSTANCES[DRV_SPI_INSTANCES_MAX_NUMBER];
 static drv_spi_rx_isr_callback 	prvDRV_SPI_CALLBACKS[DRV_SPI_INSTANCES_MAX_NUMBER];
 
 
+DMA_HandleTypeDef hdma_spi2_rx;
+DMA_HandleTypeDef hdma_spi2_tx;
+
+
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 	if(hspi->Instance == SPI2) {
@@ -41,7 +45,25 @@ void SPI2_IRQHandler(void)
 }
 
 
+/**
+  * @brief  This function handles DMA Rx interrupt request.
+  * @param  None
+  * @retval None
+  */
+void DMA1_Stream4_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&hdma_spi2_tx);
+}
 
+/**
+  * @brief  This function handles DMA Tx interrupt request.
+  * @param  None
+  * @retval None
+  */
+void DMA1_Stream5_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&hdma_spi2_rx);
+}
 
 /**
   * @brief  Initialize the SPI MSP.
@@ -223,9 +245,54 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
 		GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
 		HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-		/* SPI2 interrupt Init */
-		HAL_NVIC_SetPriority(SPI2_IRQn, 5, 0);
-		HAL_NVIC_EnableIRQ(SPI2_IRQn);
+		/* SPI2 DMA Init */
+		/* SPI2_RX Init */
+		hdma_spi2_rx.Instance = DMA1_Stream5;
+		hdma_spi2_rx.Init.Request = DMA_REQUEST_SPI2_RX;
+		hdma_spi2_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+		hdma_spi2_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+		hdma_spi2_rx.Init.MemInc = DMA_MINC_ENABLE;
+		hdma_spi2_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+		hdma_spi2_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+		hdma_spi2_rx.Init.Mode = DMA_CIRCULAR;
+		hdma_spi2_rx.Init.Priority = DMA_PRIORITY_HIGH;
+		hdma_spi2_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+		if (HAL_DMA_Init(&hdma_spi2_rx) != HAL_OK)
+		{
+		  Error_Handler();
+		}
+
+		__HAL_LINKDMA(hspi,hdmarx,hdma_spi2_rx);
+
+		/* SPI2_TX Init */
+		hdma_spi2_tx.Instance = DMA1_Stream4;
+		hdma_spi2_tx.Init.Request = DMA_REQUEST_SPI2_TX;
+		hdma_spi2_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+		hdma_spi2_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+		hdma_spi2_tx.Init.MemInc = DMA_MINC_ENABLE;
+		hdma_spi2_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+		hdma_spi2_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+		hdma_spi2_tx.Init.Mode = DMA_CIRCULAR;
+		hdma_spi2_tx.Init.Priority = DMA_PRIORITY_HIGH;
+		hdma_spi2_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+		if (HAL_DMA_Init(&hdma_spi2_tx) != HAL_OK)
+		{
+		  Error_Handler();
+		}
+
+		__HAL_LINKDMA(hspi,hdmatx,hdma_spi2_tx);
+
+	    /* NVIC configuration for DMA transfer complete interrupt (SPI1_TX) */
+	    HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 1);
+	    HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+
+	    /* NVIC configuration for DMA transfer complete interrupt (SPI1_RX) */
+	    HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 5, 0);
+	    HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+
+//		/* SPI2 interrupt Init */
+//		HAL_NVIC_SetPriority(SPI2_IRQn, 5, 0);
+//		HAL_NVIC_EnableIRQ(SPI2_IRQn);
 	}
 }
 
@@ -377,6 +444,7 @@ drv_spi_status_t	DRV_SPI_Instance_Init(drv_spi_instance_t instance, drv_spi_conf
 		prvDRV_SPI_INSTANCES[instance].deviceHandler.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
 		prvDRV_SPI_INSTANCES[instance].deviceHandler.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
 		prvDRV_SPI_INSTANCES[instance].deviceHandler.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+		if (HAL_SPI_Init(&prvDRV_SPI_INSTANCES[instance].deviceHandler) != HAL_OK) return DRV_SPI_STATUS_ERROR;
 	}
 	else
 	{
@@ -397,9 +465,9 @@ drv_spi_status_t	DRV_SPI_Instance_Init(drv_spi_instance_t instance, drv_spi_conf
 		prvDRV_SPI_INSTANCES[instance].deviceHandler.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
 		prvDRV_SPI_INSTANCES[instance].deviceHandler.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
 		prvDRV_SPI_INSTANCES[instance].deviceHandler.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+		if (HAL_SPI_Init(&prvDRV_SPI_INSTANCES[instance].deviceHandler) != HAL_OK) return DRV_SPI_STATUS_ERROR;
 	}
 
-	if (HAL_SPI_Init(&prvDRV_SPI_INSTANCES[instance].deviceHandler) != HAL_OK) return DRV_SPI_STATUS_ERROR;
 
 	prvDRV_SPI_INSTANCES[instance].initState = DRV_SPI_INITIALIZATION_STATUS_INIT;
 
@@ -460,7 +528,11 @@ drv_spi_status_t	DRV_SPI_EnableITData(drv_spi_instance_t instance, uint8_t* inpu
 	if(prvDRV_SPI_INSTANCES[instance].initState != DRV_SPI_INITIALIZATION_STATUS_INIT || prvDRV_SPI_INSTANCES[instance].lock == NULL) return DRV_SPI_STATUS_ERROR;
 
 	//if(HAL_SPI_Receive_IT(&prvDRV_SPI_INSTANCES[instance].deviceHandler, dataone, 3) != HAL_OK)  return DRV_SPI_STATUS_ERROR;
-	if(HAL_SPI_TransmitReceive_IT(&prvDRV_SPI_INSTANCES[DRV_SPI_INSTANCE2].deviceHandler, output , input, size) != HAL_OK)  return DRV_SPI_STATUS_ERROR;
+	//if(HAL_SPI_TransmitReceive_IT(&prvDRV_SPI_INSTANCES[DRV_SPI_INSTANCE2].deviceHandler, output , input, size) != HAL_OK)  return DRV_SPI_STATUS_ERROR;
+
+	if(HAL_SPI_TransmitReceive_DMA(&prvDRV_SPI_INSTANCES[instance].deviceHandler, output, input, size) != HAL_OK)  return DRV_SPI_STATUS_ERROR;
+
+
 
 	return	DRV_SPI_STATUS_OK;
 }

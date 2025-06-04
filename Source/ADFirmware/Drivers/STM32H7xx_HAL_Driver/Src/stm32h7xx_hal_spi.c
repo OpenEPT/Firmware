@@ -2262,6 +2262,151 @@ HAL_StatusTypeDef HAL_SPI_Receive_DMA(SPI_HandleTypeDef *hspi, uint8_t *pData, u
   return errorcode;
 }
 
+
+HAL_StatusTypeDef HAL_SPI_Receive_DMA1(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size)
+{
+	HAL_StatusTypeDef errorcode = HAL_OK;
+
+	/* Check Direction parameter */
+	assert_param(IS_SPI_DIRECTION_2LINES_OR_1LINE_2LINES_RXONLY(hspi->Init.Direction));
+
+	/* Lock the process */
+	__HAL_LOCK(hspi);
+
+	if (hspi->State != HAL_SPI_STATE_READY)
+	{
+	errorcode = HAL_BUSY;
+	__HAL_UNLOCK(hspi);
+	return errorcode;
+	}
+
+	if ((pData == NULL) || (Size == 0UL))
+	{
+	errorcode = HAL_ERROR;
+	__HAL_UNLOCK(hspi);
+	return errorcode;
+	}
+
+	/* Set the transaction information */
+	hspi->State       = HAL_SPI_STATE_BUSY_RX;
+	hspi->ErrorCode   = HAL_SPI_ERROR_NONE;
+	hspi->pRxBuffPtr  = (uint8_t *)pData;
+	hspi->RxXferSize  = Size;
+	hspi->RxXferCount = Size;
+
+	/*Init field not used in handle to zero */
+	hspi->RxISR       = NULL;
+	hspi->TxISR       = NULL;
+	hspi->TxXferSize  = (uint16_t) 0UL;
+	hspi->TxXferCount = (uint16_t) 0UL;
+
+	/* Configure communication direction : 1Line */
+	if (hspi->Init.Direction == SPI_DIRECTION_1LINE)
+	{
+	SPI_1LINE_RX(hspi);
+	}
+	else
+	{
+	SPI_2LINES_RX(hspi);
+	}
+
+	/* Packing mode management is enabled by the DMA settings */
+	if (((hspi->Init.DataSize > SPI_DATASIZE_16BIT) && (hspi->hdmarx->Init.MemDataAlignment != DMA_MDATAALIGN_WORD))    || \
+	  ((hspi->Init.DataSize > SPI_DATASIZE_8BIT) && ((hspi->hdmarx->Init.MemDataAlignment != DMA_MDATAALIGN_HALFWORD) && \
+													 (hspi->hdmarx->Init.MemDataAlignment != DMA_MDATAALIGN_WORD))))
+	{
+	/* Restriction the DMA data received is not allowed in this mode */
+	errorcode = HAL_ERROR;
+	__HAL_UNLOCK(hspi);
+	return errorcode;
+	}
+
+	/* Clear RXDMAEN bit */
+	CLEAR_BIT(hspi->Instance->CFG1, SPI_CFG1_RXDMAEN);
+
+	/* Adjust XferCount according to DMA alignment / Data size */
+	if (hspi->Init.DataSize <= SPI_DATASIZE_8BIT)
+	{
+	if (hspi->hdmarx->Init.MemDataAlignment == DMA_MDATAALIGN_HALFWORD)
+	{
+	  hspi->RxXferCount = (hspi->RxXferCount + (uint16_t) 1UL) >> 1UL;
+	}
+	if (hspi->hdmarx->Init.MemDataAlignment == DMA_MDATAALIGN_WORD)
+	{
+	  hspi->RxXferCount = (hspi->RxXferCount + (uint16_t) 3UL) >> 2UL;
+	}
+	}
+	else if (hspi->Init.DataSize <= SPI_DATASIZE_16BIT)
+	{
+	if (hspi->hdmarx->Init.MemDataAlignment == DMA_MDATAALIGN_WORD)
+	{
+	  hspi->RxXferCount = (hspi->RxXferCount + (uint16_t) 1UL) >> 1UL;
+	}
+	}
+	else
+	{
+	/* Adjustment done */
+	}
+
+	/* Set the SPI RxDMA Half transfer complete callback */
+	hspi->hdmarx->XferHalfCpltCallback = SPI_DMAHalfReceiveCplt;
+
+	/* Set the SPI Rx DMA transfer complete callback */
+	hspi->hdmarx->XferCpltCallback = SPI_DMAReceiveCplt;
+
+	/* Set the DMA error callback */
+	hspi->hdmarx->XferErrorCallback = SPI_DMAError;
+
+	/* Set the DMA AbortCpltCallback */
+	hspi->hdmarx->XferAbortCallback = NULL;
+
+	/* Enable the Rx DMA Stream/Channel  */
+	  if (HAL_OK != HAL_DMA_Start_IT(hspi->hdmarx, (uint32_t)&hspi->Instance->RXDR, (uint32_t)hspi->pRxBuffPtr,
+	                                 hspi->RxXferCount))
+	  {
+//	if(HAL_OK != HAL_DMAEx_MultiBufferStart_IT(hspi->hdmarx, (uint32_t)&hspi->Instance->RXDR, (uint32_t)hspi->pRxBuffPtr, (uint32_t)pData1, Size))
+//	{
+	/* Update SPI error code */
+	SET_BIT(hspi->ErrorCode, HAL_SPI_ERROR_DMA);
+
+	/* Unlock the process */
+	__HAL_UNLOCK(hspi);
+
+	hspi->State = HAL_SPI_STATE_READY;
+	errorcode = HAL_ERROR;
+	return errorcode;
+	}
+
+	/* Set the number of data at current transfer */
+	if (hspi->hdmarx->Init.Mode == DMA_CIRCULAR)
+	{
+	MODIFY_REG(hspi->Instance->CR2, SPI_CR2_TSIZE, 0UL);
+	}
+	else
+	{
+	MODIFY_REG(hspi->Instance->CR2, SPI_CR2_TSIZE, Size);
+	}
+
+	/* Enable Rx DMA Request */
+	SET_BIT(hspi->Instance->CFG1, SPI_CFG1_RXDMAEN);
+
+	/* Enable the SPI Error Interrupt Bit */
+	__HAL_SPI_ENABLE_IT(hspi, (SPI_IT_OVR | SPI_IT_FRE | SPI_IT_MODF));
+
+	/* Enable SPI peripheral */
+	__HAL_SPI_ENABLE(hspi);
+
+	if (hspi->Init.Mode == SPI_MODE_MASTER)
+	{
+	/* Master transfer start */
+	SET_BIT(hspi->Instance->CR1, SPI_CR1_CSTART);
+	}
+
+	/* Unlock the process */
+	__HAL_UNLOCK(hspi);
+	return errorcode;
+}
+
 /**
   * @brief  Transmit and Receive an amount of data in non-blocking mode with DMA.
   * @param  hspi   : pointer to a SPI_HandleTypeDef structure that contains
