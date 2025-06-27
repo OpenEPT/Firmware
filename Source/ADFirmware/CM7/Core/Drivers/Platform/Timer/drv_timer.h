@@ -67,7 +67,7 @@ typedef enum
 	DRV_TIMER_1 = 0,
 	DRV_TIMER_2 = 1,
 	DRV_TIMER_3 = 2,
-	DRV_TIMER_4 = 3
+	DRV_TIMER_4 = 3,
 }drv_timer_instance_t;
 
 typedef enum

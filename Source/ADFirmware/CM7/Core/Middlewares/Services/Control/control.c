@@ -1076,7 +1076,98 @@ static void prvCONTROL_SetBatteryState(const char* arguments, uint16_t arguments
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set battery status\r\n");
 		return;
 	}
+}
 
+/**
+ * @brief	Enable or disable battery
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_AddWaveChunk(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	cmparse_value_t				value;
+	uint32_t					enableStatus;
+
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain enable value\r\n");
+		return;
+	}
+	if(DPCONTROL_AddWaveChunk(value.value, value.size, 1000) == DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wave chunk successfully added\r\n");
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to add wave chunk\r\n");
+		return;
+	}
+}
+
+/**
+ * @brief	Enable or disable battery
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_WaveChunkSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	cmparse_value_t				value;
+	uint32_t					enableStatus;
+
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain enable value\r\n");
+		return;
+	}
+	sscanf(value.value, "%lu", &enableStatus);
+
+	if(DPCONTROL_SetWaveState(enableStatus, 1000) == DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wave state set\r\n");
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set wave state\r\n");
+		return;
+	}
+}
+
+
+/**
+ * @brief	Enable or disable battery
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_WaveClear(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	if(DPCONTROL_ClearWave(1000) == DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wave cleared\r\n");
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to clear wave\r\n");
+		return;
+	}
 }
 
 /**
@@ -2278,6 +2369,10 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("device ppath enable", 			prvCONTROL_SetPPathEnable);
 	CMPARSE_AddCommand("device ppath disable", 			prvCONTROL_SetPPathDisable);
 	CMPARSE_AddCommand("device ppath get", 				prvCONTROL_GetPPath);
+
+	CMPARSE_AddCommand("device wave chunk add", 		prvCONTROL_AddWaveChunk);
+	CMPARSE_AddCommand("device wave state set", 		prvCONTROL_WaveChunkSet);
+	CMPARSE_AddCommand("device wave clear", 			prvCONTROL_WaveClear);
 
 
 	CMPARSE_AddCommand("device uvoltage get", 		    prvCONTROL_GetUVoltage);

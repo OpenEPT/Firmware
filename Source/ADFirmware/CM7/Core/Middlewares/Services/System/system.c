@@ -68,22 +68,22 @@ static system_status_t prvSYSTEM_SetRGBState(red, blue, green)
 
 static void prvSYSTEM_AcquisitionStateChanged(uint32_t id, sstream_acquisition_state_t state)
 {
-	if(state == SSTREAM_ACQUISITION_STATE_ACTIVE)
-	{
-		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to active\r\n");
-		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_ACTIVE, id, 0);
-
-	}
-	else if(state == SSTREAM_ACQUISITION_STATE_INACTIVE)
-	{
-		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to inactive\r\n");
-		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_INACTIVE, id, 0);
-	}
-	else
-	{
-		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to undefined state\r\n");
-		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_UNDEF, id, 0);
-	}
+//	if(state == SSTREAM_ACQUISITION_STATE_ACTIVE)
+//	{
+//		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to active\r\n");
+//		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_ACTIVE, id, 0);
+//
+//	}
+//	else if(state == SSTREAM_ACQUISITION_STATE_INACTIVE)
+//	{
+//		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to inactive\r\n");
+//		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_INACTIVE, id, 0);
+//	}
+//	else
+//	{
+//		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to undefined state\r\n");
+//		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_UNDEF, id, 0);
+//	}
 
 }
 
@@ -202,12 +202,12 @@ static void prvSYSTEM_Task()
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Discharge Profile Control service successfully initialized\r\n");
 
-			if(EEZ_DIB_Init(2000) != EEZ_DIB_STATUS_OK)
-			{
-				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
-				break;
-			}
-			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "EEZ DIB service successfully initialized\r\n");
+//			if(EEZ_DIB_Init(2000) != EEZ_DIB_STATUS_OK)
+//			{
+//				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
+//				break;
+//			}
+//			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "EEZ DIB service successfully initialized\r\n");
 
 			xSemaphoreGive(prvSYSTEM_DATA.initSig);
 			prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);

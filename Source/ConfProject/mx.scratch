@@ -1,0 +1,1794 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ScratchFile FileVersion="3.1">
+  <FileVersion>3.1</FileVersion>
+  <Workspace>
+    <WorkspaceType>Multi-project</WorkspaceType>
+    <WorkspacePath>/home/elektronika/Desktop/Projects/OpenEPT/Forks/OpenEPT_Firmware/Source/ConfProject/</WorkspacePath>
+    <underRoot>true</underRoot>
+    <TrustZone>0</TrustZone>
+    <HAL_Driver>/home/elektronika/STM32Cube/Repository//STM32Cube_FW_H7_V1.11.1</HAL_Driver>
+    <CMSIS>Drivers/CMSIS</CMSIS>
+    <Toolchain>STM32CubeIDE</Toolchain>
+    <IocFile>ConfProject.ioc</IocFile>
+    <Project>
+              
+      <ProjectName>ConfProject_M4_CM4</ProjectName>
+           
+      <Excluded>false</Excluded>
+          
+      <ProjectNature>C</ProjectNature>
+       
+      <Secure/>
+            
+      <filestoremove>
+                
+        <file>
+                      
+          <name>Middlewares/Third_Party/FreeRTOS/Source/croutine.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/FreeRTOS/Source/event_groups.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/FreeRTOS/Source/list.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/FreeRTOS/Source/queue.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/FreeRTOS/Source/tasks.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/FreeRTOS/Source/timers.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/auth.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/ccp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/chap_ms.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/chap-md5.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/chap-new.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/demand.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/eap.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/eui64.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/fsm.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/ipcp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/ipv6cp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/lcp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/magic.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/mppe.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/multilink.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/ppp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/pppapi.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/pppcrypt.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/pppoe.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/pppol2tp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/pppos.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/upap.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/utils.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/vj.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/bridgeif.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/bridgeif_fdb.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ethernet.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/lowpan6.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/lowpan6_ble.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/lowpan6_common.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/slipif.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/zepif.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/netif/ppp/ecp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/api/if_api.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/api/netbuf.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/api/api_msg.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/api/sockets.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/api/tcpip.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/api/netdb.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/api/api_lib.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/api/netifapi.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/api/err.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/init.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ip.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/def.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/tcp_out.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/mem.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/timeouts.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/altcp_alloc.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/inet_chksum.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/dns.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/tcp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/stats.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/netif.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/pbuf.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/altcp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/udp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/tcp_in.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/memp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/altcp_tcp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/sys.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/raw.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv4/etharp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv4/ip4_frag.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv4/autoip.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv4/icmp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv4/ip4_addr.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv4/igmp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv4/dhcp.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv4/ip4.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv6/nd6.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv6/inet6.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv6/ip6_addr.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv6/ip6_frag.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv6/ethip6.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv6/ip6.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv6/icmp6.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv6/mld6.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/core/ipv6/dhcp6.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/system/OS/sys_arch.c</name>
+           
+        </file>
+        <file>
+                      
+          <name>Middlewares/Third_Party/LwIP/src/apps/mqtt/mqtt.c</name>
+           
+        </file>
+                           
+      </filestoremove>
+      <sourceEntriesToRemove>
+            
+        <sourceEntry>    </sourceEntry>
+      </sourceEntriesToRemove>
+      <configs>
+        <config>
+          <name>ConfProject_M4</name>
+          	 
+          <mainSourceRepo>CM4</mainSourceRepo>
+             
+          <sourceStructure>Advanced</sourceStructure>
+          <Context/>
+           
+          <device>STM32H755ZITx</device>
+          		             
+          <cpucore>ARM Cortex-M4</cpucore>
+                  
+          <fpu>DP</fpu>
+                
+          <bootmode>FALSH</bootmode>
+                
+          <memories>
+                       
+            <memory access="xrw" name="RAM" size="294912" start="0x10000000"/>
+                    
+            <memory access="rx" name="FLASH" size="1048576" start="0x8100000"/>
+                    
+          </memories>
+              
+          <startup>/home/elektronika/STM32Cube/Repository/STM32Cube_FW_H7_V1.11.1/Drivers/CMSIS/Device\ST\STM32H7xx\Source\Templates\gcc\startup_stm32h755xx.s</startup>
+                
+          <LinkSettings>
+            	
+            <LinkAdditionalLibs>	</LinkAdditionalLibs>
+          </LinkSettings>
+              
+          <heapSize>0x200</heapSize>
+              
+          <stackSize>0x400</stackSize>
+              
+          <cpuclock>200</cpuclock>
+               
+          <board>NUCLEO-H755ZI-Q</board>
+              
+          <optimization/>
+              
+          <Aincludes>
+                                         
+            <include>CM4/Core/Inc</include>
+                                                  
+            <include>Drivers/STM32H7xx_HAL_Driver/Inc</include>
+                                                  
+            <include>Drivers/STM32H7xx_HAL_Driver/Inc/Legacy</include>
+                                                  
+            <include>Drivers/CMSIS/Device/ST/STM32H7xx/Include</include>
+                                                  
+            <include>Drivers/CMSIS/Include</include>
+                            
+          </Aincludes>
+              
+          <Adefines>        </Adefines>
+                
+          <Cdefines>
+                        
+            <define>CORE_CM4</define>
+                        
+            <define>USE_HAL_DRIVER</define>
+                        
+            <define>STM32H755xx</define>
+                    
+          </Cdefines>
+              
+          <Ldefines>        </Ldefines>
+                  
+          <Cincludes>
+            		        
+            <include>CM4/Core/Inc</include>
+                    
+            <include>Drivers/STM32H7xx_HAL_Driver/Inc</include>
+                    
+            <include>Drivers/STM32H7xx_HAL_Driver/Inc/Legacy</include>
+                    
+            <include>Drivers/CMSIS/Device/ST/STM32H7xx/Include</include>
+                    
+            <include>Drivers/CMSIS/Include</include>
+                    
+          </Cincludes>
+              
+          <definestoremove>
+                    
+            <Adefines>            </Adefines>
+                    
+            <Cdefines>            </Cdefines>
+                     
+            <Ldefines>            </Ldefines>
+                     
+          </definestoremove>
+              
+          <inctoremove>
+                    
+            <Aincludes>
+                          
+              <include/>
+                          
+            </Aincludes>
+                    
+            <Cincludes>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/system</include>
+                          
+              <include>Middlewares/Third_Party/FreeRTOS/Source/include</include>
+                          
+              <include>Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2</include>
+                          
+              <include>Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F</include>
+                          
+              <include>Drivers/BSP/Components/lan8742</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include/netif/ppp</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include/lwip</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include/lwip/apps</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include/lwip/priv</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include/lwip/prot</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include/netif</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include/compat/posix</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include/compat/posix/arpa</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include/compat/posix/net</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include/compat/posix/sys</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/src/include/compat/stdc</include>
+                          
+              <include>Middlewares/Third_Party/LwIP/system/arch</include>
+                          
+              <include>CM7/Core/Inc</include>
+                          
+              <include>CM7/LWIP/App</include>
+                          
+              <include>CM7/LWIP/Target</include>
+                          
+            </Cincludes>
+                    
+          </inctoremove>
+                 
+        </config>
+      </configs>
+       
+      <copyAsReference>false</copyAsReference>
+           
+      <sourceEntries>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+        <sourceEntry>
+                                  
+          <name>CM4/Core/Src</name>
+                                  
+        </sourceEntry>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+        <sourceEntry>
+                      
+          <name>Common</name>
+                      
+        </sourceEntry>
+                 
+        <sourceEntry>
+                      
+          <name>Drivers</name>
+                  
+        </sourceEntry>
+                       	 	          
+      </sourceEntries>
+      <Groups>
+        <group>
+              
+          <name>Drivers</name>
+                                    
+          <group>
+                        
+            <name>STM32H7xx_HAL_Driver</name>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_hsem.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c</name>
+                                                              
+            </file>
+                    
+          </group>
+          		           
+        </group>
+                 
+      </Groups>
+    </Project>
+    <Project>
+              
+      <ProjectName>ConfProject_M7_CM7</ProjectName>
+           
+      <Excluded>false</Excluded>
+          
+      <ProjectNature>C</ProjectNature>
+       
+      <Secure/>
+            
+      <filestoremove>                           </filestoremove>
+      <sourceEntriesToRemove>
+            
+        <sourceEntry>    </sourceEntry>
+      </sourceEntriesToRemove>
+      <configs>
+        <config>
+          <name>ConfProject_M7</name>
+          	 
+          <mainSourceRepo>CM7</mainSourceRepo>
+             
+          <sourceStructure>Advanced</sourceStructure>
+          <Context/>
+           
+          <device>STM32H755ZITx</device>
+          		             
+          <cpucore>ARM Cortex-M7</cpucore>
+                  
+          <fpu>DP</fpu>
+                
+          <bootmode>FALSH</bootmode>
+                
+          <memories>
+                       
+            <memory access="xrw" name="RAM" size="131072" start="0x20000000"/>
+                    
+            <memory access="xrw" name="ITCMRAM" size="65536" start="0x00000000"/>
+                    
+            <memory access="xrw" name="RAM_D1" size="524288" start="0x24000000"/>
+                    
+            <memory access="rx" name="FLASH" size="1048576" start="0x8000000"/>
+                    
+          </memories>
+              
+          <startup>/home/elektronika/STM32Cube/Repository/STM32Cube_FW_H7_V1.11.1/Drivers/CMSIS/Device\ST\STM32H7xx\Source\Templates\gcc\startup_stm32h755xx.s</startup>
+                
+          <LinkSettings>
+            	
+            <LinkAdditionalLibs>	</LinkAdditionalLibs>
+          </LinkSettings>
+              
+          <heapSize>0x200</heapSize>
+              
+          <stackSize>0x400</stackSize>
+              
+          <cpuclock>200</cpuclock>
+               
+          <board>NUCLEO-H755ZI-Q</board>
+              
+          <optimization/>
+              
+          <Aincludes>
+                                         
+            <include>CM7/Core/Inc</include>
+                                         
+            <include>CM7/LWIP/App</include>
+                                         
+            <include>CM7/LWIP/Target</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/system</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/system</include>
+                                                  
+            <include>Drivers/STM32H7xx_HAL_Driver/Inc</include>
+                                                  
+            <include>Drivers/STM32H7xx_HAL_Driver/Inc/Legacy</include>
+                                                  
+            <include>Middlewares/Third_Party/FreeRTOS/Source/include</include>
+                                                  
+            <include>Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2</include>
+                                                  
+            <include>Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F</include>
+                                                  
+            <include>Drivers/BSP/Components/lan8742</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include/netif/ppp</include>
+                                                  
+            <include>Drivers/CMSIS/Device/ST/STM32H7xx/Include</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include/lwip</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include/lwip/apps</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include/lwip/priv</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include/lwip/prot</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include/netif</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include/compat/posix</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include/compat/posix/arpa</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include/compat/posix/net</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include/compat/posix/sys</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/src/include/compat/stdc</include>
+                                                  
+            <include>Middlewares/Third_Party/LwIP/system/arch</include>
+                                                  
+            <include>Drivers/CMSIS/Include</include>
+                            
+          </Aincludes>
+              
+          <Adefines>        </Adefines>
+                
+          <Cdefines>
+                        
+            <define>CORE_CM7</define>
+                        
+            <define>USE_HAL_DRIVER</define>
+                        
+            <define>STM32H755xx</define>
+                    
+          </Cdefines>
+              
+          <Ldefines>        </Ldefines>
+                  
+          <Cincludes>
+            		        
+            <include>CM7/Core/Inc</include>
+                    
+            <include>CM7/LWIP/App</include>
+                    
+            <include>CM7/LWIP/Target</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/system</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/system</include>
+                    
+            <include>Drivers/STM32H7xx_HAL_Driver/Inc</include>
+                    
+            <include>Drivers/STM32H7xx_HAL_Driver/Inc/Legacy</include>
+                    
+            <include>Middlewares/Third_Party/FreeRTOS/Source/include</include>
+                    
+            <include>Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2</include>
+                    
+            <include>Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F</include>
+                    
+            <include>Drivers/BSP/Components/lan8742</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include/netif/ppp</include>
+                    
+            <include>Drivers/CMSIS/Device/ST/STM32H7xx/Include</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include/lwip</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include/lwip/apps</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include/lwip/priv</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include/lwip/prot</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include/netif</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include/compat/posix</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include/compat/posix/arpa</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include/compat/posix/net</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include/compat/posix/sys</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/src/include/compat/stdc</include>
+                    
+            <include>Middlewares/Third_Party/LwIP/system/arch</include>
+                    
+            <include>Drivers/CMSIS/Include</include>
+                    
+          </Cincludes>
+              
+          <definestoremove>
+                    
+            <Adefines>            </Adefines>
+                    
+            <Cdefines>            </Cdefines>
+                     
+            <Ldefines>            </Ldefines>
+                     
+          </definestoremove>
+              
+          <inctoremove>
+                    
+            <Aincludes>
+                          
+              <include/>
+                          
+            </Aincludes>
+                    
+            <Cincludes>
+                          
+              <include>CM4/Core/Inc</include>
+                          
+            </Cincludes>
+                    
+          </inctoremove>
+                 
+        </config>
+      </configs>
+       
+      <copyAsReference>false</copyAsReference>
+           
+      <sourceEntries>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+        <sourceEntry>
+                                  
+          <name>CM7/Core/Src</name>
+                                  
+        </sourceEntry>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+        <sourceEntry>
+                                  
+          <name>CM7/LWIP</name>
+                                  
+        </sourceEntry>
+                        
+        <sourceEntry>
+                      
+          <name>Common</name>
+                      
+        </sourceEntry>
+                 
+        <sourceEntry>
+                      
+          <name>Drivers</name>
+                  
+        </sourceEntry>
+                                   
+        <sourceEntry>
+                                 
+          <name>Middlewares</name>
+                              
+        </sourceEntry>
+                                                           	 	          
+      </sourceEntries>
+      <Groups>
+        <group>
+              
+          <name>Drivers</name>
+                                        
+          <group>
+            					                
+            <name>BSP</name>
+                                
+            <group>
+                                  
+              <name>Components</name>
+                                      
+              <file>
+                                            
+                <name>Drivers/BSP/Components/lan8742/lan8742.c</name>
+                											                        
+              </file>
+                                  
+            </group>
+                        
+          </group>
+                  
+          <group>
+                        
+            <name>STM32H7xx_HAL_Driver</name>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_eth.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_eth_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_hsem.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dac.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dac_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi_ex.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c</name>
+                                                              
+            </file>
+                                    
+            <file>
+                                          
+              <name>Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c</name>
+                                                              
+            </file>
+                    
+          </group>
+          		           
+        </group>
+                        
+        <group>
+                          
+          <name>Middlewares</name>
+                                                                                                               
+          <group>
+                                               
+            <name>Third_Party/FreeRTOS/</name>
+                                                                                                                 
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/FreeRTOS/Source/croutine.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/FreeRTOS/Source/event_groups.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/FreeRTOS/Source/list.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/FreeRTOS/Source/queue.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/FreeRTOS/Source/tasks.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/FreeRTOS/Source/timers.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c</name>
+                                                                                                                                  
+            </file>
+                                            
+          </group>
+                                                                                                                                                                                                           
+          <group>
+                                               
+            <name>Third_Party/LwIP/</name>
+                                                                                                                                                 
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/auth.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/ccp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/chap_ms.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/chap-md5.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/chap-new.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/demand.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/eap.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/eui64.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/fsm.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/ipcp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/ipv6cp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/lcp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/magic.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/mppe.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/multilink.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/ppp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/pppapi.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/pppcrypt.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/pppoe.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/pppol2tp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/pppos.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/upap.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/utils.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/vj.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/bridgeif.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/bridgeif_fdb.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ethernet.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/lowpan6.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/lowpan6_ble.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/lowpan6_common.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/slipif.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/zepif.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/netif/ppp/ecp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/api/if_api.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/api/netbuf.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/api/api_msg.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/api/sockets.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/api/tcpip.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/api/netdb.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/api/api_lib.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/api/netifapi.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/api/err.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/init.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ip.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/def.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/tcp_out.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/mem.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/timeouts.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/altcp_alloc.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/inet_chksum.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/dns.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/tcp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/stats.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/netif.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/pbuf.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/altcp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/udp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/tcp_in.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/memp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/altcp_tcp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/sys.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/raw.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv4/etharp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv4/ip4_frag.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv4/autoip.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv4/icmp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv4/ip4_addr.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv4/igmp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv4/dhcp.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv4/ip4.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv6/nd6.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv6/inet6.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv6/ip6_addr.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv6/ip6_frag.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv6/ethip6.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv6/ip6.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv6/icmp6.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv6/mld6.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/core/ipv6/dhcp6.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/system/OS/sys_arch.c</name>
+                                                                                                                                  
+            </file>
+                                                                    
+            <file>
+                                                                          
+              <name>Middlewares/Third_Party/LwIP/src/apps/mqtt/mqtt.c</name>
+                                                                                                                                  
+            </file>
+                                            
+          </group>
+                                                                         
+        </group>
+             
+      </Groups>
+    </Project>
+  </Workspace>
+</ScratchFile>

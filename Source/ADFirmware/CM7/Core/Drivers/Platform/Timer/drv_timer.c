@@ -116,6 +116,12 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 		HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 	}
+	if(htim_base->Instance==TIM7)
+	{
+		__HAL_RCC_TIM7_CLK_ENABLE();
+	    HAL_NVIC_SetPriority(TIM7_IRQn, 5, 0);
+	    HAL_NVIC_EnableIRQ(TIM7_IRQn);
+	}
 	if(htim_base->Instance==TIM8)
 	{
 		/* USER CODE BEGIN TIM8_MspPostInit 0 */
@@ -180,6 +186,12 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
 
 
 		HAL_GPIO_DeInit(GPIOA, GPIO_PIN_3);
+
+	}
+	if(htim_base->Instance==TIM7)
+	{
+		/* Peripheral clock disable */
+		__HAL_RCC_TIM7_CLK_DISABLE();
 
 	}
 	if(htim_base->Instance==TIM8)
