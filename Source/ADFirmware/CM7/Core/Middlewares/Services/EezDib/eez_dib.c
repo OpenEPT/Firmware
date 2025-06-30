@@ -214,9 +214,6 @@ static void prvEEZ_DIB_Task()
         }
     }
 }
-/**
- * @}
- */
 
 eez_dib_status_t EEZ_DIB_Init(uint32_t timeout)
 {
@@ -259,7 +256,9 @@ eez_dib_status_t EEZ_DIB_SetAcquisitionState(eez_dib_acq_state_t acqState, uint8
 /**
  * @}
  */
-
+/**
+ * @}
+ */
 /**
  * @}
  */

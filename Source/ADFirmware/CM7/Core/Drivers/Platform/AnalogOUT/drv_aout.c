@@ -1,24 +1,40 @@
-/*
- * analogout.c
+/**
+ ******************************************************************************
+ * @file    drv_aout.c
+ * @brief   Analog Output driver implementation This file contains the 
+ *          implementation of the Analog Output driver for STM32H7 microcontrollers.
+ *          It provides functionality for controlling the DAC peripheral.
  *
- *  Created on: Nov 5, 2023
- *      Author: Haris
+ * @author  Haris
+ * @email   haris.turkmanovic@gmail.com
+ * @date    Nov 5, 2023
+ ******************************************************************************
  */
 
 #include "drv_aout.h"
-
-
 #include "stm32h7xx_hal.h"
-
-static DAC_HandleTypeDef 		prvDRV_AOUT_DAC_HANDLER;
-static drv_aout_active_status 	prvDRV_AOUT_DAC_ACTIVE_STATUS;
+/**
+ * @defgroup DRIVERS Platform Drivers
+ * @{
+ */
 
 /**
-* @brief DAC MSP Initialization
-* This function configures the hardware resources used in this example
-* @param hdac: DAC handle pointer
-* @retval None
-*/
+ * @defgroup AOUT_DRIVER AOUT Driver
+ * @{
+ */
+
+/**
+ * @defgroup AOUT_PRIVATE_DATA AOUT driver private data
+ * @{
+ */
+/** @brief DAC handle for hardware access */
+static DAC_HandleTypeDef 		prvDRV_AOUT_DAC_HANDLER;
+
+/** @brief Status of the DAC output (enabled/disabled) */
+static drv_aout_active_status_t 	prvDRV_AOUT_DAC_ACTIVE_STATUS;
+/**
+ * @}
+ */
 void HAL_DAC_MspInit(DAC_HandleTypeDef* hdac)
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -46,12 +62,6 @@ void HAL_DAC_MspInit(DAC_HandleTypeDef* hdac)
 
 }
 
-/**
-* @brief DAC MSP De-Initialization
-* This function freeze the hardware resources used in this example
-* @param hdac: DAC handle pointer
-* @retval None
-*/
 void HAL_DAC_MspDeInit(DAC_HandleTypeDef* hdac)
 {
 	if(hdac->Instance==DAC1)
@@ -76,6 +86,18 @@ void HAL_DAC_MspDeInit(DAC_HandleTypeDef* hdac)
 
 }
 
+/**
+ * @defgroup AOUT_PRIVATE_FUNCTIONS AOUT driver private functions
+ * @{
+ */
+
+/**
+ * @brief   Internal DAC initialization
+ * @details This private function initializes the DAC hardware and configures channel 2
+ *          with default settings.
+ *
+ * @return  DRV_AOUT_STATUS_OK if successful, DRV_AOUT_STATUS_ERROR otherwise
+ */
 static drv_aout_status_t prvDRV_AOUT_Init()
 {
 	DAC_ChannelConfTypeDef sConfig = {0};
@@ -103,7 +125,7 @@ drv_aout_status_t DRV_AOUT_Init()
 	return DRV_AOUT_STATUS_OK;
 }
 
-drv_aout_status_t DRV_AOUT_SetEnable(drv_aout_active_status aStatus)
+drv_aout_status_t DRV_AOUT_SetEnable(drv_aout_active_status_t aStatus)
 {
 	switch(aStatus)
 	{
@@ -123,4 +145,13 @@ drv_aout_status_t DRV_AOUT_SetValue(uint32_t value)
 	if(HAL_DAC_SetValue(&prvDRV_AOUT_DAC_HANDLER, DAC_CHANNEL_2, DAC_ALIGN_12B_R, value) != HAL_OK) return DRV_AOUT_STATUS_ERROR;
 	return DRV_AOUT_STATUS_OK;
 }
+/**
+ * @}
+ */
+/**
+ * @}
+ */
+/**
+ * @}
+ */
 

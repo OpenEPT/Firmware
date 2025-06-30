@@ -1,8 +1,21 @@
-/*
- * network.c
+/**
+ ******************************************************************************
+ * @file    network.c
  *
- *  Created on: Nov 5, 2023
- *      Author: Haris
+ * @brief   Network service responsible for initializing the LwIP stack,
+ *          managing Ethernet link status, and configuring the physical interface
+ *          via LAN8742. The service runs as a FreeRTOS task and provides
+ *          network availability tracking for other system modules.
+ *
+ * @details The service configures the MAC and IP parameters, sets up callbacks
+ *          for link status monitoring, and reacts to changes in Ethernet PHY
+ *          state. The network interface is registered to the LwIP stack and
+ *          becomes available through `netif`.
+ *
+ * @author  Haris Turkmanovic
+ * @email   haris.turkmanovic@gmail.com
+ * @date    November 2023
+ ******************************************************************************
  */
 
 #include "cmsis_os.h"
@@ -22,25 +35,63 @@
 #include "network.h"
 #include "logging.h"
 #include "control.h"
+/**
+ * @defgroup SERVICES Services
+ * @{
+ */
 
-typedef  struct
+/**
+ * @defgroup NETWORK_SERVICE Network service
+ * @{
+ */
+
+/**
+ * @defgroup NETWORK_INTERNAL_TYPES Network private structures
+ * @{
+ */
+
+/**
+ * @brief Network service internal data structure.
+ */
+typedef struct
 {
+	struct netif gnetif;                  /**< LwIP network interface */
+	ip4_addr_t ipaddr;                    /**< Static IP address */
+	ip4_addr_t netmask;                   /**< Subnet mask */
+	ip4_addr_t gw;                        /**< Gateway IP */
+	network_state_t state;                /**< Current network service state */
+	SemaphoreHandle_t initSig;           /**< Semaphore for signaling init complete */
+	system_link_status_t linkStatus;     /**< Last known physical link status */
+} network_data_t;
+/**
+ * @}
+ */
 
-	struct netif gnetif;
-	ip4_addr_t ipaddr;
-	ip4_addr_t netmask;
-	ip4_addr_t gw;
-	network_state_t state;
-	SemaphoreHandle_t initSig;
-	system_link_status_t linkStatus;
-}network_data_t;
+/**
+ * @defgroup NETWORK_PRIVATE_DATA Network private data
+ * @{
+ */
 
+/**
+ * @brief Static instance of network service data
+ */
 static network_data_t 			prvNETWORK_DATA;
 
-
+/**
+ * @brief Handle to the network task
+ */
 static 	TaskHandle_t 			prvNETWORK_TASK_HANDLE;
+/**
+ * @brief Temporary storage for MAC configuration
+ */
 static	ETH_MACConfigTypeDef 	prvNETWORK_MAC_CONFIG;
+/**
+ * @brief Handle
+ */
 extern ETH_HandleTypeDef 		HETH;
+/**
+ * @brief Temporary storage for lan8742 object
+ */
 extern lan8742_Object_t 		LAN8742;
 
 lwiperf_report_fn a(void *arg, enum lwiperf_report_type report_type,
@@ -49,7 +100,21 @@ lwiperf_report_fn a(void *arg, enum lwiperf_report_type report_type,
 {
 
 };
+/**
+ * @}
+ */
 
+/**
+ * @defgroup NETWORK_PRIVATE_FUNCTIONS Network private functions
+ * @{
+ */
+
+/**
+ * @brief Print the current PHY link type and speed to the log.
+ *
+ * This function reads the link state from LAN8742 and prints the
+ * duplex and speed mode (e.g. 100Mbps Full Duplex) via LOGGING_Write.
+ */
 static void prvNETWORK_LinkStatusPrintInfo()
 {
 	int32_t PHYLinkState = 0;
@@ -72,7 +137,14 @@ static void prvNETWORK_LinkStatusPrintInfo()
 		  break;
 	}
 }
-
+/**
+ * @brief Callback called when the network link status changes.
+ *
+ * Called by LwIP when the netif goes up or down. It updates the
+ * system link status and triggers CONTROL_LinkClosed() on disconnection.
+ *
+ * @param[in] netif Pointer to the affected network interface.
+ */
 static void prvNETWORK_LinkStatusUpdated(struct netif *netif)
 {
 	if (netif_is_up(netif))
@@ -86,11 +158,21 @@ static void prvNETWORK_LinkStatusUpdated(struct netif *netif)
 	{
 		SYSTEM_SetLinkStatus(SYSTEM_LINK_STATUS_DOWN);
 		prvNETWORK_DATA.linkStatus = SYSTEM_LINK_STATUS_DOWN;
-		LOGGING_Write("Network", LOGGING_MSG_TYPE_WARNNING, "Network interface down\r\n");
+		LOGGING_Write("Network", LOGGING_MSG_TYPE_WARNING, "Network interface down\r\n");
 		CONTROL_LinkClosed();
 	}
 }
-
+/**
+ * @brief Network service task.
+ *
+ * This task performs the following:
+ * - Initializes the LwIP stack
+ * - Configures the IP, subnet, and gateway
+ * - Sets up the MAC and registers the interface
+ * - Monitors the Ethernet PHY link and reconfigures the MAC dynamically
+ *
+ * If an error occurs, the task reports it and blocks indefinitely.
+ */
 static void prvNETWORK_Task()
 {
 	memset(&prvNETWORK_MAC_CONFIG, 0, sizeof(ETH_MACConfigTypeDef));
@@ -136,7 +218,7 @@ static void prvNETWORK_Task()
 				netif_set_down(&prvNETWORK_DATA.gnetif);
 				SYSTEM_SetLinkStatus(SYSTEM_LINK_STATUS_DOWN);
 				prvNETWORK_DATA.linkStatus = SYSTEM_LINK_STATUS_DOWN;
-				LOGGING_Write("Network", LOGGING_MSG_TYPE_WARNNING, "Network interface down\r\n");
+				LOGGING_Write("Network", LOGGING_MSG_TYPE_WARNING, "Network interface down\r\n");
 			}
 
 			/* Set the link callback function, this function is called on change of link status*/
@@ -229,3 +311,15 @@ network_status_t NETWORK_Init(uint32_t timeout)
 
 	return NETWORK_STATUS_OK;
 }
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */

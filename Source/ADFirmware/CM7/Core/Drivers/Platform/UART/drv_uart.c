@@ -1,8 +1,20 @@
-/*
- * uart.c
+/**
+ ******************************************************************************
+ * @file    drv_uart.c
  *
- *  Created on: Nov 5, 2023
- *      Author: Haris
+ * @brief   UART driver implementation providing hardware abstraction layer for 
+ *          STM32 UART peripherals including UART1, UART3, UART4, UART6, and UART7.
+ *          This driver supports UART initialization, configuration of baud
+ *          rate, parity, and stop bits, data transmission with timeout control,
+ *          and interrupt-driven data reception with callback mechanisms.
+ *          The driver enables reliable serial communication for various
+ *          applications including debugging, data logging, and communication
+ *          with external devices.
+ *
+ * @author  Haris Turkmanovic
+ * @email   haris.turkmanovic@gmail.com
+ * @date    November 2023
+ ******************************************************************************
  */
 #include "main.h"
 
@@ -12,18 +24,45 @@
 
 #include "drv_uart.h"
 
+/**
+ * @defgroup DRIVERS Platform Drivers
+ * @{
+ */
+
+/**
+ * @defgroup UART_DRIVER UART Driver
+ * @{
+ */
+
+/**
+ * @defgroup UART_PRIVATE_STRUCTURES UART driver private structures
+ * @{
+ */
+/**
+ * @brief UART driver internal handle structure
+ */
 typedef struct
 {
-	drv_uart_instance_t 				instance;
-	drv_uart_initialization_status_t	initState;
-	drv_uart_config_t					config;
-	SemaphoreHandle_t					lock;
-	UART_HandleTypeDef 					deviceHandler;
+	drv_uart_instance_t 				instance;      /**< UART instance identifier */
+	drv_uart_initialization_status_t	initState;     /**< UART initialization state */
+	drv_uart_config_t					config;        /**< UART configuration parameters */
+	SemaphoreHandle_t					lock;          /**< Mutex for thread-safe operations */
+	UART_HandleTypeDef 					deviceHandler;  /**< HAL UART handle */
 }drv_uart_handle_t;
+/**
+ * @}
+ */
 
-static drv_uart_handle_t 		prvDRV_UART_INSTANCES[CONF_UART_INSTANCES_MAX_NUMBER];
-static drv_uart_rx_isr_callback prvDRV_UART_CALLBACKS[CONF_UART_INSTANCES_MAX_NUMBER];
-static volatile	uint32_t 		data;
+/**
+ * @defgroup UART_PRIVATE_DATA UART driver private data
+ * @{
+ */
+static drv_uart_handle_t 		prvDRV_UART_INSTANCES[CONF_UART_INSTANCES_MAX_NUMBER];  /**< UART instances array */
+static drv_uart_rx_isr_callback prvDRV_UART_CALLBACKS[CONF_UART_INSTANCES_MAX_NUMBER];  /**< UART RX callbacks array */
+static volatile	uint32_t 		data;                                                  /**< Temporary storage for received data */
+/**
+ * @}
+ */
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -45,9 +84,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 }
 
-/**
-  * @brief This function handles UART7 global interrupt.
-  */
 void UART7_IRQHandler(void)
 {
   /* USER CODE BEGIN UART7_IRQn 0 */
@@ -59,9 +95,6 @@ void UART7_IRQHandler(void)
   /* USER CODE END UART7_IRQn 1 */
 }
 
-/**
-  * @brief This function handles USART6 global interrupt.
-  */
 void USART6_IRQHandler(void)
 {
   /* USER CODE BEGIN USART6_IRQn 0 */
@@ -309,6 +342,7 @@ drv_uart_status_t	DRV_UART_Init()
 	memset(prvDRV_UART_INSTANCES, 0, CONF_UART_INSTANCES_MAX_NUMBER*sizeof(drv_uart_handle_t));
 	return	DRV_UART_STATUS_OK;
 }
+
 drv_uart_status_t	DRV_UART_Instance_Init(drv_uart_instance_t instance, drv_uart_config_t* config)
 {
 	if(prvDRV_UART_INSTANCES[instance].lock != NULL) return DRV_UART_STATUS_ERROR;
@@ -358,6 +392,7 @@ drv_uart_status_t	DRV_UART_Instance_Init(drv_uart_instance_t instance, drv_uart_
 
 	return	DRV_UART_STATUS_OK;
 }
+
 drv_uart_status_t	DRV_UART_TransferData(drv_uart_instance_t instance, uint8_t* buffer, uint8_t size, uint32_t timeout)
 {
 	if(prvDRV_UART_INSTANCES[instance].initState != DRV_UART_INITIALIZATION_STATUS_INIT || prvDRV_UART_INSTANCES[instance].lock == NULL) return DRV_UART_STATUS_ERROR;
@@ -370,6 +405,7 @@ drv_uart_status_t	DRV_UART_TransferData(drv_uart_instance_t instance, uint8_t* b
 
 	return	DRV_UART_STATUS_OK;
 }
+
 drv_uart_status_t	DRV_UART_Instance_RegisterRxCallback(drv_uart_instance_t instance, drv_uart_rx_isr_callback rxcb)
 {
 	prvDRV_UART_CALLBACKS[instance] = rxcb;
@@ -379,3 +415,11 @@ drv_uart_status_t	DRV_UART_Instance_RegisterRxCallback(drv_uart_instance_t insta
 	return	DRV_UART_STATUS_OK;
 
 }
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */

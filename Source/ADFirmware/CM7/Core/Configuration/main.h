@@ -1,22 +1,16 @@
-/* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2023 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
+ ******************************************************************************
+ * @file    main.h
+ *
+ * @brief   Main system configuration header providing basic system definitions,
+ *          error handling, and essential STM32 HAL integration. This file
+ *          serves as the primary hardware configuration interface and
+ *          includes core system function prototypes, pin definitions, and
+ *          critical error handling mechanisms required by the system.
+ *
+ * @date    November 2022
+ ******************************************************************************
+ */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __MAIN_H
@@ -26,45 +20,43 @@
 extern "C" {
 #endif
 
-/* Includes ------------------------------------------------------------------*/
+/**
+ * @defgroup CONFIGURATION System Configuration
+ * @{
+ */
+
+/**
+ * @defgroup MAIN_CONFIG Main System Configuration
+ * @{
+ */
+
 #include "stm32h7xx_hal.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 
-/* USER CODE END Includes */
+/**
+ * @defgroup MAIN_EXPORTED_FUNCTIONS Exported Functions
+ * @{
+ */
 
-/* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
-
-/* USER CODE END ET */
-
-/* Exported constants --------------------------------------------------------*/
-/* USER CODE BEGIN EC */
-
-/* USER CODE END EC */
-
-/* Exported macro ------------------------------------------------------------*/
-/* USER CODE BEGIN EM */
-
-/* USER CODE END EM */
-
-/* Exported functions prototypes ---------------------------------------------*/
+/**
+ * @brief   System error handler function
+ * @details This function is called when a critical system error occurs.
+ *          It handles error conditions by stopping system execution and
+ *          entering an error state with visual indication if available.
+ */
 void Error_Handler(void);
 
-/* USER CODE BEGIN EFP */
+/**
+ * @}
+ */
 
-/* USER CODE END EFP */
+/**
+ * @}
+ */
 
-/* Private defines -----------------------------------------------------------*/
-#define STLINK_RX_Pin GPIO_PIN_8
-#define STLINK_RX_GPIO_Port GPIOD
-#define STLINK_TX_Pin GPIO_PIN_9
-#define STLINK_TX_GPIO_Port GPIOD
-
-/* USER CODE BEGIN Private defines */
-
-/* USER CODE END Private defines */
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

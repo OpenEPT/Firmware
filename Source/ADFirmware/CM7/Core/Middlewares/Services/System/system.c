@@ -1,8 +1,16 @@
-/*
- * system.c
+/**
+ ******************************************************************************
+ * @file    system.c
  *
- *  Created on: Nov 5, 2023
- *      Author: Haris
+ * @brief   System service is the core service responsible for system 
+ *          initialization, error handling, status reporting, and device 
+ *          configuration. It manages LED indicators, RGB status colors,
+ *          device naming, and other system-wide functionality.
+ *
+ * @author  Haris Turkmanovic
+ * @email   haris.turkmanovic@gmail.com
+ * @date    November 2023
+ ******************************************************************************
  */
 
 #ifndef CORE_MIDDLEWARES_SERVICES_SYSTEM_SYSTEM_C_
@@ -36,28 +44,81 @@
 #include "charger.h"
 #include "eez_dib.h"
 
-#define  SYSTEM_MASK_RGB_SET_COLOR	0x00000001
+/**
+ * @defgroup SERVICES Service
+ * @{
+ */
+
+/**
+ * @defgroup SYSTEM_SERVICE System service
+ * @{
+ */
+
+/**
+ * @defgroup SYSTEM_DEFINES System task defines and default values
+ * @{
+ */
+#define  SYSTEM_MASK_RGB_SET_COLOR	0x00000001  /**< Task notification flag for setting RGB LED color */
+/**
+ * @}
+ */
+
+/**
+ * @defgroup SYSTEM_PRIVATE_STRUCTURES System service private structures
+ * @{
+ */
+/**
+ * @brief Structure holding system service data
+ */
 
 typedef  struct
 {
-	system_state_t 			state;
-	SemaphoreHandle_t 		initSig;
-	system_link_status_t	linkStatus;
-	system_rgb_value_t		rgbValue;
-	SemaphoreHandle_t		guard;
-	char					deviceName[CONF_SYSTEM_DEFAULT_DEVICE_NAME_MAX];
+	system_state_t 			state;         /**< Current state of the system service */
+	SemaphoreHandle_t 		initSig;       /**< Semaphore for signaling initialization completion */
+	system_link_status_t	linkStatus;    /**< Current link status (UP/DOWN) */
+	system_rgb_value_t		rgbValue;      /**< Current RGB LED values */
+	SemaphoreHandle_t		guard;         /**< Mutex for thread-safe parameter access */
+	char					deviceName[CONF_SYSTEM_DEFAULT_DEVICE_NAME_MAX]; /**< Device name storage */
 }system_data_t;
+/**
+ * @}
+ */
 
-static system_data_t prvSYSTEM_DATA;
+/**
+ * @defgroup SYSTEM_PRIVATE_DATA System service private data
+ * @{
+ */
+static system_data_t prvSYSTEM_DATA;		/**< System service data instance */
 
 
-static TaskHandle_t  prvSYSTEM_TASK_HANDLE;
+static TaskHandle_t  prvSYSTEM_TASK_HANDLE;	/**< System task handle */
+/**
+ * @}
+ */
 
+/**
+ * @defgroup SYSTEM_PRIVATE_FUNCTIONS System service private functions
+ * @{
+ */
+
+/**
+ * @brief GPIO callback function for button press events
+ * 
+ * @param pin GPIO pin that triggered the callback
+ * @retval None
+ */
 static void	prvBUTTON_Callback(drv_gpio_pin pin)
 {
 
 }
-
+/**
+ * @brief Set RGB LED state with the specified color values
+ * 
+ * @param red Red color intensity (0-255)
+ * @param blue Blue color intensity (0-255)
+ * @param green Green color intensity (0-255)
+ * @retval SYSTEM_STATUS_OK if successful, SYSTEM_STATUS_ERROR otherwise
+ */
 static system_status_t prvSYSTEM_SetRGBState(red, blue, green)
 {
 	if(DRV_Timer_Channel_PWM_Start(DRV_TIMER_1, DRV_TIMER_CHANNEL_2, red, portMAX_DELAY) != DRV_TIMER_STATUS_OK) return SYSTEM_STATUS_OK;
@@ -65,7 +126,15 @@ static system_status_t prvSYSTEM_SetRGBState(red, blue, green)
 	if(DRV_Timer_Channel_PWM_Start(DRV_TIMER_1, DRV_TIMER_CHANNEL_4, blue, portMAX_DELAY) != DRV_TIMER_STATUS_OK) return SYSTEM_STATUS_OK;
 	return SYSTEM_STATUS_ERROR;
 }
-
+/**
+ * @brief Callback function triggered when stream acquisition state changes
+ * 
+ * Updates the DIB acquisition state based on stream state changes and logs the event.
+ * 
+ * @param id Stream identifier
+ * @param state New acquisition state (active, inactive, or undefined)
+ * @retval None
+ */
 static void prvSYSTEM_AcquisitionStateChanged(uint32_t id, sstream_acquisition_state_t state)
 {
 	if(state == SSTREAM_ACQUISITION_STATE_ACTIVE)
@@ -86,7 +155,24 @@ static void prvSYSTEM_AcquisitionStateChanged(uint32_t id, sstream_acquisition_s
 	}
 
 }
-
+/**
+ * @brief Main system service task function
+ * 
+ * This task is responsible for:
+ *  - Initializing system hardware (GPIOs, timers, LEDs)
+ *  - Setting up PWM for RGB LEDs
+ *  - Initializing and starting other services
+ *  - Processing system events and state changes
+ *  - Managing system indicators
+ * 
+ * The task transitions through multiple states:
+ *  - SYSTEM_STATE_INIT: Performs hardware and service initialization
+ *  - SYSTEM_STATE_SERVICE: Processes system events and notifications
+ *  - SYSTEM_STATE_ERROR: Handles system errors
+ * 
+ * @param None
+ * @retval None
+ */
 static void prvSYSTEM_Task()
 {
 	drv_gpio_pin_init_conf_t 	userLedConf;
@@ -106,7 +192,6 @@ static void prvSYSTEM_Task()
 		case SYSTEM_STATE_INIT:
 			userLedConf.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
 			userLedConf.pullState = DRV_GPIO_PIN_PULL_NOPULL;
-			uint32_t	state = 0x01;
 			notifyValue = 0;
 
 			if(DRV_SYSTEM_InitDrivers() != DRV_SYSTEM_STATUS_OK)
@@ -346,5 +431,15 @@ system_status_t SYSTEM_SetRGB(system_rgb_value_t value)
 
 	return SYSTEM_STATUS_OK;
 }
+/**
+ * @}
+ */
 
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
 #endif /* CORE_MIDDLEWARES_SERVICES_SYSTEM_SYSTEM_C_ */
