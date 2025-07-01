@@ -1,10 +1,16 @@
 /**
  ******************************************************************************
- * @file   	system.c
- * @brief  	...
- * @author	Haris Turkmanovic
- * @email	haris.turkmanovic@gmail.com
- * @date	November 2022
+ * @file    drv_system.c
+ *
+ * @brief   System driver implementation providing hardware abstraction layer for 
+ *          STM32 system initialization and management. This driver handles 
+ *          core system setup including cache configuration, MPU setup, 
+ *          clock initialization, and driver subsystem initialization.
+ *          It provides the foundation for all other hardware components.
+ *
+ * @author  Haris Turkmanovic
+ * @email   haris.turkmanovic@gmail.com
+ * @date    November 2022
  ******************************************************************************
  */
 #include "main.h"
@@ -17,12 +23,40 @@
 #include "drv_spi.h"
 #include "drv_i2c.h"
 
+/**
+ * @defgroup DRIVERS Platform Drivers
+ * @{
+ */
+
+/**
+ * @defgroup SYSTEM_DRIVER System Driver
+ * @{
+ */
+
+/**
+ * @defgroup SYSTEM_DEFINES System driver defines and default values
+ * @{
+ */
 #ifndef HSEM_ID_0
 #define HSEM_ID_0 (0U) /* HW semaphore 0*/
 #endif
+/**
+ * @}
+ */
 
+/**
+ * @defgroup SYSTEM_PRIVATE_DATA System driver private data
+ * @{
+ */
+static TIM_HandleTypeDef htim1;  /**< Timer handle for system timing */
+/**
+ * @}
+ */
 
-static TIM_HandleTypeDef htim1;
+/**
+ * @defgroup SYSTEM_PRIVATE_FUNCTIONS System driver private functions
+ * @{
+ */
 
 /* Wait until CPU2 boots and enters in stop mode or timeout*/
 static drv_system_status_t prvDRV_SYSTEM_CPU2_Wait(uint32_t timeout)
@@ -32,6 +66,14 @@ static drv_system_status_t prvDRV_SYSTEM_CPU2_Wait(uint32_t timeout)
 	return DRV_SYSTEM_STATUS_OK;
 }
 
+/**
+ * @brief Enable CPU cache
+ * 
+ * This function enables both instruction and data caches to improve
+ * system performance.
+ *
+ * @retval None
+ */
 static void prvDRV_SYSTEM_CACHE_Enable()
 {
 	SCB_EnableICache();
@@ -39,6 +81,17 @@ static void prvDRV_SYSTEM_CACHE_Enable()
 	SCB_EnableDCache();
 }
 
+/**
+ * @brief Initialize system clocks
+ * 
+ * This function configures the system clocks:
+ *   - Sets up the HSI oscillator
+ *   - Configures PLL parameters
+ *   - Sets clock dividers for various buses (AHB, APB1, APB2, etc.)
+ *   - Applies the clock configuration
+ *
+ * @retval DRV_SYSTEM_STATUS_OK if successful, DRV_SYSTEM_STATUS_ERROR otherwise
+ */
 static drv_system_status_t prvDRV_SYSTEM_CLOCK_Init()
 {
 	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -90,6 +143,17 @@ static drv_system_status_t prvDRV_SYSTEM_CLOCK_Init()
 	return DRV_SYSTEM_STATUS_OK;
 }
 
+/**
+ * @brief Initialize Memory Protection Unit (MPU)
+ * 
+ * This function configures the MPU regions to protect various memory areas:
+ *   - Region 0: Default region with limited access
+ *   - Region 1: LwIP RAM heap for Tx buffers (non-cacheable)
+ *   - Region 2: Ethernet DMA descriptors (device memory)
+ *   - Region 3: Shared memory region (8KB bufferable but non-cacheable)
+ *
+ * @retval DRV_SYSTEM_STATUS_OK if successful
+ */
 static drv_system_status_t prvDRV_SYSTEM_MPU_Init()
 {
 	MPU_Region_InitTypeDef MPU_InitStruct = {0};
@@ -201,3 +265,15 @@ drv_system_status_t	DRV_SYSTEM_InitDrivers()
 
 	return DRV_SYSTEM_STATUS_OK;
 }
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */

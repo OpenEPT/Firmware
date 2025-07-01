@@ -1,10 +1,18 @@
 /**
  ******************************************************************************
- * @file   	drv_ain.c
- * @brief  	...
- * @author	Haris Turkmanovic
- * @email	haris.turkmanovic@gmail.com
- * @date	November 2022
+ * @file    drv_ain.c
+ *
+ * @brief   Analog Input (AIN) driver implementation providing hardware abstraction 
+ *          layer for STM32 ADC peripherals and external ADS9224R ADC. This driver 
+ *          supports ADC initialization, multi-channel configuration, DMA-based 
+ *          continuous sampling, buffer management, and callback mechanisms for 
+ *          real-time signal processing. It enables high-performance analog data 
+ *          acquisition with configurable resolution, sampling rate, and averaging 
+ *          for various applications including sensor readings and signal analysis.
+ *
+ * @author  Haris Turkmanovic
+ * @email   haris.turkmanovic@gmail.com
+ * @date    November 2022
  ******************************************************************************
  */
 #include "drv_ain.h"
@@ -13,69 +21,72 @@
 #include "main.h"
 #include "ADS9224R/ads9224r.h"
 
+/**
+ * @defgroup DRIVERS Platform Drivers
+ * @{
+ */
 
-static ADC_HandleTypeDef 				prvDRV_AIN_DEVICE_ADC_HANDLER;
-static DMA_HandleTypeDef 				prvDRV_AIN_DEVICE_DMA_HANDLER;
-static TIM_HandleTypeDef 				prvDRV_AIN_DEVICE_TIMER_HANDLER;
-static drv_ain_adc_acquisition_status_t	prvDRV_AIN_ACQUISITION_STATUS;
-static ADC_ChannelConfTypeDef 			prvDRV_AIN_ADC_CHANNEL_1_CONFIG;
-static ADC_ChannelConfTypeDef 			prvDRV_AIN_ADC_CHANNEL_2_CONFIG;
-static drv_ain_adc_config_t				prvDRV_AIN_ADC_CONFIG;
-static drv_ain_adc_stream_callback		prvDRV_AIN_ADC_CALLBACK;
+/**
+ * @defgroup AIN_DRIVER Analog Input Driver
+ * @{
+ */
+
+/**
+ * @defgroup AIN_PRIVATE_DATA AIN driver private data
+ * @{
+ */
+
+static ADC_HandleTypeDef 				prvDRV_AIN_DEVICE_ADC_HANDLER;           /**< ADC peripheral handler */
+static DMA_HandleTypeDef 				prvDRV_AIN_DEVICE_DMA_HANDLER;           /**< DMA handler for ADC data transfer */
+static TIM_HandleTypeDef 				prvDRV_AIN_DEVICE_TIMER_HANDLER;         /**< Timer handler for ADC triggering */
+static drv_ain_adc_acquisition_status_t	prvDRV_AIN_ACQUISITION_STATUS;          /**< Current ADC acquisition status */
+static ADC_ChannelConfTypeDef 			prvDRV_AIN_ADC_CHANNEL_1_CONFIG;         /**< Configuration for ADC channel 1 */
+static ADC_ChannelConfTypeDef 			prvDRV_AIN_ADC_CHANNEL_2_CONFIG;         /**< Configuration for ADC channel 2 */
+static drv_ain_adc_config_t				prvDRV_AIN_ADC_CONFIG;                   /**< ADC configuration parameters */
+static drv_ain_adc_stream_callback		prvDRV_AIN_ADC_CALLBACK;                 /**< Callback for ADC stream data */
 
 static uint16_t							prvDRV_AIN_ADC_DATA_SAMPLES[CONF_AIN_MAX_BUFFER_NO][DRV_AIN_ADC_BUFFER_MAX_SIZE+DRV_AIN_ADC_BUFFER_OFFSET]
-																							__attribute__((section(".ADCSamplesBuffer")));
+																							__attribute__((section(".ADCSamplesBuffer")));  /**< ADC samples buffer for internal ADC */
 static uint16_t			    			prvDRV_AIN_ADC_DATA_SAMPLES_ADS9224R[CONF_AIN_MAX_BUFFER_NO][DRV_AIN_ADC_BUFFER_MAX_SIZE+DRV_AIN_ADC_BUFFER_OFFSET+8]
-																							 __attribute__((section(".ADCSamplesBufferSPI")));
-static uint8_t							prvDRV_AIN_ADC_DATA_SAMPLES_ACTIVE[CONF_AIN_MAX_BUFFER_NO];
+																							 __attribute__((section(".ADCSamplesBufferSPI")));  /**< ADC samples buffer for ADS9224R */
+static uint8_t							prvDRV_AIN_ADC_DATA_SAMPLES_ACTIVE[CONF_AIN_MAX_BUFFER_NO];  /**< Flags indicating active buffer status */
 
-static uint8_t							prvDRV_AIN_ADC_ACTIVE_BUFFER;
-static uint32_t							prvDRV_AIN_ADC_BUFFER_COUNTER;
+static uint8_t							prvDRV_AIN_ADC_ACTIVE_BUFFER;    /**< Currently active buffer index */
+static uint32_t							prvDRV_AIN_ADC_BUFFER_COUNTER;   /**< Buffer counter for sequential numbering */
 
-static uint8_t							prvDRV_AIN_CAPTURE_EVENT;
+static uint8_t							prvDRV_AIN_CAPTURE_EVENT;        /**< Flag for capture event trigger */
 
-static uint8_t							prvDRV_AIN_CAPTURE_SINGLE_BUFFER;
+static uint8_t							prvDRV_AIN_CAPTURE_SINGLE_BUFFER; /**< Flag for single buffer capture mode */
 
-static uint8_t							prvDRV_AIN_SAMPLES_NO;
+static uint8_t							prvDRV_AIN_SAMPLES_NO;           /**< Number of samples per acquisition */
 
 
 /**
-  * @brief This function handles ADC3 global interrupt.
-  */
+ * @}
+ */
+
 void ADC3_IRQHandler(void)
 {
 	HAL_ADC_IRQHandler(&prvDRV_AIN_DEVICE_ADC_HANDLER);
 }
 
 
-/**
-  * @brief This function handles TIM1 update interrupt.
-  */
 void TIM1_UP_IRQHandler(void)
 {
 	HAL_TIM_IRQHandler(&prvDRV_AIN_DEVICE_TIMER_HANDLER);
 	//HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_15);
 }
-/**
- * @brief This function handles TIM1 update interrupt.
- */
 void TIM2_IRQHandler(void)
 {
 	HAL_TIM_IRQHandler(&prvDRV_AIN_DEVICE_TIMER_HANDLER);
 	//HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_15);
 }
 
-/**
-  * @brief This function handles TIM1 capture compare interrupt.
-  */
 void TIM1_CC_IRQHandler(void)
 {
 	HAL_TIM_IRQHandler(&prvDRV_AIN_DEVICE_TIMER_HANDLER);
 }
 
-/**
-  * @brief This function handles BDMA channel0 global interrupt.
-  */
 void DMA1_Stream0_IRQHandler(void)
 {
 	HAL_DMA_IRQHandler(&prvDRV_AIN_DEVICE_DMA_HANDLER);
@@ -89,12 +100,6 @@ void DMA1_Stream0_IRQHandler(void)
 
 
 
-/**
-* @brief ADC MSP Initialization
-* This function configures the hardware resources used in this example
-* @param hadc: ADC handle pointer
-* @retval None
-*/
 void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 {
 	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
@@ -153,9 +158,30 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 	}
 
 }
+
+void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
+{
+	if(hadc->Instance==ADC3)
+	{
+		__HAL_RCC_ADC3_CLK_DISABLE();
+
+		HAL_DMA_DeInit(hadc->DMA_Handle);
+	}
+
+}
 /**
-  * Enable DMA controller clock
-  */
+ * @defgroup AIN_PRIVATE_FUNCTIONS AIN driver private functions
+ * @{
+ */
+/**
+ * @brief Initialize DMA controller for ADC
+ * 
+ * This function enables the DMA clock and configures the interrupt
+ * for the DMA channel used by ADC. It must be called before starting
+ * the ADC data transfer.
+ *
+ * @retval None
+ */
 static void prvDRV_AIN_InitDMA(void)
 {
 
@@ -170,22 +196,16 @@ static void prvDRV_AIN_InitDMA(void)
 	HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
 
 }
+
 /**
-* @brief ADC MSP De-Initialization
-* This function freeze the hardware resources used in this example
-* @param hadc: ADC handle pointer
-* @retval None
-*/
-void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
-{
-	if(hadc->Instance==ADC3)
-	{
-		__HAL_RCC_ADC3_CLK_DISABLE();
-
-		HAL_DMA_DeInit(hadc->DMA_Handle);
-	}
-
-}
+ * @brief DMA half-completed callback
+ * 
+ * This function is called by the HAL when half of the DMA buffer has been filled.
+ * It processes the filled half of the buffer, sets markers and counter values,
+ * triggers the user callback if registered, and manages the buffer state.
+ *
+ * @param _hdma Pointer to the DMA handle
+ */
 static void							prvDRV_AIN_DMAHalfComplitedCallback(DMA_HandleTypeDef *_hdma)
 {
 	HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_15);
@@ -232,6 +252,15 @@ static void							prvDRV_AIN_DMAHalfComplitedCallback(DMA_HandleTypeDef *_hdma)
 	prvDRV_AIN_ADC_ACTIVE_BUFFER = prvDRV_AIN_ADC_ACTIVE_BUFFER == CONF_AIN_MAX_BUFFER_NO ? 0 : prvDRV_AIN_ADC_ACTIVE_BUFFER;
 }
 
+/**
+ * @brief Initialize the timer used for ADC triggering
+ * 
+ * This function configures the timer that will trigger ADC conversions at a specific rate.
+ * It sets up timer parameters including prescaler, period, counter mode, and master configuration
+ * for synchronization with the ADC.
+ *
+ * @return DRV_AIN_STATUS_OK if successful, DRV_AIN_STATUS_ERROR otherwise
+ */
 static drv_ain_status				prvDRV_AIN_InitDeviceTimer()
 {
 
@@ -255,6 +284,15 @@ static drv_ain_status				prvDRV_AIN_InitDeviceTimer()
 	if (HAL_TIMEx_MasterConfigSynchronization(&prvDRV_AIN_DEVICE_TIMER_HANDLER, &sMasterConfig) != HAL_OK) return DRV_AIN_STATUS_ERROR;
 	return DRV_AIN_STATUS_OK;
 }
+/**
+ * @brief Initialize the ADC device
+ * 
+ * This function configures the ADC peripheral with specific parameters for 
+ * resolution, clock prescaler, trigger source, and DMA mode. It also configures
+ * two ADC channels with appropriate sampling times and conversion modes.
+ *
+ * @return DRV_AIN_STATUS_OK if successful, DRV_AIN_STATUS_ERROR otherwise
+ */
 static drv_ain_status				prvDRV_AIN_InitDeviceADC()
 {
 	memset(&prvDRV_AIN_ADC_CHANNEL_1_CONFIG, 0, sizeof(ADC_ChannelConfTypeDef));
@@ -308,6 +346,9 @@ static drv_ain_status				prvDRV_AIN_InitDeviceADC()
 	return DRV_AIN_STATUS_OK;
 }
 
+/**
+ * @}
+ */
 drv_ain_status 						DRV_AIN_Init(drv_ain_adc_t adc, drv_ain_adc_config_t* configuration)
 {
 	/* Initialize pin that will be used for signaling end of conversion */
@@ -320,12 +361,12 @@ drv_ain_status 						DRV_AIN_Init(drv_ain_adc_t adc, drv_ain_adc_config_t* confi
     HAL_GPIO_WritePin(GPIOE, GPIO_PIN_15, GPIO_PIN_SET);
 
     /* Initialize configuration structure */
-    prvDRV_AIN_ADC_CONFIG.clockDiv 		= DRV_AIN_ADC_CLOCK_DIV_UKNOWN;
-    prvDRV_AIN_ADC_CONFIG.resolution 	= DRV_AIN_ADC_RESOLUTION_UKNOWN;
+    prvDRV_AIN_ADC_CONFIG.clockDiv 		= DRV_AIN_ADC_CLOCK_DIV_UNKNOWN;
+    prvDRV_AIN_ADC_CONFIG.resolution 	= DRV_AIN_ADC_RESOLUTION_UNKNOWN;
     prvDRV_AIN_ADC_CONFIG.ch1.channel	= 1;
-    prvDRV_AIN_ADC_CONFIG.ch1.sampleTime= DRV_AIN_ADC_SAMPLE_TIME_UKNOWN;
+    prvDRV_AIN_ADC_CONFIG.ch1.sampleTime= DRV_AIN_ADC_SAMPLE_TIME_UNKNOWN;
     prvDRV_AIN_ADC_CONFIG.ch1.channel	= 2;
-    prvDRV_AIN_ADC_CONFIG.ch1.sampleTime= DRV_AIN_ADC_SAMPLE_TIME_UKNOWN;
+    prvDRV_AIN_ADC_CONFIG.ch1.sampleTime= DRV_AIN_ADC_SAMPLE_TIME_UNKNOWN;
     prvDRV_AIN_ADC_CONFIG.samplingTime  = 1000;
     prvDRV_AIN_SAMPLES_NO               = DRV_AIN_ADC_BUFFER_MAX_SIZE / 2;
 
@@ -344,7 +385,7 @@ drv_ain_status 						DRV_AIN_Init(drv_ain_adc_t adc, drv_ain_adc_config_t* confi
 	if(ADS9224R_RegisterCallback(prvDRV_AIN_DMAHalfComplitedCallback, ADS9224R_SDO_B) != ADS9224R_STATUS_OK) return DRV_AIN_STATUS_ERROR;
 
 	/* Set initial acquisition status*/
-	prvDRV_AIN_ACQUISITION_STATUS 	= DRV_AIN_ADC_ACQUISITION_STATUS_UKNOWN;
+	prvDRV_AIN_ACQUISITION_STATUS 	= DRV_AIN_ADC_ACQUISITION_STATUS_UNKNOWN;
 	prvDRV_AIN_ADC_CALLBACK		  	= 0;
 	prvDRV_AIN_ADC_ACTIVE_BUFFER	= 0;
 	prvDRV_AIN_ADC_BUFFER_COUNTER	= 0;
@@ -506,7 +547,7 @@ drv_ain_status 						DRV_AIN_SetResolution(drv_ain_adc_t adc, drv_ain_adc_resolu
 		prvDRV_AIN_ADC_CONFIG.resolution = DRV_AIN_ADC_RESOLUTION_16BIT;
 		break;
 	default:
-		prvDRV_AIN_ADC_CONFIG.resolution = DRV_AIN_ADC_RESOLUTION_UKNOWN;
+		prvDRV_AIN_ADC_CONFIG.resolution = DRV_AIN_ADC_RESOLUTION_UNKNOWN;
 		return DRV_AIN_STATUS_ERROR;
 	}
 	if (HAL_ADC_Init(&prvDRV_AIN_DEVICE_ADC_HANDLER) != HAL_OK) return DRV_AIN_STATUS_ERROR;
@@ -554,7 +595,7 @@ drv_ain_status 						DRV_AIN_SetClockDiv(drv_ain_adc_t adc, drv_ain_adc_clock_di
 		prvDRV_AIN_ADC_CONFIG.clockDiv = DRV_AIN_ADC_CLOCK_DIV_256;
 		break;
 	default:
-		prvDRV_AIN_ADC_CONFIG.clockDiv = DRV_AIN_ADC_CLOCK_DIV_UKNOWN;
+		prvDRV_AIN_ADC_CONFIG.clockDiv = DRV_AIN_ADC_CLOCK_DIV_UNKNOWN;
 		break;
 	}
 	if (HAL_ADC_Init(&prvDRV_AIN_DEVICE_ADC_HANDLER) != HAL_OK) return DRV_AIN_STATUS_ERROR;
@@ -614,8 +655,8 @@ drv_ain_status 						DRV_AIN_SetChannelsSamplingTime(drv_ain_adc_t adc, drv_ain_
 		prvDRV_AIN_ADC_CONFIG.ch2.sampleTime = DRV_AIN_ADC_SAMPLE_TIME_810C5;
 		break;
 	default:
-		prvDRV_AIN_ADC_CONFIG.ch1.sampleTime = DRV_AIN_ADC_SAMPLE_TIME_UKNOWN;
-		prvDRV_AIN_ADC_CONFIG.ch2.sampleTime = DRV_AIN_ADC_SAMPLE_TIME_UKNOWN;
+		prvDRV_AIN_ADC_CONFIG.ch1.sampleTime = DRV_AIN_ADC_SAMPLE_TIME_UNKNOWN;
+		prvDRV_AIN_ADC_CONFIG.ch2.sampleTime = DRV_AIN_ADC_SAMPLE_TIME_UNKNOWN;
 		return DRV_AIN_STATUS_ERROR;
 	}
 	if (HAL_ADC_ConfigChannel(&prvDRV_AIN_DEVICE_ADC_HANDLER, &prvDRV_AIN_ADC_CHANNEL_1_CONFIG) != HAL_OK) return DRV_AIN_STATUS_ERROR;
@@ -779,3 +820,16 @@ drv_ain_status 						DRV_AIN_Stream_SetCapture(uint32_t* packetCounter)
 
 	return DRV_AIN_STATUS_OK;
 }
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+

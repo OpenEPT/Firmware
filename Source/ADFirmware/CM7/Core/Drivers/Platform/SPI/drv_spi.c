@@ -1,9 +1,18 @@
-/*
- * drv_spi.c
+/**
+ ******************************************************************************
+ * @file    drv_spi.c
  *
- *  Created on: Jun 30, 2024
- *      Author: Pavle Lakic & Dimitrije Lilic
+ * @brief   SPI driver implementation This file contains
+ *          the implementation of the SPI driver for STM32H7 microcontrollers.
+ *          It provides functionality for SPI communication in both master and 
+ *          slave modes withDMA and interrupt support.
+ *
+ * @author  Pavle Lakic & Dimitrije Lilic
+ * @date    Jun 30, 2024
+ ******************************************************************************
  */
+
+
 
 #include "main.h"
 #include "drv_spi.h"
@@ -12,22 +21,57 @@
 
 #include <string.h>
 
+/**
+ * @defgroup DRIVERS Platform Drivers
+ * @{
+ */
+
+/**
+ * @defgroup SPI_DRIVER SPI Driver
+ * @{
+ */
+
+ /**
+ * @defgroup SPI_PRIVATE_STRUCTURES SPI driver private structures
+ * @{
+ */
+
+/**
+ * @brief   SPI driver handle structure
+ * @details Contains all data needed to manage a SPI instance
+ */
 typedef struct drv_spi_handle_t
 {
-	drv_spi_instance_t					instance;
-	drv_spi_initialization_status_t		initState;
-	drv_spi_config_t					config;
-	SemaphoreHandle_t					lock;
-	SPI_HandleTypeDef 					deviceHandler;
+	drv_spi_instance_t					instance;   /**< SPI instance identifier */
+	drv_spi_initialization_status_t		initState;  /**< Initialization state of the SPI instance */
+	drv_spi_config_t					config;     /**< Configuration parameters for the SPI instance */
+	SemaphoreHandle_t					lock;       /**< Mutex for thread-safe access to the SPI instance */
+	SPI_HandleTypeDef 					deviceHandler; /**< HAL SPI handle */
 }drv_spi_handle_t;
 
+/**
+ * @}
+ */
+
+/**
+ * @defgroup SPI_PRIVATE_DATA SPI driver private data
+ * @{
+ */
+
+/** @brief Array of SPI driver handles, one for each SPI instance */
 static drv_spi_handle_t 		prvDRV_SPI_INSTANCES[DRV_SPI_INSTANCES_MAX_NUMBER];
+
+/** @brief Array of SPI receive callback functions, one for each SPI instance */
 static drv_spi_rx_isr_callback 	prvDRV_SPI_CALLBACKS[DRV_SPI_INSTANCES_MAX_NUMBER];
 
-
+/** @brief DMA handle for SPI2 receive */
 DMA_HandleTypeDef hdma_spi2_rx;
-DMA_HandleTypeDef hdma_spi2_tx;
 
+/** @brief DMA handle for SPI2 transmit */
+DMA_HandleTypeDef hdma_spi2_tx;
+/**
+ * @}
+ */
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
@@ -44,33 +88,16 @@ void SPI2_IRQHandler(void)
     HAL_SPI_IRQHandler(&prvDRV_SPI_INSTANCES[DRV_SPI_INSTANCE2].deviceHandler);
 }
 
-
-/**
-  * @brief  This function handles DMA Rx interrupt request.
-  * @param  None
-  * @retval None
-  */
 void DMA1_Stream4_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(&hdma_spi2_tx);
 }
 
-/**
-  * @brief  This function handles DMA Tx interrupt request.
-  * @param  None
-  * @retval None
-  */
 void DMA1_Stream5_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(&hdma_spi2_rx);
 }
 
-/**
-  * @brief  Initialize the SPI MSP.
-  * @param  hspi: pointer to a SPI_HandleTypeDef structure that contains
-  *               the configuration information for SPI module.
-  * @retval None
-  */
 void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -296,12 +323,6 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
 	}
 }
 
-/**
-  * @brief  De-Initialize the SPI MSP.
-  * @param  hspi: pointer to a SPI_HandleTypeDef structure that contains
-  *               the configuration information for SPI module.
-  * @retval None
-  */
 void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi)
 {
 	if(hspi->Instance==SPI3)
@@ -544,4 +565,10 @@ drv_spi_status_t	DRV_SPI_Instance_RegisterRxCallback(drv_spi_instance_t instance
 
 }
 
+/**
+ * @}
+ */
+/**
+ * @}
+ */
 

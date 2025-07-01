@@ -2,11 +2,15 @@
  ******************************************************************************
  * @file   	sstream.c
  *
- * @brief
+ * @brief   Samples Stream service implementation provides high-speed ADC data 
+ *          acquisition and streaming capabilities over network connections.
+ *          This file implements the core functionality for configuring ADC 
+ *          channels, managing acquisition parameters, and transmitting 
+ *          sample data over UDP.
  *
  * @author	Haris Turkmanovic
  * @email	haris.turkmanovic@gmail.com
- * @date	Februar 2024
+ * @date	February 2024
  ******************************************************************************
  */
 #include <string.h>
@@ -27,70 +31,126 @@
 #include "drv_ain.h"
 #include "drv_gpio.h"
 
+/**
+ * @defgroup SERVICES Services
+ * @{
+ */
 
-#define  	SSTREAM_TASK_START_BIT						0x00000001
-#define  	SSTREAM_TASK_STOP_BIT						0x00000002
-#define  	SSTREAM_TASK_STREAM_BIT						0x00000004
-#define  	SSTREAM_TASK_SET_ADC_RESOLUTION_BIT			0x00000008
-#define  	SSTREAM_TASK_SET_ADC_STIME_BIT				0x00000010
-#define  	SSTREAM_TASK_SET_ADC_CLOCK_DIV_BIT			0x00000020
-#define  	SSTREAM_TASK_SET_ADC_CH1_STIME_BIT			0x00000040
-#define  	SSTREAM_TASK_SET_ADC_CH2_STIME_BIT			0x00000080
-#define  	SSTREAM_TASK_SET_ADC_CH1_OFFSET_BIT			0x00000100
-#define  	SSTREAM_TASK_SET_ADC_CH2_OFFSET_BIT			0x00000200
-#define  	SSTREAM_TASK_SET_ADC_CH1_AVERAGING_RATIO	0x00000400
-#define  	SSTREAM_TASK_SET_ADC_CH2_AVERAGING_RATIO	0x00000800
-#define  	SSTREAM_TASK_GET_ADC_CH1_VALUE				0x00001000
-#define  	SSTREAM_TASK_GET_ADC_CH2_VALUE				0x00002000
-#define  	SSTREAM_TASK_SET_SAMPLES_NO					0x00004000
+/**
+ * @defgroup SSTREAM_SERVICE Samples Stream service
+ * @{
+ */
+
+/**
+ * @defgroup SSTREAM_DEFINES Samples Stream task defines and default values
+ * @{
+ */
+#define SSTREAM_TASK_START_BIT                       0x00000001  /**< Task notification bit: Start acquisition */
+#define SSTREAM_TASK_STOP_BIT                        0x00000002  /**< Task notification bit: Stop acquisition */
+#define SSTREAM_TASK_STREAM_BIT                      0x00000004  /**< Task notification bit: Start streaming */
+#define SSTREAM_TASK_SET_ADC_RESOLUTION_BIT          0x00000008  /**< Task notification bit: Set ADC resolution */
+#define SSTREAM_TASK_SET_ADC_STIME_BIT               0x00000010  /**< Task notification bit: Set ADC sampling time */
+#define SSTREAM_TASK_SET_ADC_CLOCK_DIV_BIT           0x00000020  /**< Task notification bit: Set ADC clock divider */
+#define SSTREAM_TASK_SET_ADC_CH1_STIME_BIT           0x00000040  /**< Task notification bit: Set channel 1 sampling time */
+#define SSTREAM_TASK_SET_ADC_CH2_STIME_BIT           0x00000080  /**< Task notification bit: Set channel 2 sampling time */
+#define SSTREAM_TASK_SET_ADC_CH1_OFFSET_BIT          0x00000100  /**< Task notification bit: Set channel 1 offset */
+#define SSTREAM_TASK_SET_ADC_CH2_OFFSET_BIT          0x00000200  /**< Task notification bit: Set channel 2 offset */
+#define SSTREAM_TASK_SET_ADC_CH1_AVERAGING_RATIO     0x00000400  /**< Task notification bit: Set channel 1 averaging ratio */
+#define SSTREAM_TASK_SET_ADC_CH2_AVERAGING_RATIO     0x00000800  /**< Task notification bit: Set channel 2 averaging ratio */
+#define SSTREAM_TASK_GET_ADC_CH1_VALUE               0x00001000  /**< Task notification bit: Get channel 1 value */
+#define SSTREAM_TASK_GET_ADC_CH2_VALUE               0x00002000  /**< Task notification bit: Get channel 2 value */
+#define SSTREAM_TASK_SET_SAMPLES_NO                  0x00004000  /**< Task notification bit: Set number of samples */
+/**
+ * @}
+ */
 
 
 
+/**
+ * @defgroup SSTREAM_PRIVATE_STRUCTURES Samples Stream private structures
+ * @{
+ */
+/**
+ * @brief Stream control task data structure
+ */
 typedef struct
 {
-	TaskHandle_t				controlTaskHandle;
-	SemaphoreHandle_t			initSig;
-	SemaphoreHandle_t			guard;
-	sstream_state_t				state;
-	sstream_acquisition_state_t	acquisitionState;
-	drv_ain_adc_config_t		ainConfig;
-	uint32_t					id;
+    TaskHandle_t                controlTaskHandle;   /**< Handle for the control task */
+    SemaphoreHandle_t           initSig;             /**< Semaphore for initialization signaling */
+    SemaphoreHandle_t           guard;               /**< Mutex for thread safety */
+    sstream_state_t             state;               /**< Current task state */
+    sstream_acquisition_state_t acquisitionState;    /**< Current acquisition state */
+    drv_ain_adc_config_t        ainConfig;           /**< ADC configuration parameters */
+    uint32_t                    id;                  /**< Connection identifier */
 }sstream_control_data_t;
 
+/**
+ * @brief Stream data task data structure
+ */
 typedef struct
 {
-	TaskHandle_t				streamTaskHandle;
-	SemaphoreHandle_t			initSig;
-	SemaphoreHandle_t			guard;
-	sstream_state_t				state;
-	sstream_connection_info		connectionInfo;
-	uint32_t					id;
-	uint32_t					ch1Value;
-	uint32_t					ch2Value;
-	uint16_t					lastSamples[2][4];
+    TaskHandle_t                streamTaskHandle;    /**< Handle for the stream task */
+    SemaphoreHandle_t           initSig;             /**< Semaphore for initialization signaling */
+    SemaphoreHandle_t           guard;               /**< Mutex for thread safety */
+    sstream_state_t             state;               /**< Current task state */
+    sstream_connection_info     connectionInfo;      /**< Network connection information */
+    uint32_t                    id;                  /**< Connection identifier */
+    uint32_t                    ch1Value;            /**< Latest channel 1 value */
+    uint32_t                    ch2Value;            /**< Latest channel 2 value */
+    uint16_t                    lastSamples[2][4];   /**< Buffer for the last samples (2 channels, 4 samples each) */
 }sstream_stream_data_t;
 
+/**
+ * @brief Main service data structure
+ */
 typedef struct
 {
-	sstream_control_data_t		controlInfo[CONF_SSTREAM_CONNECTIONS_MAX_NO];
-	sstream_stream_data_t		streamInfo[CONF_SSTREAM_CONNECTIONS_MAX_NO];
-	uint32_t					activeConnectionsNo;
-	sstream_acquistion_state_changed_callback asccb;
+    sstream_control_data_t      controlInfo[CONF_SSTREAM_CONNECTIONS_MAX_NO];  /**< Array of control data for each connection */
+    sstream_stream_data_t       streamInfo[CONF_SSTREAM_CONNECTIONS_MAX_NO];   /**< Array of stream data for each connection */
+    uint32_t                    activeConnectionsNo;                           /**< Number of active connections */
+    sstream_acquistion_state_changed_callback asccb;                           /**< Acquisition state change callback */
 }sstream_data_t;
 
+/**
+ * @brief ADC packet information structure
+ */
 typedef struct
 {
-	uint32_t 	address;
-	uint8_t		id;
-	uint32_t    size;
+    uint32_t    address;    /**< Buffer address in memory */
+    uint8_t     id;         /**< Packet identifier */
+    uint32_t    size;       /**< Size of the packet in bytes */
 }sstream_packet_t;
+/**
+ * @}
+ */
 
-
-static sstream_data_t			prvSSTREAM_DATA;
+/**
+ * @defgroup SSTREAM_PRIVATE_DATA Samples Stream private data
+ * @{
+ */
+static sstream_data_t			prvSSTREAM_DATA; /**< Main service data instance */
 
 QueueHandle_t					prvSSTREAM_PACKET_QUEUE;
-
-
+/**
+ * @}
+ */
+/**
+ * @brief ISR callback function for new ADC packet sampling events.
+ *
+ * This function is called from an interrupt context when a new ADC packet 
+ * has been sampled and is ready for processing. It packages the packet 
+ * information and sends it to the streaming task queue for UDP transmission.
+ *
+ * The function performs the following operations:
+ * - Sends a debug character 'a' via ITM for tracing
+ * - Creates a packet data structure with address, ID, and size information
+ * - Queues the packet data using FreeRTOS ISR-safe queue operations
+ * - Yields to higher priority tasks if necessary
+ *
+ * @param[in] packetAddress Memory address where the sampled packet data is stored
+ * @param[in] packetID Unique identifier for the packet
+ * @param[in] size Size of the packet data in bytes
+ */
 static void prvSSTREAM_NewPacketSampled(uint32_t packetAddress, uint8_t packetID, uint32_t size)
 {
 	ITM_SendChar('a');
@@ -106,7 +166,32 @@ static void prvSSTREAM_NewPacketSampled(uint32_t packetAddress, uint8_t packetID
 
 }
 
-
+/**
+ * @brief Sample streaming task function for UDP data transmission.
+ *
+ * This is the core streaming task responsible for receiving sampled ADC packets
+ * and transmitting them over UDP to a configured server. The task operates in
+ * a state machine with the following states:
+ *
+ * - `SSTREAM_STATE_INIT`: Performs initialization steps including:
+ *   - Creating UDP PCB and establishing connection to server
+ *   - Setting up packet queue for inter-task communication
+ *   - Initializing sample buffers and RGB status indicators
+ *   - Signaling initialization completion via semaphore
+ *
+ * - `SSTREAM_STATE_SERVICE`: Main operational state that:
+ *   - Waits for new packets from the ADC sampling ISR
+ *   - Allocates PBUF for network transmission
+ *   - Copies latest samples to shared buffer (thread-safe)
+ *   - Transmits packet data via UDP
+ *   - Returns buffer addresses to ADC driver for reuse
+ *   - Provides debug tracing via ITM
+ *
+ * - `SSTREAM_STATE_ERROR`: Error handling state that reports system errors
+ *   and blocks indefinitely
+ *
+ * @param[in] pvParam Pointer to sstream_stream_data_t connection configuration
+ */
 static void prvSSTREAM_StreamTaskFunc(void* pvParam)
 {
 	sstream_packet_t		packetData;
@@ -186,7 +271,7 @@ static void prvSSTREAM_StreamTaskFunc(void* pvParam)
 			}
 			else
 			{
-				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_WARNNING,  "Resource locked\r\n");
+				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_WARNING,  "Resource locked\r\n");
 			}
 
 			xSemaphoreGive(connectionData->guard);
@@ -217,7 +302,37 @@ static void prvSSTREAM_StreamTaskFunc(void* pvParam)
 	}
 }
 
-
+/**
+ * @brief Sample streaming control task function for ADC configuration management.
+ *
+ * This is the control task responsible for initializing and managing ADC configuration
+ * parameters based on task notifications. The task handles both initialization and
+ * runtime configuration changes through a comprehensive state machine.
+ *
+ * - `SSTREAM_STATE_INIT`: Performs extensive initialization including:
+ *   - GPIO configuration for acquisition status LED
+ *   - ADC resolution, clock divider, and sampling time setup
+ *   - Channel-specific configuration (sampling time, averaging ratios)
+ *   - Callback registration for packet sampling events
+ *   - Calculation of effective sampling parameters
+ *
+ * - `SSTREAM_STATE_SERVICE`: Main service state that responds to task notifications:
+ *   - `SSTREAM_TASK_START_BIT`: Starts ADC acquisition and enables status LED
+ *   - `SSTREAM_TASK_STOP_BIT`: Stops ADC acquisition and disables status LED
+ *   - `SSTREAM_TASK_SET_ADC_*`: Various ADC parameter configuration commands
+ *   - `SSTREAM_TASK_GET_ADC_CH*_VALUE`: Single-shot ADC value reading
+ *   - `SSTREAM_TASK_SET_SAMPLES_NO`: Configures samples per channel
+ *   - Recalculates sampling time after parameter changes
+ *   - Provides acquisition state callbacks to upper layers
+ *
+ * - `SSTREAM_STATE_ERROR`: Error handling state that reports system errors
+ *   and blocks indefinitely
+ *
+ * The task maintains thread-safe access to shared resources using semaphores
+ * and provides comprehensive logging for all operations.
+ *
+ * @param[in] pvParam Pointer to sstream_control_data_t control configuration
+ */
 static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 {
 	uint32_t				notifyValue = 0;
@@ -242,11 +357,11 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 
 			if(DRV_GPIO_Port_Init(SSTREAM_LED_PORT) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize stream LED port\r\n");
+				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize stream LED port\r\n");
 			}
 			if(DRV_GPIO_Pin_Init(SSTREAM_LED_PORT, SSTREAM_LED_PIN, &acqStateLED) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize stream LED ppin\r\n");
+				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize stream LED ppin\r\n");
 			}
 
 			/* Try to configure default resolution */
@@ -258,7 +373,7 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 			else
 			{
 				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_ERROR,  "There is a problem with AIN resolution setting\r\n");
-				connectionData->ainConfig.resolution = DRV_AIN_ADC_RESOLUTION_UKNOWN;
+				connectionData->ainConfig.resolution = DRV_AIN_ADC_RESOLUTION_UNKNOWN;
 			}
 
 			/* Try to configure default clok div */
@@ -270,7 +385,7 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 			else
 			{
 				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_ERROR,  "There is a problem with AIN clock div setting\r\n");
-				connectionData->ainConfig.resolution = DRV_AIN_ADC_CLOCK_DIV_UKNOWN;
+				connectionData->ainConfig.resolution = DRV_AIN_ADC_CLOCK_DIV_UNKNOWN;
 			}
 
 			/* Try to configure channels default sampling time */
@@ -283,8 +398,8 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 			else
 			{
 				LOGGING_Write("SStream service", LOGGING_MSG_TYPE_ERROR,  "There is a problem with AIN channels sampling time setting\r\n");
-				connectionData->ainConfig.ch1.sampleTime = DRV_AIN_ADC_SAMPLE_TIME_UKNOWN;
-				connectionData->ainConfig.ch2.sampleTime = DRV_AIN_ADC_SAMPLE_TIME_UKNOWN;
+				connectionData->ainConfig.ch1.sampleTime = DRV_AIN_ADC_SAMPLE_TIME_UNKNOWN;
+				connectionData->ainConfig.ch2.sampleTime = DRV_AIN_ADC_SAMPLE_TIME_UNKNOWN;
 			}
 
 			/* Try to configure default avg ratio */
@@ -1106,5 +1221,12 @@ sstream_status_t				SSTREAM_RegisterAcquisitionStateChangeCB(sstream_acquistion_
 
 	return SSTREAM_STATUS_OK;
 }
-
-
+/**
+ * @}
+ */
+/**
+ * @}
+ */
+/**
+ * @}
+ */

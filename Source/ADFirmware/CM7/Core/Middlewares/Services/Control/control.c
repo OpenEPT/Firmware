@@ -154,7 +154,7 @@ static void inline prvCONTROL_PrepareOkResponse(char* response, uint16_t* respon
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_UndefinedCommand(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -169,7 +169,7 @@ static void prvCONTROL_UndefinedCommand(const char* arguments, uint16_t argument
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_GetDeviceName(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -194,7 +194,7 @@ static void prvCONTROL_GetDeviceName(const char* arguments, uint16_t argumentsLe
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetDeviceName(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -223,7 +223,7 @@ static void prvCONTROL_SetDeviceName(const char* arguments, uint16_t argumentsLe
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetRGBColor(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -278,7 +278,7 @@ static void prvCONTROL_SetRGBColor(const char* arguments, uint16_t argumentsLeng
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetResolution(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -327,7 +327,7 @@ static void prvCONTROL_SetResolution(const char* arguments, uint16_t argumentsLe
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetSamplesNo(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -376,7 +376,7 @@ static void prvCONTROL_SetSamplesNo(const char* arguments, uint16_t argumentsLen
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_GetResolution(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -413,7 +413,7 @@ static void prvCONTROL_GetResolution(const char* arguments, uint16_t argumentsLe
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_GetADCValue(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -469,7 +469,7 @@ static void prvCONTROL_GetADCValue(const char* arguments, uint16_t argumentsLeng
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetDACActiveStatus(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -500,7 +500,14 @@ static void prvCONTROL_SetDACActiveStatus(const char* arguments, uint16_t argume
 	}
 
 }
-
+/**
+ * @brief	Get DAC
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_GetDACActiveStatus(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	dpcontrol_dac_status_t	activeState = 0;
@@ -566,7 +573,14 @@ static void prvCONTROL_ChargingDisable(const char* arguments, uint16_t arguments
 		return;
 	}
 }
-
+/**
+ * @brief	Get charging status
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_ChargingGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	charger_charging_state_t	chargingState = 0;
@@ -619,6 +633,14 @@ static void prvCONTROL_ChargingCurrentSet(const char* arguments, uint16_t argume
 		return;
 	}
 }
+/**
+ * @brief	Get charging current value
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_ChargingCurrentGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	uint16_t					chargingCurrent = 0;
@@ -637,7 +659,14 @@ static void prvCONTROL_ChargingCurrentGet(const char* arguments, uint16_t argume
 		prvCONTROL_PrepareOkResponse(response, responseSize, chargingCurrentString, chargingCurrentStringLength);
 	}
 }
-
+/**
+ * @brief	Set charging termination current value
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_ChargingTermCurrentSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	cmparse_value_t				value;
@@ -663,7 +692,14 @@ static void prvCONTROL_ChargingTermCurrentSet(const char* arguments, uint16_t ar
 		return;
 	}
 }
-
+/**
+ * @brief	Get charging termination current value
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_ChargingTermCurrentGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	uint16_t					chargingTermCurrent = 0;
@@ -682,7 +718,14 @@ static void prvCONTROL_ChargingTermCurrentGet(const char* arguments, uint16_t ar
 		prvCONTROL_PrepareOkResponse(response, responseSize, chargingTermCurrentString, chargingTermCurrentStringLength);
 	}
 }
-
+/**
+ * @brief	Set charger termination voltage content
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_ChargingTermVoltageSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	cmparse_value_t				value;
@@ -708,7 +751,14 @@ static void prvCONTROL_ChargingTermVoltageSet(const char* arguments, uint16_t ar
 		return;
 	}
 }
-
+/**
+ * @brief	Get charger termination voltage content
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	argumentsLength: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_ChargingTermVoltageGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	float						chargingTermVoltage = 0;
@@ -795,7 +845,7 @@ static void prvCONTROL_SetLoadEnable(const char* arguments, uint16_t argumentsLe
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetLoadDisable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -812,7 +862,14 @@ static void prvCONTROL_SetLoadDisable(const char* arguments, uint16_t argumentsL
 		return;
 	}
 }
-
+/**
+ * @brief	Get load state
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_GetLoad(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	dpcontrol_load_state_t		loadState = 0;
@@ -838,7 +895,7 @@ static void prvCONTROL_GetLoad(const char* arguments, uint16_t argumentsLength, 
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetBatEnable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -855,7 +912,14 @@ static void prvCONTROL_SetBatEnable(const char* arguments, uint16_t argumentsLen
 		return;
 	}
 }
-
+/**
+ * @brief	Get battery state
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_GetBat(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	dpcontrol_bat_state_t		batState = 0;
@@ -880,7 +944,7 @@ static void prvCONTROL_GetBat(const char* arguments, uint16_t argumentsLength, c
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetPPathEnable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -903,7 +967,7 @@ static void prvCONTROL_SetPPathEnable(const char* arguments, uint16_t argumentsL
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetPPathDisable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -920,7 +984,14 @@ static void prvCONTROL_SetPPathDisable(const char* arguments, uint16_t arguments
 		return;
 	}
 }
-
+/**
+ * @brief	Get device power path by utilizing system service
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_GetPPath(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	dpcontrol_ppath_state_t		ppathState = 0;
@@ -939,7 +1010,14 @@ static void prvCONTROL_GetPPath(const char* arguments, uint16_t argumentsLength,
 		prvCONTROL_PrepareOkResponse(response, responseSize, ppathStateString, ppathStateStringLength);
 	}
 }
-
+/**
+ * @brief	Get device undercurrent by utilizing system service
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_GetUVoltage(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	dpcontrol_protection_state_t	state = 0;
@@ -958,7 +1036,14 @@ static void prvCONTROL_GetUVoltage(const char* arguments, uint16_t argumentsLeng
 		prvCONTROL_PrepareOkResponse(response, responseSize, stateString, stateStringLength);
 	}
 }
-
+/**
+ * @brief	Get device overvoltage by utilizing system service
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_GetOVoltage(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	dpcontrol_protection_state_t	state = 0;
@@ -977,7 +1062,14 @@ static void prvCONTROL_GetOVoltage(const char* arguments, uint16_t argumentsLeng
 		prvCONTROL_PrepareOkResponse(response, responseSize, stateString, stateStringLength);
 	}
 }
-
+/**
+ * @brief	Get device overcurrent by utilizing system service
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_GetOCurrent(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	dpcontrol_protection_state_t	state = 0;
@@ -1002,7 +1094,7 @@ static void prvCONTROL_GetOCurrent(const char* arguments, uint16_t argumentsLeng
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_LatchTrigger(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1025,7 +1117,7 @@ static void prvCONTROL_LatchTrigger(const char* arguments, uint16_t argumentsLen
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetBatDisable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1048,7 +1140,7 @@ static void prvCONTROL_SetBatDisable(const char* arguments, uint16_t argumentsLe
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetBatteryState(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1175,7 +1267,7 @@ static void prvCONTROL_WaveClear(const char* arguments, uint16_t argumentsLength
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetDACValue(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1203,7 +1295,14 @@ static void prvCONTROL_SetDACValue(const char* arguments, uint16_t argumentsLeng
 		return;
 	}
 }
-
+/**
+ * @brief	Get device DAC value by utilizing system service
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_GetDACValue(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	uint32_t						value = 0;
@@ -1228,7 +1327,7 @@ static void prvCONTROL_GetDACValue(const char* arguments, uint16_t argumentsLeng
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetClkdiv(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1277,7 +1376,7 @@ static void prvCONTROL_SetClkdiv(const char* arguments, uint16_t argumentsLength
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_GetClkdiv(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1316,7 +1415,7 @@ static void prvCONTROL_GetClkdiv(const char* arguments, uint16_t argumentsLength
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetSamplingtime(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1374,7 +1473,7 @@ static void prvCONTROL_SetSamplingtime(const char* arguments, uint16_t arguments
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_GetSamplingtime(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1412,7 +1511,7 @@ static void prvCONTROL_GetSamplingtime(const char* arguments, uint16_t arguments
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetChSamplingtime(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1468,7 +1567,7 @@ static void prvCONTROL_SetChSamplingtime(const char* arguments, uint16_t argumen
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_GetChSamplingtime(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1505,7 +1604,7 @@ static void prvCONTROL_GetChSamplingtime(const char* arguments, uint16_t argumen
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetAveragingratio(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1554,7 +1653,7 @@ static void prvCONTROL_SetAveragingratio(const char* arguments, uint16_t argumen
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_GetAveragingratio(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1592,7 +1691,7 @@ static void prvCONTROL_GetAveragingratio(const char* arguments, uint16_t argumen
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetVoltageoffset(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1641,7 +1740,7 @@ static void prvCONTROL_SetVoltageoffset(const char* arguments, uint16_t argument
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_GetVoltageoffset(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1679,7 +1778,7 @@ static void prvCONTROL_GetVoltageoffset(const char* arguments, uint16_t argument
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_SetCurrentoffset(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1728,7 +1827,7 @@ static void prvCONTROL_SetCurrentoffset(const char* arguments, uint16_t argument
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_GetCurrentoffset(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1766,7 +1865,7 @@ static void prvCONTROL_GetCurrentoffset(const char* arguments, uint16_t argument
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_GetADCInputClk(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1798,7 +1897,14 @@ static void prvCONTROL_GetADCInputClk(const char* arguments, uint16_t argumentsL
 	adcClkStringLength = sprintf(adcClkString, "%lu", adcClk);
 	prvCONTROL_PrepareOkResponse(response, responseSize, adcClkString, adcClkStringLength);
 }
-
+/**
+ * @brief	Create EP link
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_EPLinkCreate(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	cmparse_value_t						value;
@@ -1840,7 +1946,14 @@ static void prvCONTROL_EPLinkCreate(const char* arguments, uint16_t argumentsLen
 	prvCONTROL_PrepareOkResponse(response, responseSize, streamIDString, streamIDStringLength);
 	LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "EP Link successfully created\r\n");
 }
-
+/**
+ * @brief	Create samples streaming
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
 static void prvCONTROL_StreamCreate(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	cmparse_value_t				value;
@@ -1888,7 +2001,7 @@ static void prvCONTROL_StreamCreate(const char* arguments, uint16_t argumentsLen
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_StreamStart(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1939,7 +2052,7 @@ static void prvCONTROL_StreamStart(const char* arguments, uint16_t argumentsLeng
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_StreamStop(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -1980,7 +2093,7 @@ control_status_link_instance_t statusLinkInstance;
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_CreateStatusLink(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -2032,7 +2145,7 @@ static void prvCONTROL_CreateStatusLink(const char* arguments, uint16_t argument
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
  * @param	response: response message content
- * @param	argumentsLength: length of response message
+ * @param	responseSize: length of response message
  * @retval	void
  */
 static void prvCONTROL_StatusLinkSendMessage(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -2137,7 +2250,7 @@ static void prvCONTROL_TaskFunc(void* pvParameter)
 			tv.tv_usec = 0;
 			if(setsockopt(newconn, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval)) != 0)
 			{
-				LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNNING,  "Unable to set socket option\r\n");
+				LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNING,  "Unable to set socket option\r\n");
 				close(newconn);
 				break;
 			}
@@ -2168,7 +2281,7 @@ static void prvCONTROL_TaskFunc(void* pvParameter)
 				}
 				if(CMPARSE_Execute(prvCONTROL_DATA.requestBuffer, prvCONTROL_DATA.responseBuffer, &prvCONTROL_DATA.responseBufferSize) != CMPARSE_STATUS_OK)
 				{
-					LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNNING, "There is error during control message parsing procedure\r\n");
+					LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNING, "There is error during control message parsing procedure\r\n");
 					memcpy(prvCONTROL_DATA.responseBuffer, "ERROR 0",strlen("ERROR 0"));
 					prvCONTROL_DATA.responseBufferSize = strlen("ERROR 0");
 				}
@@ -2180,14 +2293,14 @@ static void prvCONTROL_TaskFunc(void* pvParameter)
 				err = write(newconn, prvCONTROL_DATA.responseBuffer, prvCONTROL_DATA.responseBufferSize);
 				if(err < 0)
 				{
-					LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNNING, "There is a problem to send message\r\n");
+					LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNING, "There is a problem to send message\r\n");
 				}
 				/* Reinit buffers */
 				memset(prvCONTROL_DATA.requestBuffer, 	0, CONTROL_BUFFER_SIZE);
 				memset(prvCONTROL_DATA.responseBuffer, 	0, CONTROL_BUFFER_SIZE);
 				prvCONTROL_DATA.responseBufferSize = 0;
 			}
-			LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNNING,  "Connection closed\r\n");
+			LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNING,  "Connection closed\r\n");
 			close(newconn);
 			break;
 		case CONTROL_STATE_ERROR:
@@ -2278,7 +2391,7 @@ static void prvCONTROL_StatusLinkTaskFunc(void* pvParameter)
 					prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageBufferSize,
 					NETCONN_COPY) != ERR_OK)
 			{
-				LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_WARNNING,  "Unable to send status message\r\n");
+				LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_WARNING,  "Unable to send status message\r\n");
 			}
 			else
 			{
@@ -2296,9 +2409,7 @@ static void prvCONTROL_StatusLinkTaskFunc(void* pvParameter)
 
 	}
 }
-/**
- * @}
- */
+
 control_status_t 	CONTROL_Init(uint32_t initTimeout){
 
 	if(xTaskCreate(
@@ -2485,6 +2596,9 @@ control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, cont
 	portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 	return CONTROL_STATUS_OK;
 }
+/**
+ * @}
+ */
 /**
  * @}
  */

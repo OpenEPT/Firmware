@@ -102,9 +102,6 @@ typedef enum
  * @}
  */
 /**
- * @}
- */
-/**
  * @defgroup CONTROL_PUBLIC_FUNCTIONS Control service interface functions
  * @{
  */
@@ -156,6 +153,9 @@ control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, contol_stat
  * @retval	::control_status_t
  */
 control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, contol_status_message_type_t msgType, uint32_t timeout);
+/**
+ * @}
+ */
 /**
  * @}
  */

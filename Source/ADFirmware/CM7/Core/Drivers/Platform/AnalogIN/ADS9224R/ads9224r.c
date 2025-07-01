@@ -1,8 +1,19 @@
-/*
- * ads9224r.c
+/**
+ ******************************************************************************
+ * @file    ads9224r.c
  *
- *  Created on: Oct 7, 2024
- *      Author: Haris
+ * @brief   ADS9224R Dual-Channel, 24-bit, 155-kSPS ADC driver implementation
+ *          providing hardware abstraction layer for external ADS9224R ADC. 
+ *          This driver handles SPI/parallel communication protocols, dual
+ *          SDO channels, configurable sampling rates, power management,
+ *          data averaging, and DMA-based streaming with callback mechanisms
+ *          for high-speed analog data acquisition from dual simultaneous
+ *          sampling channels.
+ *
+ * @author  Haris Turkmanovic
+ * @email   haris.turkmanovic@gmail.com
+ * @date    October 2024
+ ******************************************************************************
  */
 
 #include "../../SPI/drv_spi.h"
@@ -11,74 +22,93 @@
 #include "stm32h7xx_hal_conf.h"
 #include "stm32h7xx_ll_dma.h"
 
-
-typedef struct
-{
-	ads9224r_init_state_t 	init;
-	ads9224r_config_t		*config;
-	ads9224r_acq_state_t    acqState;
-	bufferReceiveCallback	callback;
-	ads9224r_sdo_t 			trigger;
-	ads9224r_op_state_t     opState;
-	uint32_t				timPrescaller;
-	uint32_t				timPeriod;
-	uint32_t				timPulse;
-	uint32_t				samplingPeriod;
-}ads9224r_handle_t;
-
-static TIM_HandleTypeDef 	prvADS9224R_TIMER_SCLK_HANDLER;
-static TIM_HandleTypeDef 	prvADS9224R_TIMER_CS_HANDLER;
-static TIM_HandleTypeDef 	prvADS9224R_TIMER_CONVST_HANDLER;
-
-
-static ads9224r_handle_t	prvADS9224R_DATA;
-
-
-
-static SPI_HandleTypeDef 	prvADS9224R_SPI_S_SDOB_HANDLER;
-static SPI_HandleTypeDef 	prvADS9224R_SPI_S_SDOA_HANDLER;
-
-
-
-DMA_HandleTypeDef 			prvADS9224R_SPI_S_DMA_SDOB_HANDLER;
-
-DMA_HandleTypeDef 			prvADS9224R_SPI_S_DMA_SDOA_HANDLER;
-
+/**
+ * @defgroup DRIVERS Platform Drivers
+ * @{
+ */
 
 /**
-  * @brief This function handles DMA1 stream0 global interrupt.
-  */
+ * @defgroup ADS9224R_DRIVER ADS9224R External ADC Driver
+ * @{
+ */
+
+/**
+ * @defgroup ADS9224R_PRIVATE_STRUCTURES ADS9224R driver private structures
+ * @{
+ */
+/** * @brief ADS9224R driver internal handle structure
+ */
+typedef struct
+{
+	ads9224r_init_state_t 	init;         /**< Initialization state */
+	ads9224r_config_t		*config;      /**< Configuration parameters */
+	ads9224r_acq_state_t    acqState;     /**< Acquisition state */
+	bufferReceiveCallback	callback;     /**< Buffer receive callback function */
+	ads9224r_sdo_t 			trigger;      /**< SDO channel trigger selection */
+	ads9224r_op_state_t     opState;      /**< Operational state */
+	uint32_t				timPrescaller; /**< Timer prescaler value */
+	uint32_t				timPeriod;     /**< Timer period value */
+	uint32_t				timPulse;      /**< Timer pulse width */
+	uint32_t				samplingPeriod; /**< Calculated sampling period in microseconds */
+}ads9224r_handle_t;
+
+/**
+ * @}
+ */
+
+/**
+ * @defgroup ADS9224R_PRIVATE_DATA ADS9224R driver private data
+ * @{
+ */
+
+/** @brief Timer handle for SPI clock generation */
+static TIM_HandleTypeDef 	prvADS9224R_TIMER_SCLK_HANDLER;
+
+/** @brief Timer handle for chip select signal generation */
+static TIM_HandleTypeDef 	prvADS9224R_TIMER_CS_HANDLER;
+
+/** @brief Timer handle for conversion start signal generation */
+static TIM_HandleTypeDef 	prvADS9224R_TIMER_CONVST_HANDLER;
+
+/** @brief Internal driver data structure instance */
+static ads9224r_handle_t	prvADS9224R_DATA;
+
+/** @brief SPI handle for SDO-B channel communication */
+static SPI_HandleTypeDef 	prvADS9224R_SPI_S_SDOB_HANDLER;
+
+/** @brief SPI handle for SDO-A channel communication */
+static SPI_HandleTypeDef 	prvADS9224R_SPI_S_SDOA_HANDLER;
+
+/** @brief DMA handle for SDO-B channel data transfer */
+DMA_HandleTypeDef 			prvADS9224R_SPI_S_DMA_SDOB_HANDLER;
+
+/** @brief DMA handle for SDO-A channel data transfer */
+DMA_HandleTypeDef 			prvADS9224R_SPI_S_DMA_SDOA_HANDLER;
+
+/**
+ * @}
+ */
 void DMA1_Stream1_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(&prvADS9224R_SPI_S_DMA_SDOB_HANDLER);
 }
 
 
-/**
-  * @brief This function handles DMA2 stream0 global interrupt.
-  */
 void DMA2_Stream0_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(&prvADS9224R_SPI_S_DMA_SDOA_HANDLER);
 }
 
-/**
-  * @brief This function handles SPI4 global interrupt.
-  */
 void SPI4_IRQHandler(void)
 {
   HAL_SPI_IRQHandler(&prvADS9224R_SPI_S_SDOB_HANDLER);
 }
 
-/**
-  * @brief This function handles SPI5 global interrupt.
-  */
 void SPI5_IRQHandler(void)
 {
   HAL_SPI_IRQHandler(&prvADS9224R_SPI_S_SDOA_HANDLER);
 }
 
-/* When MO finish, this callback is triggered */
 void		   		HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 
@@ -93,7 +123,16 @@ void		   		HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 		if(prvADS9224R_DATA.callback != 0) prvADS9224R_DATA.callback(0);
 	}
 }
-/* When M1 finish, this callback is triggered */
+/**
+ * @defgroup ADS9224R_PRIVATE_FUNCTIONS ADS9224R driver private functions
+ * @{
+ */
+
+/**
+ * @brief  DMA half transfer complete callback
+ * @note   This callback is triggered when DMA half transfer is completed
+ * @param  _hdma: Pointer to DMA handle
+ */
 static void		   		prvADS9224R_DMAHalfComplitedCallback1(DMA_HandleTypeDef *_hdma)
 {
 	//DRV_GPIO_Pin_SetStateFromISR(DRV_GPIO_PORT_B, 14, DRV_GPIO_PIN_STATE_RESET);
@@ -111,6 +150,11 @@ static void		   		prvADS9224R_DMAHalfComplitedCallback1(DMA_HandleTypeDef *_hdma
 	}
 }
 
+/**
+ * @brief  Initialize SPI slave for SDO-B channel communication
+ * @note   Configures SPI4 in slave mode with DMA for data reception
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_SPI_SLAVE_SDOB_Init(void)
 {
 	/* SPI4 parameter configuration*/
@@ -162,6 +206,12 @@ static ads9224r_status_t prvADS9224R_SPI_SLAVE_SDOB_Init(void)
 
 	return ADS9224R_STATUS_OK;
 }
+
+/**
+ * @brief  Initialize SPI slave for SDO-A channel communication
+ * @note   Configures SPI% in slave mode with DMA for data reception
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_SPI_SLAVE_SDOA_Init(void)
 {
 
@@ -216,6 +266,12 @@ static ads9224r_status_t prvADS9224R_SPI_SLAVE_SDOA_Init(void)
 
 
 
+/**
+ * @brief  Power up the ADS9224R device
+ * @note   Configures GPIO pins and waits for ready signal from device
+ * @param  timeout: Timeout value in milliseconds for the power-up sequence
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_PowerUp(uint32_t timeout)
 {
 
@@ -258,11 +314,14 @@ static ads9224r_status_t prvADS9224R_PowerUp(uint32_t timeout)
 	return ADS9224R_STATUS_OK;
 }
 
+/**
+ * @brief  Power down the ADS9224R device
+ * @note   Configures GPIO pins and sets reset/power down pin to low
+ * @param  timeout: Timeout value in milliseconds for the power-down sequence
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_PowerDown(uint32_t timeout)
 {
-
-	uint32_t curTick;
-
 	/*CS Config*/
 	drv_gpio_pin_init_conf_t 	outPinConfig;
 	outPinConfig.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
@@ -283,6 +342,11 @@ static ads9224r_status_t prvADS9224R_PowerDown(uint32_t timeout)
 }
 
 
+/**
+ * @brief  Initialize SPI master for ADS9224R configuration
+ * @note   Sets up SPI3 in master mode with appropriate pins for device communication
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_CONF_SPI_Master_Init()
 {
 	if(prvADS9224R_DATA.opState == ADS9224R_OP_STATE_DOWN ||
@@ -311,6 +375,11 @@ static ads9224r_status_t prvADS9224R_CONF_SPI_Master_Init()
 	return ADS9224R_STATUS_OK;
 }
 
+/**
+ * @brief  Deinitialize SPI master used for ADS9224R configuration
+ * @note   Cleans up SPI3 and CS pin resources
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_CONF_SPI_Master_DeInit()
 {
 	if(prvADS9224R_DATA.opState == ADS9224R_OP_STATE_DOWN ||
@@ -323,6 +392,11 @@ static ads9224r_status_t prvADS9224R_CONF_SPI_Master_DeInit()
 	return ADS9224R_STATUS_OK;
 }
 
+/**
+ * @brief  Initialize the configuration state for ADS9224R device
+ * @note   Configures GPIO pins and SPI for register access
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_CONF_SetState()
 {
 	if(prvADS9224R_DATA.opState == ADS9224R_OP_STATE_DOWN ||
@@ -358,6 +432,11 @@ static ads9224r_status_t prvADS9224R_CONF_SetState()
 	return ADS9224R_STATUS_OK;
 }
 
+/**
+ * @brief  Exit the configuration state for ADS9224R device
+ * @note   Deinitializes GPIO pins and SPI used for register access
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_CONF_UnsetState()
 {
 	if(prvADS9224R_DATA.opState == ADS9224R_OP_STATE_DOWN ||
@@ -377,6 +456,13 @@ static ads9224r_status_t prvADS9224R_CONF_UnsetState()
 	return ADS9224R_STATUS_OK;
 }
 
+/**
+ * @brief  Read a register from ADS9224R device using SPI
+ * @param  reg: Register address to read from
+ * @param  data: Pointer to store the read data
+ * @param  timeout: Timeout value in milliseconds for the SPI operation
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_CONF_SPI_Master_ReadReg(uint8_t reg, uint8_t* data, uint32_t timeout)
 {
 	uint8_t txData[2];
@@ -410,6 +496,13 @@ static ads9224r_status_t prvADS9224R_CONF_SPI_Master_ReadReg(uint8_t reg, uint8_
 }
 
 
+/**
+ * @brief  Write a value to a register in ADS9224R device using SPI
+ * @param  reg: Register address to write to
+ * @param  data: Data to write to the register
+ * @param  timeout: Timeout value in milliseconds for the SPI operation
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_CONF_SPI_Master_WriteReg(uint8_t reg, uint8_t data, uint32_t timeout)
 {
 	uint8_t txData[2];
@@ -431,10 +524,10 @@ static ads9224r_status_t prvADS9224R_CONF_SPI_Master_WriteReg(uint8_t reg, uint8
 }
 
 /**
-  * @brief TIM3 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief  Initialize timer for SPI clock generation
+ * @note   Configures TIM8 for PWM generation with appropriate timing for SPI clock
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_TIMER_SCLK_Init(void)
 {
 
@@ -496,10 +589,10 @@ static ads9224r_status_t prvADS9224R_TIMER_SCLK_Init(void)
 }
 
 /**
-  * @brief TIM4 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief  Initialize timer for chip select signal generation
+ * @note   Configures TIM4 for PWM generation with appropriate timing for CS signal
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_TIMER_CS_Init(void)
 {
 
@@ -554,10 +647,10 @@ static ads9224r_status_t prvADS9224R_TIMER_CS_Init(void)
 volatile uint8_t data1[200];
 volatile uint8_t data2[200];
 /**
-  * @brief TIM5 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief  Initialize timer for conversion start signal generation
+ * @note   Configures TIM5 for PWM generation with appropriate timing for CONVST signal
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_TIMER_CONVST_Init(void)
 {
 
@@ -593,10 +686,10 @@ static ads9224r_status_t prvADS9224R_TIMER_CONVST_Init(void)
 }
 
 /**
-  * @brief TIM5 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief  Deinitialize conversion start timer
+ * @note   Cleans up resources used by TIM5 for CONVST signal generation
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_TIMER_CONVST_DeInit(void)
 {
 
@@ -610,10 +703,10 @@ static ads9224r_status_t prvADS9224R_TIMER_CONVST_DeInit(void)
 }
 
 /**
-  * @brief TIM5 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief  Deinitialize chip select timer
+ * @note   Cleans up resources used by TIM4 for CS signal generation
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_TIMER_CS_DeInit(void)
 {
 
@@ -629,10 +722,10 @@ static ads9224r_status_t prvADS9224R_TIMER_CS_DeInit(void)
 }
 
 /**
-  * @brief TIM5 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief  Deinitialize SPI clock timer
+ * @note   Cleans up resources used by TIM8 for SPI clock generation
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_TIMER_SCLK_DeInit(void)
 {
 
@@ -648,6 +741,16 @@ static ads9224r_status_t prvADS9224R_TIMER_SCLK_DeInit(void)
 }
 
 
+/**
+ * @brief  Set acquisition state for ADC data capture
+ * @note   Configures timers, SPI, and DMA for continuous data acquisition
+ * @param  sdoaBuffer0: First buffer for SDO-A channel data
+ * @param  sdoaBuffer1: Second buffer for SDO-A channel data (for double buffering)
+ * @param  sdobBuffer0: First buffer for SDO-B channel data
+ * @param  sdobBuffer1: Second buffer for SDO-B channel data (for double buffering)
+ * @param  size: Size of each buffer in bytes
+ * @retval ::ads9224r_status_t: ADS9224R_STATUS_OK if successful, otherwise ADS9224R_STATUS_ERROR
+ */
 static ads9224r_status_t prvADS9224R_ACQ_SetState(uint8_t* sdoaBuffer0, uint8_t* sdoaBuffer1, uint8_t* sdobBuffer0,uint8_t* sdobBuffer1, uint32_t size)
 {
 	uint32_t curTick = 0;
@@ -943,7 +1046,6 @@ ads9224r_status_t   ADS9224R_SetSamplingRate(uint32_t timPeriod, uint32_t timPre
 	prvADS9224R_TIMER_CONVST_HANDLER.Instance->PSC = timPrescaler;
 	prvADS9224R_TIMER_CONVST_HANDLER.Instance->ARR = prvADS9224R_DATA.timPeriod;
 	prvADS9224R_TIMER_CONVST_HANDLER.Instance->CCR4 = prvADS9224R_DATA.timPulse;
-
 	return ADS9224R_STATUS_OK;
 }
 ads9224r_status_t   ADS9224R_RegisterCallback(bufferReceiveCallback callback, ads9224r_sdo_t trigger)
@@ -954,4 +1056,14 @@ ads9224r_status_t   ADS9224R_RegisterCallback(bufferReceiveCallback callback, ad
 	return ADS9224R_STATUS_OK;
 }
 
+/**
+ * @}
+ */
 
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */

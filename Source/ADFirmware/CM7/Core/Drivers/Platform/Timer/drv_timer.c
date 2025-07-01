@@ -1,29 +1,41 @@
-/*
- * timer.c
+/**
+ ******************************************************************************
+ * @file    drv_timer.c
  *
- *  Created on: Oct 2, 2024
- *      Author: Haris
+ * @brief   Timer driver implementation providing hardware abstraction layer for 
+ *          STM32 timer peripherals. This driver supports timer initialization, 
+ *          channel configuration, PWM mode operation, and timing management.
+ *          It enables precise timing control for various applications including 
+ *          LED control, signal generation, and timing measurements.
+ *
+ * @author  Haris Turkmanovic
+ * @email   haris.turkmanovic@gmail.com
+ * @date    October 2024
+ ******************************************************************************
  */
 #include "drv_timer.h"
 
-static TIM_HandleTypeDef		prvDRV_TIMER_PLATFORM_HANDLER[DRV_TIMER_MAX_NUMBER_OF_TIMERS];
-static drv_timer_handle_t 		prvDRV_TIMER_HANDLER[DRV_TIMER_MAX_NUMBER_OF_CHANNELS];
-static drv_timer_init_status_t  prvDRV_TIMER_INIT_STATUS ;
-
-drv_timer_status_t DRV_Timer_Init()
-{
-	memset(prvDRV_TIMER_PLATFORM_HANDLER, 0, DRV_TIMER_MAX_NUMBER_OF_TIMERS*sizeof(TIM_HandleTypeDef));
-	memset(prvDRV_TIMER_HANDLER, 0, DRV_TIMER_MAX_NUMBER_OF_CHANNELS*sizeof(drv_timer_handle_t));
-	prvDRV_TIMER_INIT_STATUS = DRV_TIMER_INIT_STATUS_INIT;
-	return DRV_TIMER_STATUS_OK;
-}
+/**
+ * @defgroup DRIVERS Platform Drivers
+ * @{
+ */
 
 /**
-* @brief TIM_Base MSP Initialization
-* This function configures the hardware resources used in this example
-* @param htim_base: TIM_Base handle pointer
-* @retval None
-*/
+ * @defgroup TIMER_DRIVER Timer Driver
+ * @{
+ */
+
+/**
+ * @defgroup TIMER_PRIVATE_DATA Timer driver private data
+ * @{
+ */
+static TIM_HandleTypeDef		prvDRV_TIMER_PLATFORM_HANDLER[DRV_TIMER_MAX_NUMBER_OF_TIMERS]; /**< Array of HAL timer handles */
+static drv_timer_handle_t 		prvDRV_TIMER_HANDLER[DRV_TIMER_MAX_NUMBER_OF_CHANNELS];       /**< Array of driver timer handles */
+static drv_timer_init_status_t  prvDRV_TIMER_INIT_STATUS ;                                   /**< Driver initialization status */
+/**
+ * @}
+ */
+
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -153,12 +165,6 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 	    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 	}
 }
-/**
-* @brief TIM_Base MSP De-Initialization
-* This function freeze the hardware resources used in this example
-* @param htim_base: TIM_Base handle pointer
-* @retval None
-*/
 void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
 {
 	if(htim_base->Instance==TIM1)
@@ -202,6 +208,13 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
 		HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0);
 
 	}
+}
+drv_timer_status_t DRV_Timer_Init()
+{
+	memset(prvDRV_TIMER_PLATFORM_HANDLER, 0, DRV_TIMER_MAX_NUMBER_OF_TIMERS*sizeof(TIM_HandleTypeDef));
+	memset(prvDRV_TIMER_HANDLER, 0, DRV_TIMER_MAX_NUMBER_OF_CHANNELS*sizeof(drv_timer_handle_t));
+	prvDRV_TIMER_INIT_STATUS = DRV_TIMER_INIT_STATUS_INIT;
+	return DRV_TIMER_STATUS_OK;
 }
 drv_timer_status_t DRV_Timer_Init_Instance(drv_timer_instance_t instance, drv_timer_config_t* config)
 {
@@ -341,3 +354,15 @@ drv_timer_status_t DRV_Timer_Channel_PWM_Start(drv_timer_instance_t instance, dr
 	xSemaphoreGive(prvDRV_TIMER_HANDLER[instance].lock);
 	return DRV_TIMER_STATUS_OK;
 }
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */

@@ -450,11 +450,11 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			/*Initialize Load Disable pin*/
 			if(DRV_GPIO_Port_Init(DPCONTROL_LOAD_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize load control port\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize load control port\r\n");
 			}
 			if(DRV_GPIO_Pin_Init(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize load control pin\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize load control pin\r\n");
 			}
 
 			switch(prvDPCONTROL_DATA.loadState)
@@ -462,7 +462,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			case DPCONTROL_LOAD_STATE_DISABLE:
 				if(DRV_GPIO_Pin_SetState(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
 				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to disable load\r\n");
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to disable load\r\n");
 				}
 				else
 				{
@@ -472,7 +472,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			case DPCONTROL_LOAD_STATE_ENABLE:
 				if(DRV_GPIO_Pin_SetState(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
 				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to enable load\r\n");
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to enable load\r\n");
 				}
 				else
 				{
@@ -485,18 +485,18 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			/*Initialize Bat Disable pin*/
 			if(DRV_GPIO_Port_Init(DPCONTROL_BAT_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize battery control port\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize battery control port\r\n");
 			}
 			if(DRV_GPIO_Pin_Init(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize battery control pin\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize battery control pin\r\n");
 			}
 			switch(prvDPCONTROL_DATA.batState)
 			{
 			case DPCONTROL_LOAD_STATE_DISABLE:
 				if(DRV_GPIO_Pin_SetState(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
 				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to disable Battery\r\n");
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to disable Battery\r\n");
 				}
 				else
 				{
@@ -506,7 +506,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			case DPCONTROL_LOAD_STATE_ENABLE:
 				if(DRV_GPIO_Pin_SetState(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
 				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to enable Battery\r\n");
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to enable Battery\r\n");
 				}
 				else
 				{
@@ -518,18 +518,18 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			/*Initialize PPath Disable pin*/
 			if(DRV_GPIO_Port_Init(DPCONTROL_GPIO_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize ppath control port\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize ppath control port\r\n");
 			}
 			if(DRV_GPIO_Pin_Init(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize ppath control pin\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize ppath control pin\r\n");
 			}
 			switch(prvDPCONTROL_DATA.pathState)
 			{
 			case DPCONTROL_PPATH_STATE_DISABLE:
 				if(DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
 				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to disable Power Path\r\n");
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to disable Power Path\r\n");
 				}
 				else
 				{
@@ -539,7 +539,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			case DPCONTROL_PPATH_STATE_ENABLE:
 				if(DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
 				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to enable Power Path\r\n");
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to enable Power Path\r\n");
 				}
 				else
 				{
@@ -553,11 +553,11 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 
 			if(DRV_GPIO_Port_Init(DPCONTROL_LATCH_PORT) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize latch port\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize latch port\r\n");
 			}
 			if(DRV_GPIO_Pin_Init(DPCONTROL_LATCH_PORT, DPCONTROL_LATCH_PIN, &latchPinConfig) != DRV_GPIO_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize latch pin\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize latch pin\r\n");
 			}
 
 			/* Initialize Under voltage protection interrupt pin*/
@@ -576,7 +576,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			prvDPCONTROL_DATA.underVoltage = pinState;
 			if(prvDPCONTROL_DATA.underVoltage == DPCONTROL_PROTECTION_STATE_ENABLE)
 			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNNING,  "Under voltage protection is active\r\n");
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNING,  "Under voltage protection is active\r\n");
 			}
 
 			/* Initialize Over voltage protection interrupt pin*/
@@ -595,7 +595,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			prvDPCONTROL_DATA.overVoltage = pinState;
 			if(prvDPCONTROL_DATA.overVoltage == DPCONTROL_PROTECTION_STATE_ENABLE)
 			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNNING,  "Over voltage protection is active\r\n");
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNING,  "Over voltage protection is active\r\n");
 			}
 
 			/* Initialize Over Current protection interrupt pin*/
@@ -614,17 +614,17 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			prvDPCONTROL_DATA.overCurrent = pinState;
 			if(prvDPCONTROL_DATA.overCurrent == DPCONTROL_PROTECTION_STATE_ENABLE)
 			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNNING,  "Over Current protection is active\r\n");
+				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNING,  "Over Current protection is active\r\n");
 			}
 
 			if(DRV_AOUT_SetValue(prvDPCONTROL_DATA.aoutData.data) != DRV_AOUT_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to set DAC value\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to set DAC value\r\n");
 			}
 
 			if(prvDPCONTROL_TIM_Init() != DPCONTROL_STATUS_OK)
 			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to initialize wave timer\r\n");
+				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize wave timer\r\n");
 			}
 
 			LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Discharge Profile Control service successfully initialized\r\n");
@@ -652,7 +652,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				}
 				if(DRV_AOUT_SetValue(aoutValue) != DRV_AOUT_STATUS_OK)
 				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to set DAC value\r\n");
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to set DAC value\r\n");
 				}
 				else
 				{
@@ -679,7 +679,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				}
 				if(DRV_AOUT_SetEnable(activeStatus) != DRV_AOUT_STATUS_OK)
 				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to set active status\r\n");
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to set active status\r\n");
 				}
 				else
 				{
@@ -709,7 +709,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				case DPCONTROL_LOAD_STATE_DISABLE:
 					if(DRV_GPIO_Pin_SetState(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
 					{
-						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to disable load\r\n");
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to disable load\r\n");
 					}
 					else
 					{
@@ -719,7 +719,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				case DPCONTROL_LOAD_STATE_ENABLE:
 					if(DRV_GPIO_Pin_SetState(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
 					{
-						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to enable load\r\n");
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to enable load\r\n");
 					}
 					else
 					{
@@ -751,7 +751,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				case DPCONTROL_BAT_STATE_DISABLE:
 					if(DRV_GPIO_Pin_SetState(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
 					{
-						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to disable battery\r\n");
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to disable battery\r\n");
 					}
 					else
 					{
@@ -761,7 +761,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				case DPCONTROL_BAT_STATE_ENABLE:
 					if(DRV_GPIO_Pin_SetState(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
 					{
-						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to enable battery\r\n");
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to enable battery\r\n");
 					}
 					else
 					{
@@ -793,7 +793,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				case DPCONTROL_PPATH_STATE_ENABLE:
 					if(DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
 					{
-						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to enable power path\r\n");
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to enable power path\r\n");
 					}
 					else
 					{
@@ -803,7 +803,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				case DPCONTROL_PPATH_STATE_DISABLE:
 					if(DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
 					{
-						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to disable power path\r\n");
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to disable power path\r\n");
 					}
 					else
 					{
@@ -817,14 +817,14 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			{
 				if(DRV_GPIO_Pin_SetState(DPCONTROL_LATCH_PORT, DPCONTROL_LATCH_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
 				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to reset latch\r\n");
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to reset latch\r\n");
 				}
 				else
 				{
 					vTaskDelay(pdMS_TO_TICKS(5));
 					if(DRV_GPIO_Pin_SetState(DPCONTROL_LATCH_PORT, DPCONTROL_LATCH_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
 					{
-						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNNING,  "Unable to reset latch\r\n");
+						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to reset latch\r\n");
 					}
 					else
 					{
@@ -953,9 +953,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 		}
 	}
 }
-/**
- * @}
- */
+
 dpcontrol_status_t DPCONTROL_Init(uint32_t initTimeout)
 {
 	memset(&prvDPCONTROL_DATA, 0, sizeof(dpcontrol_data_t));
@@ -1209,3 +1207,14 @@ dpcontrol_status_t DPCONTROL_ClearWave(uint32_t timeout)
 	return DPCONTROL_STATUS_OK;
 }
 
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
