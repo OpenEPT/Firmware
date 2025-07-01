@@ -22,7 +22,7 @@ Official [youtube](https://www.youtube.com/playlist?list=PLTG-EoxvlLos_3Sex3R0yf
 ---
 # Building and Running the Energy Profiler Probe Firmware
 
-To successfully build and run the DAU firmware, **STM32CubeIDE** must be installed and properly configured with the required dependencies. The following steps guide you through the full setup process.
+To successfully build and run the EPP firmware, **STM32CubeIDE** must be installed and properly configured with the required dependencies. The following steps guide you through the full setup process.
 
 ## Step 1: Download and Install STM32CubeIDE
 
