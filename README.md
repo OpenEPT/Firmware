@@ -186,9 +186,11 @@ git fetch upstream
 git checkout main
 git merge upstream/main
 ```
+---
 # Documentation
 
 For detailed developer instructions and additional materials, please see the [Developer Guide](https://www.openept.net/pages/materials).
+
 ---
 # Acknowledgments
 [![NLNet](https://nlnet.nl/image/logo_nlnet.svg )](https://nlnet.nl/)
