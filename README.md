@@ -104,7 +104,7 @@ To run and start debugging:
 ![Debug](Documentation/img/Debug.PNG)
 
 ---
-#Contributor guide
+# Contributor guide
 
 ## Step 1:  Fork the Repository
 
