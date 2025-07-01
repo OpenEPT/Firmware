@@ -59,6 +59,7 @@ extern ETH_HandleTypeDef HETH;
 extern DMA_HandleTypeDef hdma_adc1;
 extern DAC_HandleTypeDef hdac1;
 extern TIM_HandleTypeDef htim6;
+extern TIM_HandleTypeDef DPCONTROL_TIM;
 extern SPI_HandleTypeDef prvADS9224R_SPI_S_SDOB_HANDLER;
 extern SPI_HandleTypeDef prvADS9224R_SPI_S_SDOA_HANDLER;
 
@@ -192,6 +193,8 @@ void TIM6_DAC_IRQHandler(void)
 
   /* USER CODE END TIM6_DAC_IRQn 1 */
 }
+
+
 
 /**
   * @brief This function handles Ethernet global interrupt.

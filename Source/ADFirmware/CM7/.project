@@ -32,17 +32,17 @@
 		<link>
 			<name>Common</name>
 			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Common</locationURI>
+			<locationURI>PROJECT_PATH/Common</locationURI>
 		</link>
 		<link>
 			<name>Core/Drivers/Device</name>
 			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Drivers</locationURI>
+			<locationURI>PROJECT_PATH/Drivers</locationURI>
 		</link>
 		<link>
 			<name>Core/Middlewares/Third_Party</name>
 			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Middlewares/Third_Party</locationURI>
+			<locationURI>PROJECT_PATH/Middlewares/Third_Party</locationURI>
 		</link>
 	</linkedResources>
 	<variableList>

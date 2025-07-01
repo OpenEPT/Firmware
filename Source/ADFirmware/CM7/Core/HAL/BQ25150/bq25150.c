@@ -1,8 +1,17 @@
-/*
- * bq25150.c
+/**
+ ******************************************************************************
+ * @file    bq25150.c
  *
- *  Created on: Apr 12, 2025
- *      Author: elektronika
+ * @brief   BQ25150 battery charger IC driver implementation providing hardware 
+ *          abstraction layer for controlling and monitoring the TI BQ25150
+ *          linear battery charger. This driver supports charging control, 
+ *          current limit settings, interrupt handling, ADC monitoring, watchdog
+ *          timer configuration, and register access for comprehensive charger
+ *          management.
+ *
+ * @author  elektronika
+ * @date    April 2025
+ ******************************************************************************
  */
 #include <stdint.h>
 
@@ -11,44 +20,83 @@
 #include "drv_i2c.h"
 #include "drv_gpio.h"
 
-#define		BQ250150_CHARGE_EN_PORT		4
-#define		BQ250150_CHARGE_EN_PIN		8
-#define		BQ250150_CHARGE_INT_PORT	4
-#define		BQ250150_CHARGE_INT_PIN		7
-#define		BQ250150_CHARGE_INT_PRIO	5
+/**
+ * @defgroup HAL Hardware Abstraction Layer
+ * @{
+ */
 
-#define 	BQ25150_DEV_ADDR			0x6B
-#define 	BQ25150_DEV_ID				0x20
+/**
+ * @defgroup BQ25150_DRIVER BQ25150 Battery Charger Driver
+ * @{
+ */
 
-#define 	BQ25150_REG_IFLAG0			0x03
-#define 	BQ25150_REG_IFLAG1			0x04
-#define 	BQ25150_REG_IFLAG2			0x05
-#define 	BQ25150_REG_IFLAG3			0x06
-#define 	BQ25150_REG_MASK0			0x07
-#define 	BQ25150_REG_MASK1			0x08
-#define 	BQ25150_REG_MASK2			0x09
-#define 	BQ25150_REG_MASK3			0x0A
-#define 	BQ25150_REG_VBAT_CTRL		0x12
-#define 	BQ25150_REG_ICHG_CTRL		0x13
-#define 	BQ25150_REG_TERMCTRL		0x15
-#define 	BQ25150_REG_CHARGERCTRL0	0x17
-#define 	BQ25150_REG_ILIMCTRL		0x19
-#define 	BQ25150_REG_ICCTRL2			0x37
-#define 	BQ25150_REG_ID				0x6F
+/**
+ * @defgroup BQ25150_PRIVATE_DEFINES BQ25150 driver defines and default values
+ * @{
+ */
+#define		BQ250150_CHARGE_EN_PORT		4             /**< GPIO port for charger enable pin */
+#define		BQ250150_CHARGE_EN_PIN		8             /**< GPIO pin for charger enable */
+#define		BQ250150_CHARGE_INT_PORT	4             /**< GPIO port for charger interrupt pin */
+#define		BQ250150_CHARGE_INT_PIN		7             /**< GPIO pin for charger interrupt */
+#define		BQ250150_CHARGE_INT_PRIO	5             /**< Priority level for charger interrupt */
 
+#define 	BQ25150_DEV_ADDR			0x6B          /**< I2C device address for BQ25150 */
+#define 	BQ25150_DEV_ID				0x20          /**< Device ID for BQ25150 */
 
+#define 	BQ25150_REG_IFLAG0			0x03          /**< Interrupt flag register 0 */
+#define 	BQ25150_REG_IFLAG1			0x04          /**< Interrupt flag register 1 */
+#define 	BQ25150_REG_IFLAG2			0x05          /**< ADC interrupt flag register */
+#define 	BQ25150_REG_IFLAG3			0x06          /**< Timer interrupt flag register */
+#define 	BQ25150_REG_MASK0			0x07          /**< Interrupt mask register 0 */
+#define 	BQ25150_REG_MASK1			0x08          /**< Interrupt mask register 1 */
+#define 	BQ25150_REG_MASK2			0x09          /**< ADC interrupt mask register */
+#define 	BQ25150_REG_MASK3			0x0A          /**< Timer interrupt mask register */
+#define 	BQ25150_REG_VBAT_CTRL		0x12          /**< Battery voltage control register */
+#define 	BQ25150_REG_ICHG_CTRL		0x13          /**< Charge current control register */
+#define 	BQ25150_REG_TERMCTRL		0x15          /**< Termination control register */
+#define 	BQ25150_REG_CHARGERCTRL0	0x17          /**< Charger control register 0 */
+#define 	BQ25150_REG_ILIMCTRL		0x19          /**< Input current limit control register */
+#define 	BQ25150_REG_ICCTRL2			0x37          /**< IC control register 2 */
+#define 	BQ25150_REG_ID				0x6F          /**< Device ID register */
+/**
+ * @}
+ */
 
 bq25150_intcb prvBQ25150_CB;
 
+/**
+ * @defgroup BQ25150_PRIVATE_FUNCTIONS BQ25150 driver private functions
+ * @{
+ */
+
+/**
+ * @brief Interrupt callback handler for BQ25150 interrupts
+ * 
+ * This function is called when the BQ25150 interrupt pin changes state.
+ * It forwards the interrupt to the registered user callback function.
+ *
+ * @param GPIO_Pin The GPIO pin that triggered the interrupt
+ * @retval None
+ */
 static void prvBQ25150_IntCallback(uint16_t GPIO_Pin)
 {
-	uint16_t intFlags = 0;
 	if(prvBQ25150_CB != 0)
 	{
 		prvBQ25150_CB();
 	}
 }
 
+/**
+ * @brief Read data from a BQ25150 register
+ * 
+ * This function reads the content of a specified register from the BQ25150 device
+ * using I2C communication.
+ *
+ * @param reg Register address to read
+ * @param data Pointer to store the read data
+ * @param timeout Communication timeout in milliseconds
+ * @retval ::bq25150_status_t BQ25150_STATUS_OK if successful, BQ25150_STATUS_ERROR otherwise
+ */
 static bq25150_status_t prvBQ25150_ReadReg(uint8_t reg, uint8_t* data, uint32_t timeout)
 {
 	uint8_t addr;
@@ -72,7 +120,18 @@ static bq25150_status_t prvBQ25150_ReadReg(uint8_t reg, uint8_t* data, uint32_t 
     return BQ25150_STATUS_OK;
 }
 
-
+/**
+ * @brief Write data to a BQ25150 register
+ * 
+ * This function writes data to a specified register of the BQ25150 device
+ * using I2C communication. Optionally verifies the write by reading back.
+ *
+ * @param reg Register address to write to
+ * @param data Data byte to write
+ * @param writeCheck If 1, verify write by reading back
+ * @param timeout Communication timeout in milliseconds
+ * @retval ::bq25150_status_t BQ25150_STATUS_OK if successful, BQ25150_STATUS_ERROR otherwise
+ */
 static bq25150_status_t prvBQ25150_WriteReg(uint8_t reg, uint8_t data, uint8_t writeCheck, uint32_t timeout)
 {
 	uint8_t addr;
@@ -393,3 +452,15 @@ bq25150_status_t BQ25150_ReadReg(uint8_t regAddr, uint8_t* data, uint32_t timeou
 {
     return prvBQ25150_ReadReg(regAddr, data, timeout);
 }
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */

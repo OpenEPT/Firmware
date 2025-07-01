@@ -1,13 +1,33 @@
-/*
- * globalConfig.h
+/**
+ ******************************************************************************
+ * @file   	globalConfig.h
  *
- *  Created on: Nov 5, 2023
- *      Author: Haris
+ * @brief  	All Global configuration macros are declared in this header file.
+ *
+ * @author	Haris Turkmanovic
+ * @email	haris.turkmanovic@gmail.com
+ * @date	November 2023
+ ******************************************************************************
  */
 
 #ifndef CORE_CONFIGURATION_GLOBALCONFIG_H_
 #define CORE_CONFIGURATION_GLOBALCONFIG_H_
 
+
+/**
+ * @defgroup CONFIGURATION System Configuration
+ * @{
+ */
+
+/**
+ * @defgroup GLOBALCONFIG_CONFIG Global System Configuration
+ * @{
+ */
+
+/**
+ * @defgroup GLOBALCONFIG_PUBLIC_DEFINES Global System Configuration public defines
+ * @{
+ */
 
 /*Driver layer connfiguration*/
 /* AnalogIN configuration*/
@@ -106,8 +126,8 @@
 #define CONF_ENERGY_DEBUGGER_BUTTON_PIN				14
 #define CONF_ENERGY_DEBUGGER_BUTTON_ISR_PRIO		5 //configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
 #define CONF_ENERGY_DEBUGGER_ID_QUEUE_LENGTH		100
-#define CONF_ENERGY_DEBUGGER_MESSAGE_BUFFER_LENTH 		100
-#define CONF_ENERGY_DEBUGGER_TCP_MESSAGE_BUFFER_LENTH 	200
+#define CONF_ENERGY_DEBUGGER_MESSAGE_BUFFER_LENGTH 		100
+#define CONF_ENERGY_DEBUGGER_TCP_MESSAGE_BUFFER_LENGTH 	200
 #define CONF_ENERGY_DEBUGGER_EBP_NAMES_QUEUE_LENGTH	10
 #define CONF_ENERGY_DEBUGGER_EBP_QUEUE_LENGTH		10
 #define CONF_ENERGY_DEBUGGER_MAX_CONNECTIONS        3
@@ -138,4 +158,13 @@
 #define CONF_DPCONTROL_OC_PIN					15
 #define CONF_DPCONTROL_OC_ISR_PRIO				5 	//configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
 
+/**
+ * @}
+ */
+/**
+ * @}
+ */
+/**
+ * @}
+ */
 #endif /* CORE_CONFIGURATION_GLOBALCONFIG_H_ */

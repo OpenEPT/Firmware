@@ -1,21 +1,46 @@
 /**
  ******************************************************************************
  * @file   	drv_gpio.c
- * @brief  	...
+ * @brief  	GPIO driver implementation
+ * @details This file contains the implementation of the GPIO driver for STM32H7 microcontrollers.
+ *          It provides functionality for GPIO pin configuration, control, and interrupt handling.
  * @author	Haris Turkmanovic
  * @email	haris.turkmanovic@gmail.com
  * @date	November 2022
  ******************************************************************************
  */
+
 #include "drv_gpio.h"
 #include "main.h"
 #include <string.h>
 
+/**
+ * @defgroup DRIVERS Platform Drivers
+ * @{
+ */
 
+/**
+ * @defgroup GPIO_DRIVER GPIO Driver
+ * @{
+ */
+
+/**
+ * @defgroup GPIO_PRIVATE_DATA GPIO driver private data
+ * @{
+ */
+
+/** @brief Array of GPIO port handles for all available ports */
 static drv_gpio_port_handle_t 		prvDRV_GPIO_PORTS[DRV_GPIO_PORT_MAX_NUMBER];
+
+/** @brief Array of GPIO pin interrupt callbacks for all available interrupt pins */
 static drv_gpio_pin_isr_callback	prvDRV_GPIO_PINS_INTERRUPTS[DRV_GPIO_INTERRUPTS_MAX_NUMBER];
+
+/** @brief GPIO driver initialization status */
 static drv_gpio_init_status_t		prvDRV_GPIO_INIT_STATUS;
 
+/**
+ * @}
+ */
 void 	HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	uint32_t 	i = 0;
@@ -31,6 +56,19 @@ void 	HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	}
 }
 
+/**
+ * @defgroup GPIO_PRIVATE_FUNCTIONS GPIO driver private functions
+ * @{
+ */
+
+/**
+ * @brief   Convert driver GPIO pin mode to HAL GPIO pin mode
+ * @details This internal function converts the driver-specific GPIO pin mode enumeration
+ *          to the HAL GPIO pin mode code values.
+ *
+ * @param   mode: Driver GPIO pin mode to convert
+ * @return  HAL GPIO pin mode code
+ */
 static uint32_t	prvDRV_GPIO_Pin_GetModeCode(drv_gpio_pin_mode_t mode)
 {
 	switch(mode)
@@ -306,3 +344,12 @@ void DRV_GPIO_ClearInterruptFlag(uint16_t GPIO_Pin)
     __HAL_GPIO_EXTI_CLEAR_IT(GPIO_Pin);
 
 }
+/**
+ * @}
+ */
+/**
+ * @}
+ */
+/**
+ * @}
+ */

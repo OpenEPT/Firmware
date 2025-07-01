@@ -323,13 +323,13 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 
 				if(prvCHARGER_DATA.chargerIntStatus & BQ25150_MASK_CHARGE_DONE)
 				{
-					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNNING,  "Charging done \r\n");
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNING,  "Charging done \r\n");
 					CONTROL_StatusLinkSendMessage("charger charging done\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
 					prvCHARGER_DATA.chargerIntStatus &= ~BQ25150_MASK_CHARGE_DONE;
 				}
 				if(prvCHARGER_DATA.chargerIntStatus & BQ25150_MASK_BAT_UVLO_FAULT)
 				{
-					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNNING,  "Under voltage detected \r\n");
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNING,  "Under voltage detected \r\n");
 					CONTROL_StatusLinkSendMessage("charger uvoltage\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
 					prvCHARGER_DATA.chargerIntStatus &= ~BQ25150_MASK_CHARGE_DONE;
 				}
@@ -347,9 +347,7 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 		}
 	}
 }
-/**
- * @}
- */
+
 charger_status_t 	CHARGER_Init(uint32_t initTimeout)
 {
 	if(xTaskCreate(
@@ -515,3 +513,12 @@ charger_status_t	CHARGER_GetRegContent(uint8_t regAddr, uint8_t* regData, uint32
 
 	return CHARGER_STATUS_OK;
 }
+/**
+ * @}
+ */
+/**
+ * @}
+ */
+/**
+ * @}
+ */
