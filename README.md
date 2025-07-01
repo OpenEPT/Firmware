@@ -143,6 +143,8 @@ git checkout -b <branch-name>
 
 Make the necessary changes to your branch. Test thoroughly to ensure your contribution does not introduce new issues.
 
+Before any changes, please read developer [Documentation](#documentation)
+
 ## Step 5: Commit your changes
 
 Once your changes are ready, stage and commit them:
@@ -189,7 +191,7 @@ git merge upstream/main
 ---
 # Documentation
 
-For detailed developer instructions and additional materials, please see the [Developer Guide](https://www.openept.net/pages/materials).
+For detailed developer instructions and additional materials, please see the Documentation->Software under [Materials](https://www.openept.net/pages/materials) on the offical project website.
 
 ---
 # Acknowledgments
