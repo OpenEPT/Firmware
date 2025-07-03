@@ -18,7 +18,19 @@ Official [youtube](https://www.youtube.com/playlist?list=PLTG-EoxvlLos_3Sex3R0yf
 - High-speed data acquisition up to 1 MSPS
 - Configurable GUI for advanced control
 - Open source hardware
-  
+
+![Board](Documentation/img/Board.png)
+| **Label** | **Description**                 | **Label** | **Description**                         |
+|------------|---------------------------------|-----------|-----------------------------------------|
+| C1         | 5V Power Supply                | C2        | Battery connectors                      |
+| C3         | Load connector                 | C4        | Charger connector                       |
+| C5         | Energy Debugging Interface     | C6        | Nucleo USB Connector (visible from bottom side) |
+| C7         | RJ45 Connector                 | C8        | Load and Charger Ground                 |
+| T1         | ADC Test Points                |           |                                         |
+| J2         | ADC Selector: Int or Ext (default) | J1    | Power supply selector: 5V (default) or 12V |
+| S2         | Power supply indicators        | S1        | Protection and switches status          |
+
+
 ---
 # Building and Running the Energy Profiler Probe Firmware
 
