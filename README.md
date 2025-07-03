@@ -17,7 +17,7 @@ Official [youtube](https://www.youtube.com/playlist?list=PLTG-EoxvlLos_3Sex3R0yf
 - Real-time Voltage and Current streaming
 - High-speed data acquisition up to 1 MSPS
 - Programmable load generation and custom waveform creation
-- [Graphical User Interface](https://github.com/OpenEPT/GUI) vor data visualization and control
+- [Graphical User Interface](https://github.com/OpenEPT/GUI) for data visualization and control
 - Open source hardware
 
 ![Board](Documentation/img/Board.png)
