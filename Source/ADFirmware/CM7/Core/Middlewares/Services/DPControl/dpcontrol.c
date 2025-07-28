@@ -912,6 +912,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				}
 				else
 				{
+					prvDPCONTROL_ExecuteWaveChunk();
 					HAL_TIM_Base_Start_IT(&DPCONTROL_TIM);
 					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO, "Wave started\r\n");
 					prvDPCONTROL_WAVE_DATA.state = DPCONTROL_WAVE_STATE_ACTIVE;
