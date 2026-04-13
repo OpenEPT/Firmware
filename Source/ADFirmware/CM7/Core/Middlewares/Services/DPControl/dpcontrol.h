@@ -49,7 +49,7 @@
 #define DPCONTROL_LATCH_PIN             CONF_DPCONTROL_LATCH_PIN         /*!< Latch trigger pin */
 
 #define DPCONTROL_WAVE_CHUNK_MSG_SIZE			50
-#define DPCONTROL_WAVE_CHUNK_MSG_FIELDS			5	//base, baseDev, duration, durationdev
+#define DPCONTROL_WAVE_CHUNK_MSG_FIELDS			6	//base, baseDev, duration, durationdev
 #define DPCONTROL_WAVE_CHUNK_MSG_QUEUE_LENGTH	10
 #define DPCONTROL_WAVE_CHUNK_MAX_NO				10
 #define DPCONTROL_WAVE_CHUNK_PBS				200
@@ -287,6 +287,8 @@ dpcontrol_status_t DPCONTROL_LatchTriger(uint32_t timeout);
 dpcontrol_status_t DPCONTROL_AddWaveChunk(char* waveDesc, uint16_t waveDescSize, uint32_t timeout);
 
 dpcontrol_status_t DPCONTROL_SetWaveState(dpcontrol_wave_state_t state, uint32_t timeout);
+
+dpcontrol_status_t DPCONTROL_SetWaveCounter(int counter, uint32_t timeout);
 
 dpcontrol_status_t DPCONTROL_ClearWave(uint32_t timeout);
 

@@ -1203,6 +1203,32 @@ static void prvCONTROL_AddWaveChunk(const char* arguments, uint16_t argumentsLen
 	}
 }
 
+static void prvCONTROL_WaveCounterSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	cmparse_value_t				value;
+	int						counter;
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain enable value\r\n");
+		return;
+	}
+	sscanf(value.value, "%d", &counter);
+
+	if(DPCONTROL_SetWaveCounter(counter, 1000) == DPCONTROL_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wave counter %d set\r\n", counter);
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set Wave counter\r\n");
+		return;
+	}
+}
+
 /**
  * @brief	Enable or disable battery
  * @param	arguments: arguments defined within control message
@@ -2482,6 +2508,7 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("device ppath get", 				prvCONTROL_GetPPath);
 
 	CMPARSE_AddCommand("device wave chunk add", 		prvCONTROL_AddWaveChunk);
+	CMPARSE_AddCommand("device wave counter set", 		prvCONTROL_WaveCounterSet);
 	CMPARSE_AddCommand("device wave state set", 		prvCONTROL_WaveChunkSet);
 	CMPARSE_AddCommand("device wave clear", 			prvCONTROL_WaveClear);
 

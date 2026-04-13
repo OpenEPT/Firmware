@@ -89,7 +89,10 @@ typedef struct dpcontrol_wave_chunk_t
 	uint32_t		bsDev; //%
 	uint32_t    duration; //ms
 	uint32_t    	dDev;	//%
-	int			repetitionCnt;
+	int			leftRepetitionCnt;
+	int			maxRepetitionCnt;
+	uint32_t	lastInGroup;
+	struct dpcontrol_wave_chunk_t* nextGroup;
 	uint8_t		usedFlag;
 	struct dpcontrol_wave_chunk_t* next;
 	struct dpcontrol_wave_chunk_t* prev;
@@ -100,11 +103,14 @@ typedef struct
 	dpcontrol_wave_chunk_t		chunks[DPCONTROL_WAVE_CHUNK_MAX_NO];
 	uint32_t					waveChunksCounter;
 	dpcontrol_wave_chunk_t*		first;
+	dpcontrol_wave_chunk_t*		firstInChain;
 	dpcontrol_wave_chunk_t*		last;
 	dpcontrol_wave_chunk_t*		current;
 	dpcontrol_wave_state_t		state;
 	uint32_t					ticks;
 	uint32_t					nextEvent;
+	uint8_t						chainEndReached;
+	int 						repetitionCounter;
 }dpcontrol_wave_data_t;
 
 
@@ -180,14 +186,39 @@ static dpcontrol_status_t prvDPCONTROL_SetLoadState(dpcontrol_load_state_t loadS
   */
 void TIM7_IRQHandler(void)
 {
+	BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
 	//HAL_TIM_IRQHandler(&DPCONTROL_TIM);
 	if(DPCONTROL_TIM.Instance->SR & TIM_SR_UIF)
 	{
 		prvDPCONTROL_WAVE_DATA.ticks += 1;
+
 		if(prvDPCONTROL_WAVE_DATA.ticks == prvDPCONTROL_WAVE_DATA.nextEvent)
 		{
 			prvDPCONTROL_WAVE_DATA.ticks = 0;
-			prvDPCONTROL_ExecuteWaveChunk();
+			if(prvDPCONTROL_WAVE_DATA.chainEndReached == 1)
+			{
+				if(prvDPCONTROL_WAVE_DATA.repetitionCounter == 0)
+				{
+					/*End is reached, stop wave*/
+					xTaskNotifyFromISR(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_WAVE_STOP, eSetBits, &pxHigherPriorityTaskWoken);
+
+					portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
+				}
+				else
+				{
+					/*End is not reached, restart wave*/
+					if(prvDPCONTROL_WAVE_DATA.repetitionCounter != -1) prvDPCONTROL_WAVE_DATA.repetitionCounter-= 1;
+
+					xTaskNotifyFromISR(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_WAVE_START, eSetBits, &pxHigherPriorityTaskWoken);
+
+					portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
+
+				}
+			}
+			else
+			{
+				prvDPCONTROL_ExecuteWaveChunk();
+			}
 		}
 
 		DPCONTROL_TIM.Instance->SR &= ~TIM_SR_UIF;  // Clear the update interrupt flag (by writing 0)
@@ -266,53 +297,99 @@ static void prvDPCONTROL_OverCurrentCB(drv_gpio_pin pin)
 static dpcontrol_status_t prvDPCONTROL_ExecuteWaveChunk()
 {
 
-	if(prvDPCONTROL_WAVE_DATA.current->repetitionCnt == 0) 	return DPCONTROL_STATUS_ERROR;
-
-	//calculate values
-
-	//Set output
-	if(prvDPCONTROL_WAVE_DATA.current->baseValue > 0)
+	if(prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt > 0)
 	{
-		DRV_AOUT_SetValue(prvDPCONTROL_WAVE_DATA.current->baseValue);
-		prvDPCONTROL_DATA.aoutData.data = prvDPCONTROL_WAVE_DATA.current->baseValue;
-		if(prvDPCONTROL_DATA.loadState == DPCONTROL_LOAD_STATE_DISABLE)
+		//calculate values
+
+		//Set output
+		if(prvDPCONTROL_WAVE_DATA.current->baseValue > 0)
 		{
-			DRV_AOUT_SetEnable(DRV_AOUT_ACTIVE_STATUS_ENABLED);
-			prvDPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_ENABLE);
-			prvDPCONTROL_DATA.loadState = DPCONTROL_LOAD_STATE_ENABLE;
-			prvDPCONTROL_DATA.aoutData.active = DPCONTROL_DAC_STATUS_ENABLE;
-			//Add notification to be sent to main task to information about out state changed
+			DRV_AOUT_SetValue(prvDPCONTROL_WAVE_DATA.current->baseValue);
+			prvDPCONTROL_DATA.aoutData.data = prvDPCONTROL_WAVE_DATA.current->baseValue;
+			if(prvDPCONTROL_DATA.loadState == DPCONTROL_LOAD_STATE_DISABLE)
+			{
+				DRV_AOUT_SetEnable(DRV_AOUT_ACTIVE_STATUS_ENABLED);
+				prvDPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_ENABLE);
+				prvDPCONTROL_DATA.loadState = DPCONTROL_LOAD_STATE_ENABLE;
+				prvDPCONTROL_DATA.aoutData.active = DPCONTROL_DAC_STATUS_ENABLE;
+				//Add notification to be sent to main task to information about out state changed
+			}
 		}
+		else
+		{
+			if(prvDPCONTROL_DATA.loadState == DPCONTROL_LOAD_STATE_ENABLE)
+			{
+				prvDPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_DISABLE);
+				DRV_AOUT_SetEnable(DRV_AOUT_ACTIVE_STATUS_DISABLED);
+				prvDPCONTROL_DATA.loadState = DPCONTROL_LOAD_STATE_DISABLE;
+				prvDPCONTROL_DATA.aoutData.active = DPCONTROL_DAC_STATUS_DISABLE;
+				//Add notification to be sent to main task to information about out state changed
+			}
+			DRV_AOUT_SetValue(0);
+			prvDPCONTROL_DATA.aoutData.data = 0;
+		}
+		prvDPCONTROL_WAVE_DATA.nextEvent = prvDPCONTROL_WAVE_DATA.current->duration;
+
+		if(prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt != -1)
+		{
+			prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt =
+					prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt == 0 ? 0 : prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt - 1;
+
+			//If last in a group is detected and repetition counter is reached
+			if(
+					(prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt == 0) &&
+					(prvDPCONTROL_WAVE_DATA.current->nextGroup != 0) &&
+					(prvDPCONTROL_WAVE_DATA.current->next == 0) )
+			{
+				prvDPCONTROL_WAVE_DATA.first = prvDPCONTROL_WAVE_DATA.current->nextGroup;
+			}
+
+		}
+
+	}
+
+	//check if last in chain
+	if(
+			(prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt == 0) &&
+			(prvDPCONTROL_WAVE_DATA.current->nextGroup == 0) &&
+			(prvDPCONTROL_WAVE_DATA.current->next == 0) )
+	{
+		prvDPCONTROL_WAVE_DATA.chainEndReached = 1;
+		prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt = prvDPCONTROL_WAVE_DATA.current->maxRepetitionCnt;
+
+
 	}
 	else
 	{
-		if(prvDPCONTROL_DATA.loadState == DPCONTROL_LOAD_STATE_ENABLE)
+		if(prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt == 0)
 		{
-			prvDPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_DISABLE);
-			DRV_AOUT_SetEnable(DRV_AOUT_ACTIVE_STATUS_DISABLED);
-			prvDPCONTROL_DATA.loadState = DPCONTROL_LOAD_STATE_DISABLE;
-			prvDPCONTROL_DATA.aoutData.active = DPCONTROL_DAC_STATUS_DISABLE;
-			//Add notification to be sent to main task to information about out state changed
+			prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt = prvDPCONTROL_WAVE_DATA.current->maxRepetitionCnt;
 		}
-		DRV_AOUT_SetValue(0);
-		prvDPCONTROL_DATA.aoutData.data = 0;
-	}
-	prvDPCONTROL_WAVE_DATA.nextEvent = prvDPCONTROL_WAVE_DATA.current->duration;
-
-	//Prepare next
-	if(prvDPCONTROL_WAVE_DATA.current->next == 0)
-	{
-		prvDPCONTROL_WAVE_DATA.current = prvDPCONTROL_WAVE_DATA.first;
-	}
-	else
-	{
-		prvDPCONTROL_WAVE_DATA.current = prvDPCONTROL_WAVE_DATA.current->next;
+		//Prepare next
+		if(prvDPCONTROL_WAVE_DATA.current->next == 0)
+		{
+			prvDPCONTROL_WAVE_DATA.current = prvDPCONTROL_WAVE_DATA.first;
+		}
+		else
+		{
+			prvDPCONTROL_WAVE_DATA.current = prvDPCONTROL_WAVE_DATA.current->next;
+		}
 	}
 
 
 	return DPCONTROL_STATUS_OK;
 }
-
+static dpcontrol_status_t prvDPCONTROL_WaveReinit()
+{
+	if(prvDPCONTROL_WAVE_DATA.chainEndReached == 1)
+	{
+		//Return to the beginning;
+		prvDPCONTROL_WAVE_DATA.first = prvDPCONTROL_WAVE_DATA.firstInChain;
+		prvDPCONTROL_WAVE_DATA.current = prvDPCONTROL_WAVE_DATA.first;
+		prvDPCONTROL_WAVE_DATA.chainEndReached = 0;
+	}
+	return DPCONTROL_STATUS_OK;
+}
 static dpcontrol_status_t prvDPCONTROL_ExtractWaveDataFromMsg(dpcontrol_wave_chunk_t* chunk, dpcontrol_wave_chunk_msg_t* msg)
 {
 	uint32_t index = 0;
@@ -335,12 +412,13 @@ static dpcontrol_status_t prvDPCONTROL_ExtractWaveDataFromMsg(dpcontrol_wave_chu
 	/*Check that there is detected DPCONTROL_WAVE_CHUNK_MSG_FIELDS of field*/
 	if(fieldsNo != (DPCONTROL_WAVE_CHUNK_MSG_FIELDS)) return DPCONTROL_STATUS_ERROR;
 
-    int ret = sscanf(msgToProcess, "%" SCNu32 ",%" SCNu32 ",%" SCNu32 ",%" SCNu32 ",%d;",
+    int ret = sscanf(msgToProcess, "%" SCNu32 ",%" SCNu32 ",%" SCNu32 ",%" SCNu32 ",%d" ",%" SCNu32 ";",
                      &chunk->baseValue,
                      &chunk->bsDev,
                      &chunk->duration,
                      &chunk->dDev,
-                     &chunk->repetitionCnt);
+                     &chunk->maxRepetitionCnt,
+					 &chunk->lastInGroup);
 
     if(ret != fieldsNo)return DPCONTROL_STATUS_ERROR;
 
@@ -366,7 +444,9 @@ static dpcontrol_status_t prvDPCONTROL_AddWaveData(dpcontrol_wave_chunk_t* chunk
 		/*Add first data*/
 		prvDPCONTROL_WAVE_DATA.current = &prvDPCONTROL_WAVE_DATA.chunks[0];
 		prvDPCONTROL_WAVE_DATA.first = &prvDPCONTROL_WAVE_DATA.chunks[0];
+		prvDPCONTROL_WAVE_DATA.firstInChain = &prvDPCONTROL_WAVE_DATA.chunks[0];
 		prvDPCONTROL_WAVE_DATA.last = &prvDPCONTROL_WAVE_DATA.chunks[0];
+		prvDPCONTROL_WAVE_DATA.chunks[0].leftRepetitionCnt = prvDPCONTROL_WAVE_DATA.chunks[0].maxRepetitionCnt;
 		prvDPCONTROL_WAVE_DATA.waveChunksCounter += 1;
 		prvDPCONTROL_WAVE_DATA.nextEvent = prvDPCONTROL_WAVE_DATA.current->duration;
 	}
@@ -374,10 +454,21 @@ static dpcontrol_status_t prvDPCONTROL_AddWaveData(dpcontrol_wave_chunk_t* chunk
 	{
 		/*Set ID*/
 		prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter].id = prvDPCONTROL_WAVE_DATA.waveChunksCounter;
-		prvDPCONTROL_WAVE_DATA.last->next = &prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter];
+		if(prvDPCONTROL_WAVE_DATA.last->lastInGroup == 1)
+		{
+			prvDPCONTROL_WAVE_DATA.last->nextGroup = &prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter];
+			prvDPCONTROL_WAVE_DATA.last->next = 0;
+		}
+		else
+		{
+			prvDPCONTROL_WAVE_DATA.last->next = &prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter];
+		}
 		prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter].prev = prvDPCONTROL_WAVE_DATA.last;
 		prvDPCONTROL_WAVE_DATA.last = &prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter];
+		prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter].leftRepetitionCnt =
+				prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter].maxRepetitionCnt;
 		prvDPCONTROL_WAVE_DATA.waveChunksCounter += 1;
+
 	}
 
 	chunk->id = prvDPCONTROL_WAVE_DATA.waveChunksCounter - 1;
@@ -405,7 +496,7 @@ static dpcontrol_status_t prvDPCONTROL_PrintChunk(dpcontrol_wave_chunk_t* chunk,
 			chunk->dDev,
 			chunk->baseValue,
 			chunk->bsDev,
-			chunk->repetitionCnt);
+			chunk->leftRepetitionCnt);
 
 	return DPCONTROL_STATUS_OK;
 }
@@ -912,9 +1003,13 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				}
 				else
 				{
+					if(prvDPCONTROL_WAVE_DATA.chainEndReached == 1)
+					{
+						prvDPCONTROL_WaveReinit();
+					}
 					prvDPCONTROL_ExecuteWaveChunk();
 					HAL_TIM_Base_Start_IT(&DPCONTROL_TIM);
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO, "Wave started\r\n");
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO, "Wave started- Iteration %d\r\n", prvDPCONTROL_WAVE_DATA.repetitionCounter);
 					prvDPCONTROL_WAVE_DATA.state = DPCONTROL_WAVE_STATE_ACTIVE;
 					xSemaphoreGive(prvDPCONTROL_DATA.initSig);
 				}
@@ -1199,6 +1294,16 @@ dpcontrol_status_t DPCONTROL_SetWaveState(dpcontrol_wave_state_t state, uint32_t
 	return DPCONTROL_STATUS_OK;
 }
 
+dpcontrol_status_t DPCONTROL_SetWaveCounter(int counter, uint32_t timeout)
+{
+	if(prvDPCONTROL_WAVE_DATA.state == DPCONTROL_WAVE_STATE_ACTIVE) return DPCONTROL_STATUS_OK;
+	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	prvDPCONTROL_WAVE_DATA.repetitionCounter = counter;
+
+	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
+	return DPCONTROL_STATUS_OK;
+}
 dpcontrol_status_t DPCONTROL_ClearWave(uint32_t timeout)
 {
 	if(xTaskNotify(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_WAVE_CLEAR, eSetBits) != pdTRUE) return DPCONTROL_STATUS_ERROR;

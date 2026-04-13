@@ -429,11 +429,11 @@ charger_status_t	CHARGER_SetChargingCurrent(uint16_t current, uint32_t initTimeo
 
 charger_status_t	CHARGER_GetChargingCurrent(uint16_t* current, uint32_t initTimeout)
 {
-	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
-
-	*current = prvCHARGER_DATA.chargingInfo.chargingCurrent;
-
-	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
+//	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+//
+//	*current = prvCHARGER_DATA.chargingInfo.chargingCurrent;
+//
+//	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	return CHARGER_STATUS_OK;
 }
@@ -457,11 +457,11 @@ charger_status_t	CHARGER_SetChargingTermCurrent(uint16_t current, uint32_t initT
 }
 charger_status_t	CHARGER_GetChargingTermCurrent(uint16_t* current, uint32_t initTimeout)
 {
-	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
-
-	*current = prvCHARGER_DATA.chargingInfo.terminationCurrent;
-
-	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
+//	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+//
+//	*current = prvCHARGER_DATA.chargingInfo.terminationCurrent;
+//
+//	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	return CHARGER_STATUS_OK;
 }
@@ -484,11 +484,11 @@ charger_status_t	CHARGER_SetChargingTermVoltage(float voltage, uint32_t initTime
 }
 charger_status_t	CHARGER_GetChargingTermVoltage(float* voltage, uint32_t initTimeout)
 {
-	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
-
-	*voltage = prvCHARGER_DATA.chargingInfo.terminationVoltage;
-
-	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
+//	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+//
+//	*voltage = prvCHARGER_DATA.chargingInfo.terminationVoltage;
+//
+//	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	return CHARGER_STATUS_OK;
 }
