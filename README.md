@@ -3,6 +3,8 @@ Easy-to-use, low-cost, open-source solution that includes compatible hardware an
 
 Official [youtube](https://www.youtube.com/playlist?list=PLTG-EoxvlLos_3Sex3R0yfDCwpDYyRSOo) channel 
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M51XTW8X)
+
 ---
 # Content
 - [Features](#features)
