@@ -32,7 +32,7 @@
 #include "drv_gpio.h"
 #include "drv_timer.h"
 #include "ads9224r.h"
-
+#include "m24c32.h"
 
 #include "system.h"
 #include "logging.h"
@@ -43,6 +43,7 @@
 #include "dpcontrol.h"
 #include "charger.h"
 #include "eez_dib.h"
+
 
 /**
  * @defgroup SERVICES Service
@@ -293,6 +294,32 @@ static void prvSYSTEM_Task()
 //				break;
 //			}
 //			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "EEZ DIB service successfully initialized\r\n");
+
+			/*EEPROM Test*/
+			uint8_t tx[8] = {1,2,3,4,5,6,7,8};
+			uint8_t rx[8] = {0};
+
+			if(M24C32_Init() != M24C32_STATUS_OK)
+			{
+			    Error_Handler();
+			}
+
+			if(M24C32_Ping(1000) != M24C32_STATUS_OK)
+			{
+			    Error_Handler();
+			}
+
+			if(M24C32_Write(0x0000, tx, sizeof(tx), 1000) != M24C32_STATUS_OK)
+			{
+			    Error_Handler();
+			}
+
+			if(M24C32_Read(0x0000, rx, sizeof(rx), 1000) != M24C32_STATUS_OK)
+			{
+			    Error_Handler();
+			}
+
+			/* ovde proveri da li je rx == tx */
 
 			xSemaphoreGive(prvSYSTEM_DATA.initSig);
 			prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
