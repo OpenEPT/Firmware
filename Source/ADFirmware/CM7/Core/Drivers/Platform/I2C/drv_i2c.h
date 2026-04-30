@@ -37,7 +37,7 @@
  * @defgroup I2C_PUBLIC_DEFINES I2C driver public defines
  * @{
  */
-#define DRV_I2C_INSTANCES_MAX_NUMBER	(2U)	/*!< Maximum number of I2C instances supported */
+#define DRV_I2C_INSTANCES_MAX_NUMBER	(4U)	/*!< Maximum number of I2C instances supported */
 /**
  * @}
  */
@@ -74,7 +74,8 @@ typedef enum
 typedef enum
 {
 	DRV_I2C_INSTANCE_1 = 0,			/*!< I2C peripheral instance 1 */
-	DRV_I2C_INSTANCE_2 = 1			/*!< I2C peripheral instance 2 */
+	DRV_I2C_INSTANCE_2 = 1,			/*!< I2C peripheral instance 1 */
+	DRV_I2C_INSTANCE_4 = 3			/*!< I2C peripheral instance 2 */
 } drv_i2c_instance_t;
 
 /**

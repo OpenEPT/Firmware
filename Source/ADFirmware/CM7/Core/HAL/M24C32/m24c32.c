@@ -82,12 +82,12 @@ static m24c32_status_t prvM24C32_Read(uint16_t memAddr, uint8_t* data, uint16_t 
 
     devAddr = (uint8_t)(M24C32_DEV_ADDR << 1);
 
-    if(DRV_I2C_Transmit(DRV_I2C_INSTANCE_2, devAddr, addrBytes, 2U, timeout) != DRV_I2C_STATUS_OK)
+    if(DRV_I2C_Transmit(DRV_I2C_INSTANCE_4, devAddr, addrBytes, 2U, timeout) != DRV_I2C_STATUS_OK)
     {
         return M24C32_STATUS_ERROR;
     }
 
-    if(DRV_I2C_Receive(DRV_I2C_INSTANCE_2, (uint8_t)(devAddr | 0x01U), data, size, timeout) != DRV_I2C_STATUS_OK)
+    if(DRV_I2C_Receive(DRV_I2C_INSTANCE_4, (uint8_t)(devAddr | 0x01U), data, size, timeout) != DRV_I2C_STATUS_OK)
     {
         return M24C32_STATUS_ERROR;
     }
@@ -119,7 +119,7 @@ static m24c32_status_t prvM24C32_WritePage(uint16_t memAddr, const uint8_t* data
 
     devAddr = (uint8_t)(M24C32_DEV_ADDR << 1);
 
-    if(DRV_I2C_Transmit(DRV_I2C_INSTANCE_2, devAddr, txBuffer, (uint32_t)(size + 2U), timeout) != DRV_I2C_STATUS_OK)
+    if(DRV_I2C_Transmit(DRV_I2C_INSTANCE_4, devAddr, txBuffer, (uint32_t)(size + 2U), timeout) != DRV_I2C_STATUS_OK)
     {
         return M24C32_STATUS_ERROR;
     }
@@ -146,7 +146,7 @@ m24c32_status_t M24C32_Init(void)
      */
 	drv_i2c_config_t config;
 	config.clkFreq = 100;
-    if(DRV_I2C_Instance_Init(DRV_I2C_INSTANCE_2, &config) != DRV_I2C_STATUS_OK)
+    if(DRV_I2C_Instance_Init(DRV_I2C_INSTANCE_4, &config) != DRV_I2C_STATUS_OK)
     {
         return M24C32_STATUS_ERROR;
     }

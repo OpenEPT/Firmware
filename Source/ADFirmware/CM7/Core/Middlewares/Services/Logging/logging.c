@@ -14,6 +14,7 @@
  */
 #include 	<stdarg.h>
 #include 	<string.h>
+#include    <stdio.h>
 
 #include 	"FreeRTOS.h"
 #include 	"task.h"
@@ -238,7 +239,7 @@ logging_status_t 	LOGGING_Write(char* serviceName, logging_msg_type_t msgType, c
         break;
     }
 
-    tmpMessageBuffer.size += vsprintf(tmpMessageBuffer.buffer + tmpMessageBuffer.size, message, args);
+    tmpMessageBuffer.size += vsnprintf(tmpMessageBuffer.buffer + tmpMessageBuffer.size, LOGGING_INTERNAL_BUFFER_SIZE - tmpMessageBuffer.size, message, args);
     va_end(args);
 
     if (xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED)

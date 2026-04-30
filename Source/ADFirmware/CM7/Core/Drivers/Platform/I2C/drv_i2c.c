@@ -87,6 +87,9 @@ static I2C_TypeDef* prvDRV_I2C_GetPeripheral(drv_i2c_instance_t instance)
 		return I2C1;
 
 	case DRV_I2C_INSTANCE_2:
+		return I2C2;
+
+	case DRV_I2C_INSTANCE_4:
 		return I2C4;
 
 	default:

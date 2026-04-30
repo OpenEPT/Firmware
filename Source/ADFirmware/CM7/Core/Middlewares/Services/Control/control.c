@@ -33,6 +33,7 @@
 #include "CMParse/cmparse.h"
 #include "dpcontrol.h"
 #include "charger.h"
+#include "fsystem.h"
 
 /**
  * @defgroup SERVICES Service
@@ -138,6 +139,36 @@ static void inline prvCONTROL_PrepareOkResponse(char* response, uint16_t* respon
 	*responseSize	+= tmpIncreaseSize;
 
 	memcpy(tmpResponsePtr, " ", 1);
+	tmpResponsePtr	+= 1;
+	*responseSize	+= 1;
+
+	memcpy(tmpResponsePtr, "H", 1);
+	tmpResponsePtr	+= 1;
+	*responseSize	+= 1;
+
+	memcpy(tmpResponsePtr, msg, msgSize);
+	tmpResponsePtr	+= msgSize;
+	*responseSize	+= msgSize;
+
+	memcpy(tmpResponsePtr, "\r\n", 2);
+	tmpResponsePtr	+= 2;
+	*responseSize	+= 2;
+}
+
+static void inline prvCONTROL_PrepareOkResponseBin(char* response, uint16_t* responseSize, char* msg, uint32_t msgSize)
+{
+	uint32_t	tmpIncreaseSize  = 0;
+	char* tmpResponsePtr = response;
+	tmpIncreaseSize = strlen(CONTROL_RESPONSE_OK_STATUS_MSG);
+	memcpy(tmpResponsePtr, CONTROL_RESPONSE_OK_STATUS_MSG, tmpIncreaseSize);
+	tmpResponsePtr	+= tmpIncreaseSize;
+	*responseSize	+= tmpIncreaseSize;
+
+	memcpy(tmpResponsePtr, " ", 1);
+	tmpResponsePtr	+= 1;
+	*responseSize	+= 1;
+
+	memcpy(tmpResponsePtr, "B", 1);
 	tmpResponsePtr	+= 1;
 	*responseSize	+= 1;
 
@@ -818,6 +849,130 @@ static void prvCONTROL_ChargerReadReg(const char* arguments, uint16_t argumentsL
 	}
 }
 
+static void prvCONTROL_FSystemFormat(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    if(FSYSTEM_FormatBD(10000) == FSYSTEM_STATUS_OK)
+    {
+        prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "FSYSTEM BD format executed\r\n");
+    }
+    else
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "FSYSTEM BD format failed\r\n");
+    }
+}
+
+static void prvCONTROL_FSystemRead(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    cmparse_value_t value;
+    uint32_t offset;
+    uint32_t size;
+
+    static uint8_t readBuffer[FSYSTEM_BD_CHUNK_SIZE];
+    uint32_t readSize = 0;
+
+    memset(&value, 0, sizeof(cmparse_value_t));
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "offset", &value) != CMPARSE_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        return;
+    }
+    sscanf(value.value, "%lu", &offset);
+
+    memset(&value, 0, sizeof(cmparse_value_t));
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "size", &value) != CMPARSE_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        return;
+    }
+    sscanf(value.value, "%lu", &size);
+
+    if(size > FSYSTEM_BD_CHUNK_SIZE)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        return;
+    }
+
+    if(FSYSTEM_ReadBDChunk(offset, (char*)readBuffer, size, &readSize, 2000) != FSYSTEM_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "FSYSTEM BD read failed\r\n");
+        return;
+    }
+
+    /* vracamo RAW podatke direktno */
+    prvCONTROL_PrepareOkResponseBin(response, responseSize, (char*)readBuffer, readSize);
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "FSYSTEM BD read OK (offset=%lu size=%lu)\r\n", offset, readSize);
+}
+
+static void prvCONTROL_FSystemWrite(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    cmparse_value_t value;
+    cmparse_value_bin_t valueBin;
+    uint32_t offset;
+    uint32_t size;
+
+    char* dataPtr;
+    uint32_t dataSize;
+
+    memset(&value, 0, sizeof(cmparse_value_t));
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "offset", &value) != CMPARSE_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        return;
+    }
+    sscanf(value.value, "%lu", &offset);
+
+    memset(&value, 0, sizeof(cmparse_value_t));
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "size", &value) != CMPARSE_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        return;
+    }
+    sscanf(value.value, "%lu", &size);
+
+    memset(&value, 0, sizeof(cmparse_value_t));
+    if(CMPARSE_GetArgValueBin(arguments, argumentsLength, "data", &valueBin, size) != CMPARSE_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        return;
+    }
+
+    dataPtr  = valueBin.value;
+    dataSize = valueBin.size;
+
+    if(dataSize != size)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "FSYSTEM BD write size mismatch\r\n");
+        return;
+    }
+
+    if(FSYSTEM_WriteBDChunk(offset, dataPtr, &dataSize, 2000) != FSYSTEM_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "FSYSTEM BD write failed\r\n");
+        return;
+    }
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "FSYSTEM BD write OK (offset=%lu size=%lu)\r\n", offset, size);
+}
+static void prvCONTROL_FSystemBDSizeGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    uint32_t bdSize = FSYSTEM_BD_SIZE;
+
+    char sizeStr[16];
+    snprintf(sizeStr, sizeof(sizeStr), "%lu", bdSize);
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, sizeStr, strlen(sizeStr));
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "FSYSTEM BD size get: %lu\r\n", bdSize);
+}
+
 /**
  * @brief	Enable load
  * @param	arguments: arguments defined within control message
@@ -1036,6 +1191,49 @@ static void prvCONTROL_GetUVoltage(const char* arguments, uint16_t argumentsLeng
 		prvCONTROL_PrepareOkResponse(response, responseSize, stateString, stateStringLength);
 	}
 }
+static void prvCONTROL_GetUVoltageValue(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    float value = 0;
+    char valueString[16];
+    uint32_t valueStringLength = 0;
+
+    if(DPCONTROL_GetUVValue(&value, 1000) != DPCONTROL_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get UV value\r\n");
+    }
+    else
+    {
+        memset(valueString, 0, sizeof(valueString));
+        valueStringLength = sprintf(valueString, "%.3f", value);
+        prvCONTROL_PrepareOkResponse(response, responseSize, valueString, valueStringLength);
+    }
+}
+static void prvCONTROL_SetUVoltageValue(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    cmparse_value_t valueArg;
+    float value;
+
+    memset(&valueArg, 0, sizeof(cmparse_value_t));
+
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &valueArg) != CMPARSE_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        return;
+    }
+
+    sscanf(valueArg.value, "%f", &value);
+
+    if(DPCONTROL_SetUVValue(value, 1000) == DPCONTROL_STATUS_OK)
+    {
+        prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "UV value %.3f set\r\n", value);
+    }
+    else
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+    }
+}
 /**
  * @brief	Get device overvoltage by utilizing system service
  * @param	arguments: arguments defined within control message
@@ -1061,6 +1259,49 @@ static void prvCONTROL_GetOVoltage(const char* arguments, uint16_t argumentsLeng
 		stateStringLength = sprintf(stateString, "%u", (int)state);
 		prvCONTROL_PrepareOkResponse(response, responseSize, stateString, stateStringLength);
 	}
+}
+static void prvCONTROL_GetOVoltageValue(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    float value = 0;
+    char valueString[16];
+    uint32_t valueStringLength = 0;
+
+    if(DPCONTROL_GetOVValue(&value, 1000) != DPCONTROL_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get OV value\r\n");
+    }
+    else
+    {
+        memset(valueString, 0, sizeof(valueString));
+        valueStringLength = sprintf(valueString, "%.3f", value);
+        prvCONTROL_PrepareOkResponse(response, responseSize, valueString, valueStringLength);
+    }
+}
+static void prvCONTROL_SetOVoltageValue(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    cmparse_value_t valueArg;
+    float value;
+
+    memset(&valueArg, 0, sizeof(cmparse_value_t));
+
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &valueArg) != CMPARSE_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        return;
+    }
+
+    sscanf(valueArg.value, "%f", &value);
+
+    if(DPCONTROL_SetOVValue(value, 1000) == DPCONTROL_STATUS_OK)
+    {
+        prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "OV value %.3f set\r\n", value);
+    }
+    else
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+    }
 }
 /**
  * @brief	Get device overcurrent by utilizing system service
@@ -1088,7 +1329,49 @@ static void prvCONTROL_GetOCurrent(const char* arguments, uint16_t argumentsLeng
 		prvCONTROL_PrepareOkResponse(response, responseSize, stateString, stateStringLength);
 	}
 }
+static void prvCONTROL_GetOCurrentValue(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    int32_t value = 0;
+    char valueString[16];
+    uint32_t valueStringLength = 0;
 
+    if(DPCONTROL_GetOCValue(&value, 1000) != DPCONTROL_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get OC value\r\n");
+    }
+    else
+    {
+        memset(valueString, 0, sizeof(valueString));
+        valueStringLength = sprintf(valueString, "%ld", value);
+        prvCONTROL_PrepareOkResponse(response, responseSize, valueString, valueStringLength);
+    }
+}
+static void prvCONTROL_SetOCurrentValue(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    cmparse_value_t valueArg;
+    int32_t value;
+
+    memset(&valueArg, 0, sizeof(cmparse_value_t));
+
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &valueArg) != CMPARSE_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        return;
+    }
+
+    sscanf(valueArg.value, "%ld", &value);
+
+    if(DPCONTROL_SetOCValue(value, 1000) == DPCONTROL_STATUS_OK)
+    {
+        prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "OC value %ld set\r\n", value);
+    }
+    else
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+    }
+}
 /**
  * @brief	Trigger protection latch
  * @param	arguments: arguments defined within control message
@@ -2154,7 +2437,7 @@ static void prvCONTROL_CreateStatusLink(const char* arguments, uint16_t argument
 	}
 	sscanf(value.value, "%hu", &connectionInfo.portNo);
 
-	if(CONTROL_StatusLinkCreate(&statusLinkInstance, connectionInfo, 2000) != CONTROL_STATUS_OK)
+	if(CONTROL_StatusLinkCreate(&statusLinkInstance, connectionInfo, 5000) != CONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to create status link\r\n");
@@ -2374,7 +2657,7 @@ static void prvCONTROL_StatusLinkTaskFunc(void* pvParameter)
 			if(connect_err != ERR_OK)
 			{
 				LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_ERROR,  "There is a problem to connect to status link server\r\n");
-				prvCONTROL_DATA.state = CONTROL_STATE_ERROR;
+				prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].state = CONTROL_STATE_ERROR;
 				break;
 			}
 
@@ -2384,7 +2667,7 @@ static void prvCONTROL_StatusLinkTaskFunc(void* pvParameter)
 			if(xSemaphoreGive(prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].initSig) != pdTRUE)
 			{
 				LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_ERROR,  "There is a problem with init semaphore\r\n");
-				prvCONTROL_DATA.state = CONTROL_STATE_ERROR;
+				prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].state = CONTROL_STATE_ERROR;
 				break;
 			}
 
@@ -2396,7 +2679,7 @@ static void prvCONTROL_StatusLinkTaskFunc(void* pvParameter)
 			if(xQueueReceive(prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].messageQueue, &message, portMAX_DELAY) != pdPASS)
 			{
 				LOGGING_Write("Control Service (Status)", LOGGING_MSG_TYPE_ERROR,  "Unable to read status message queue\r\n");
-				prvCONTROL_DATA.state = CONTROL_STATE_ERROR;
+				prvCONTROL_STATUS_LINK_DATA[linkInstance.linkInstanceNo].state = CONTROL_STATE_ERROR;
 				break;
 			}
 			switch(message.type)
@@ -2513,9 +2796,17 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("device wave clear", 			prvCONTROL_WaveClear);
 
 
-	CMPARSE_AddCommand("device uvoltage get", 		    prvCONTROL_GetUVoltage);
-	CMPARSE_AddCommand("device ovoltage get", 		    prvCONTROL_GetOVoltage);
-	CMPARSE_AddCommand("device ocurrent get", 		    prvCONTROL_GetOCurrent);
+	CMPARSE_AddCommand("device uvoltage state get", 	prvCONTROL_GetUVoltage);
+	CMPARSE_AddCommand("device ovoltage state get", 	prvCONTROL_GetOVoltage);
+	CMPARSE_AddCommand("device ocurrent state get", 	prvCONTROL_GetOCurrent);
+	CMPARSE_AddCommand("device uvoltage value get", 	prvCONTROL_GetUVoltageValue);
+	CMPARSE_AddCommand("device uvoltage value set", 	prvCONTROL_SetUVoltageValue);
+
+	CMPARSE_AddCommand("device ovoltage value get", 	prvCONTROL_GetOVoltageValue);
+	CMPARSE_AddCommand("device ovoltage value set", 	prvCONTROL_SetOVoltageValue);
+
+	CMPARSE_AddCommand("device ocurrent value get", 	prvCONTROL_GetOCurrentValue);
+	CMPARSE_AddCommand("device ocurrent value set", 	prvCONTROL_SetOCurrentValue);
 
 	CMPARSE_AddCommand("device latch trigger", 			prvCONTROL_LatchTrigger);
 
@@ -2535,6 +2826,11 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("charger charging termvoltage set",  prvCONTROL_ChargingTermVoltageSet);
 	CMPARSE_AddCommand("charger charging termvoltage get",  prvCONTROL_ChargingTermVoltageGet);
 	CMPARSE_AddCommand("charger reg read",  				prvCONTROL_ChargerReadReg);
+
+	CMPARSE_AddCommand("device fsystem bd format", 			prvCONTROL_FSystemFormat);
+	CMPARSE_AddCommand("device fsystem bd read",   			prvCONTROL_FSystemRead);
+	CMPARSE_AddCommand("device fsystem bd write",  			prvCONTROL_FSystemWrite);
+	CMPARSE_AddCommand("device fsystem bd size get",  		prvCONTROL_FSystemBDSizeGet);
 
 
 	return CONTROL_STATUS_OK;
