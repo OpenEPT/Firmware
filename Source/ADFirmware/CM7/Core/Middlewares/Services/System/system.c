@@ -43,6 +43,7 @@
 #include "charger.h"
 #include "eez_dib.h"
 #include "fsystem.h"
+#include "configuration.h"
 
 
 /**
@@ -246,6 +247,13 @@ static void prvSYSTEM_Task()
 				break;
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Logging service successfully initialized\r\n");
+
+			if(CONFIGURATION_Init(2000) != CONFIGURATION_STATUS_OK)
+			{
+				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
+				break;
+			}
+			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Configuration service successfully initialized\r\n");
 
 			if(FSYSTEM_Init(2000) != FSYSTEM_STATUS_OK)
 			{

@@ -103,6 +103,7 @@ fsystem_status_t FSYSTEM_Init(uint32_t initTimeout);
  * @retval FSYSTEM_STATUS_ERROR  File not found or read failed
  */
 fsystem_status_t FSYSTEM_GetFileFromPath(char* path, uint32_t pathSize, char* dataBuffer, uint32_t dataBufferMaxSize, uint32_t* fileSize);
+fsystem_status_t FSYSTEM_WriteToFile(char* path, uint32_t pathSize, char* dataBuffer, uint32_t fileSize);
 
 /**
  * @brief Read block device (BD) chunk

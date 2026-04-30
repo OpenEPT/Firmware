@@ -63,6 +63,7 @@
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Drivers/Platform/LwIP&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Middlewares/Services/Network/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Middlewares/Services/Charger/&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Middlewares/Services/Configuration/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Drivers/Platform/Interrupts/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Drivers/Platform/System&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Drivers/Platform/AnalogIN&quot;"/>
@@ -108,11 +109,6 @@
 							<tool id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.objcopy.symbolsrec.848625610" name="MCU Output Converter Motorola S-rec with symbols" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.objcopy.symbolsrec"/>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1957845872.1629008048" name="cmparse.c" rcbsApplicability="disable" resourcePath="Core/Middlewares/Services/Control/CMParse/cmparse.c" toolsToInvoke="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.1363249477.838414543">
-						<tool id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.1363249477.838414543" name="MCU GCC Compiler" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.1363249477">
-							<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.507791464" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
-						</tool>
-					</fileInfo>
 					<folderInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1957845872.1434319229" name="/" resourcePath="Core/Middlewares/Services/ED">
 						<toolChain id="com.st.stm32cube.ide.mcu.gnu.managedbuild.toolchain.exe.debug.1739285084" name="MCU ARM GCC" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.toolchain.exe.debug" unusedChildren="">
 							<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.target_mcu.394143059.562302009" name="MCU" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.target_mcu.394143059"/>

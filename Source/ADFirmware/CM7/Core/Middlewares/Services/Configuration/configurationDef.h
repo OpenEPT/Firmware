@@ -5,6 +5,8 @@
  *      Author: elektronika
  */
 
+
+#include "configuration.h"
 #ifndef CORE_MIDDLEWARES_SERVICES_CONFIGURATION_CONFIGURATIONDEF_H_
 #define CORE_MIDDLEWARES_SERVICES_CONFIGURATION_CONFIGURATIONDEF_H_
 
@@ -17,8 +19,8 @@ typedef enum
 
 typedef struct
 {
-    const char* name;        /*!< Parameter name */
-    char        value[64];   /*!< Value stored as string */
+    char        	name[CONFIGURATION_MAX_PARAM_VALUESIZE];        /*!< Parameter name */
+    uint8_t        value[CONFIGURATION_MAX_PARAM_VALUESIZE];   /*!< Value stored as string */
     configuration_param_type_t type; /*!< Parameter type */
 
     uint8_t     readOnly;    /*!< 1 = read-only, 0 = writable */

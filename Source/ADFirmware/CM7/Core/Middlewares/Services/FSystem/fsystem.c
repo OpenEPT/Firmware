@@ -394,9 +394,48 @@ fsystem_status_t FSYSTEM_Init(uint32_t initTimeout)
 
     return FSYSTEM_STATUS_OK;
 }
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+fsystem_status_t FSYSTEM_GetFileFromPath(char* path,
+                                         uint32_t pathSize,
+                                         char* dataBuffer,
+                                         uint32_t dataBufferMaxSize,
+                                         uint32_t* fileSize)
+{
+    (void)path;
+    (void)pathSize;
+
+    const char* configString =
+    "MAC_ADDRESS:00:11:22:33:44:55\r\n"
+    "IP_ADDRESS:" CONF_NETWORK_DEVICE_IP_ADDRESS "\r\n"
+    "IP_MASK:" CONF_NETWORK_DEVICE_IP_MASK "\r\n"
+    "IP_GATEWAY:" CONF_NETWORK_DEVICE_IP_GW "\r\n"
+    "DEFAULT_TIMEOUT:1000\r\n"
+    "PROTECTIONS_UVOLTAGE_VALUE:" STR(CONF_DPCONTROL_UV_VALUE) "\r\n"
+    "PROTECTIONS_OVOLTAGE_VALUE:" STR(CONF_DPCONTROL_OV_VALUE) "\r\n"
+    "PROTECTIONS_OCURRENT_VALUE:" STR(CONF_DPCONTROL_OC_VALUE) "\r\n";
+
+    if(dataBuffer == NULL || fileSize == NULL)
+        return FSYSTEM_STATUS_ERROR;
+
+    uint32_t len = strlen(configString);
+
+    /* +1 ako želiš i null terminator */
+    if(dataBufferMaxSize < (len + 1))
+        return FSYSTEM_STATUS_ERROR;
+
+    memcpy(dataBuffer, configString, len);
+
+    dataBuffer[len] = '\0';   /* sigurnost */
+
+    *fileSize = len;
+
+    return FSYSTEM_STATUS_OK;
+}
 
 
-fsystem_status_t FSYSTEM_GetFileFromPath(char* path, uint32_t pathSize, char* dataBuffer, uint32_t dataBufferMaxSize, uint32_t* fileSize)
+fsystem_status_t FSYSTEM_WriteToFile(char* path, uint32_t pathSize, char* dataBuffer, uint32_t fileSize)
 {
 
     return FSYSTEM_STATUS_OK;
