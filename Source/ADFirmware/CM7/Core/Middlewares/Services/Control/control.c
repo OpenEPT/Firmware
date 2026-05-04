@@ -1053,8 +1053,6 @@ static void prvCONTROL_ParamCalSet(const char* arguments, uint16_t argumentsLeng
     CONFIGURATION_SetParameter_Float("CAL_C_OFF", coff, 1000);
     CONFIGURATION_SetParameter_Float("CAL_C_COR", ccor, 1000);
 
-    CONFIGURATION_StoreToFS(2000);
-
     prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 
 
@@ -1069,6 +1067,36 @@ error:
 	LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR,
 				  "Invalid calibration parameters (parsing failed)\r\n");
 }
+
+static void prvCONTROL_ParamStore(const char* arguments,
+                                  uint16_t argumentsLength,
+                                  char* response,
+                                  uint16_t* responseSize)
+{
+    if(CONFIGURATION_StoreToFS(5000) != CONFIGURATION_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Configuration store to FS failed\r\n");
+        return;
+    }
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Configuration successfully stored to FS\r\n");
+}
+
+static void prvCONTROL_DeviceReset(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Device reset requested\r\n");
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    SYSTEM_Restart();
+}
+
 
 static void prvCONTROL_ParamShuntGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
@@ -2974,6 +3002,7 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	/* Add commands */
 	CMPARSE_AddCommand("", 								prvCONTROL_UndefinedCommand);
 	CMPARSE_AddCommand("device hello", 					prvCONTROL_GetDeviceName);
+	CMPARSE_AddCommand("device reset",                  prvCONTROL_DeviceReset);
 	CMPARSE_AddCommand("device setname", 				prvCONTROL_SetDeviceName);
 	CMPARSE_AddCommand("device slink create", 			prvCONTROL_CreateStatusLink);
 	CMPARSE_AddCommand("device slink send", 			prvCONTROL_StatusLinkSendMessage);
@@ -3068,6 +3097,8 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("device ipinfo mac get", 			prvCONTROL_GetMAC);
 	CMPARSE_AddCommand("device hwserial get",  				prvCONTROL_GetHWSerial);
 	CMPARSE_AddCommand("device swserial get",  				prvCONTROL_GetFWVersion);
+
+	CMPARSE_AddCommand("device param store",  				prvCONTROL_ParamStore);
 
 
 	return CONTROL_STATUS_OK;

@@ -1,6 +1,6 @@
 import struct
 
-INPUT_FILE = "configOut.bin"
+INPUT_FILE = "configIn.bin"
 OUTPUT_FILE = "configRecovered.txt"
 
 MAGIC_EXPECTED = 0xA5A6A7A8
