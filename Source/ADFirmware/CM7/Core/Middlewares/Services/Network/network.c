@@ -35,10 +35,22 @@
 #include "network.h"
 #include "logging.h"
 #include "control.h"
+#include "configuration.h"
 /**
  * @defgroup SERVICES Services
  * @{
  */
+
+/**
+ * @brief Task notification bitmask for runtime network reconfiguration
+ *
+ * @details Used with xTaskNotify to signal network task to update
+ *          IP configuration parameters. Multiple flags can be combined.
+ */
+#define NETWORK_MASK_SET_IP        0x00000001
+#define NETWORK_MASK_SET_MASK      0x00000002
+#define NETWORK_MASK_SET_GW        0x00000004
+#define NETWORK_MASK_SET_ALL       0x00000008
 
 /**
  * @defgroup NETWORK_SERVICE Network service
@@ -51,7 +63,13 @@
  */
 
 /**
- * @brief Network service internal data structure.
+ * @brief Network service internal data structure
+ *
+ * @details
+ *  - *_str fields hold configuration values (string form from CONFIGURATION)
+ *  - ipaddr/netmask/gw are binary representations used by LwIP
+ *  - Updates are performed by modifying *_str, then converting to binary
+ *    using inet_pton before applying to netif
  */
 typedef struct
 {
@@ -62,6 +80,9 @@ typedef struct
 	network_state_t state;                /**< Current network service state */
 	SemaphoreHandle_t initSig;           /**< Semaphore for signaling init complete */
 	system_link_status_t linkStatus;     /**< Last known physical link status */
+	char ip_addr_str[CONFIGURATION_MAX_PARAM_VALUESIZE];
+	char ip_mask_str[CONFIGURATION_MAX_PARAM_VALUESIZE];
+	char ip_gw_str[CONFIGURATION_MAX_PARAM_VALUESIZE];
 } network_data_t;
 /**
  * @}
@@ -86,6 +107,13 @@ static 	TaskHandle_t 			prvNETWORK_TASK_HANDLE;
  */
 static	ETH_MACConfigTypeDef 	prvNETWORK_MAC_CONFIG;
 /**
+ * @brief Global MAC address buffer
+ *
+ * @note Filled during INIT from CONFIGURATION service.
+ *       Used by Ethernet driver during low-level initialization.
+ */
+uint8_t                         NETWORK_MAC_ADDR[6];
+/**
  * @brief Handle
  */
 extern ETH_HandleTypeDef 		HETH;
@@ -93,6 +121,8 @@ extern ETH_HandleTypeDef 		HETH;
  * @brief Temporary storage for lan8742 object
  */
 extern lan8742_Object_t 		LAN8742;
+
+
 
 lwiperf_report_fn a(void *arg, enum lwiperf_report_type report_type,
 		  const ip_addr_t* local_addr, u16_t local_port, const ip_addr_t* remote_addr, u16_t remote_port,
@@ -103,6 +133,42 @@ lwiperf_report_fn a(void *arg, enum lwiperf_report_type report_type,
 /**
  * @}
  */
+/**
+ * @brief Parse MAC address string into binary format
+ *
+ * @param str Input string in format "aa:bb:cc:dd:ee:ff"
+ * @param mac Output buffer (6 bytes)
+ *
+ * @return 0 on success, -1 on failure
+ *
+ * @note This function does NOT modify hardware directly.
+ *       It is used only during initialization.
+ */
+static int prvParseMacAddress(const char* str, uint8_t* mac)
+{
+    if(str == NULL || mac == NULL)
+        return -1;
+
+    int values[6];
+
+    /* sscanf je najjednostavniji i robustan ovde */
+    if(sscanf(str, "%x:%x:%x:%x:%x:%x",
+              &values[0], &values[1], &values[2],
+              &values[3], &values[4], &values[5]) != 6)
+    {
+        return -1;
+    }
+
+    for(int i = 0; i < 6; i++)
+    {
+        if(values[i] < 0 || values[i] > 255)
+            return -1;
+
+        mac[i] = (uint8_t)values[i];
+    }
+
+    return 0;
+}
 
 /**
  * @defgroup NETWORK_PRIVATE_FUNCTIONS Network private functions
@@ -180,6 +246,10 @@ static void prvNETWORK_Task()
 	uint32_t linkchanged = 0U, speed = 0U, duplex = 0U;
 	prvNETWORK_DATA.linkStatus = SYSTEM_LINK_STATUS_DOWN;
 	LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, "Network service started\r\n");
+	char mac_addr[CONFIGURATION_MAX_PARAM_VALUESIZE];
+	memset(mac_addr, 0, CONFIGURATION_MAX_PARAM_VALUESIZE);
+
+	uint8_t def;
 	for(;;)
 	{
 		switch(prvNETWORK_DATA.state)
@@ -188,18 +258,41 @@ static void prvNETWORK_Task()
 			/* Initilialize the LwIP stack with RTOS */
 			tcpip_init( NULL, NULL );
 
-			/* IP addresses initialization without DHCP (IPv4) */
-			inet_pton(AF_INET, NETWORK_DEVICE_IP_ADDRESS, &prvNETWORK_DATA.ipaddr);
-			inet_pton(AF_INET, NETWORK_DEVICE_IP_MASK, &prvNETWORK_DATA.netmask);
-			inet_pton(AF_INET, NETWORK_DEVICE_IP_GW, &prvNETWORK_DATA.gw);
+			CONFIGURATION_GetParameter_String("MAC_ADDRESS", mac_addr, sizeof(mac_addr), &def);
+
+			if(prvParseMacAddress(mac_addr, NETWORK_MAC_ADDR) != 0)
+			{
+			    LOGGING_Write("Network", LOGGING_MSG_TYPE_ERROR, "Invalid MAC format\r\n");
+			}
+			else
+			{
+			    LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, "MAC loaded: %s\r\n", mac_addr);
+			}
+
+			CONFIGURATION_GetParameter_String("IP_ADDRESS", prvNETWORK_DATA.ip_addr_str, sizeof(prvNETWORK_DATA.ip_addr_str), &def);
+			CONFIGURATION_GetParameter_String("IP_MASK", prvNETWORK_DATA.ip_mask_str, sizeof(prvNETWORK_DATA.ip_mask_str), &def);
+			CONFIGURATION_GetParameter_String("IP_GATEWAY", prvNETWORK_DATA.ip_gw_str, sizeof(prvNETWORK_DATA.ip_gw_str), &def);
+
+			if(inet_pton(AF_INET, prvNETWORK_DATA.ip_addr_str, &prvNETWORK_DATA.ipaddr) != 1)
+			{
+			    LOGGING_Write("Network", LOGGING_MSG_TYPE_ERROR, "Invalid IP format\r\n");
+			}
+			if(inet_pton(AF_INET, prvNETWORK_DATA.ip_mask_str, &prvNETWORK_DATA.netmask) != 1)
+			{
+			    LOGGING_Write("Network", LOGGING_MSG_TYPE_ERROR, "Invalid NETMASK format\r\n");
+			}
+			if(inet_pton(AF_INET, prvNETWORK_DATA.ip_gw_str, &prvNETWORK_DATA.gw) != 1)
+			{
+				LOGGING_Write("Network", LOGGING_MSG_TYPE_ERROR, "Invalid GW format\r\n");
+			}
 
 			/* add the network interface (IPv4/IPv6) with RTOS */
 			netif_add(&prvNETWORK_DATA.gnetif, &prvNETWORK_DATA.ipaddr, &prvNETWORK_DATA.netmask, &prvNETWORK_DATA.gw, NULL, &ethernetif_init, &tcpip_input);
 
 			LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, "Network interface added - Info:\r\n");
-			LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, " - IP  	: %s\r\n", NETWORK_DEVICE_IP_ADDRESS);
-			LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, " - MASK	: %s\r\n", NETWORK_DEVICE_IP_MASK);
-			LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, " - Gateway	: %s\r\n", NETWORK_DEVICE_IP_GW);
+			LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, " - IP   : %s\r\n", prvNETWORK_DATA.ip_addr_str);
+			LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, " - MASK : %s\r\n", prvNETWORK_DATA.ip_mask_str);
+			LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, " - Gateway : %s\r\n", prvNETWORK_DATA.ip_gw_str);
 
 			/* Registers the default network interface */
 			netif_set_default(&prvNETWORK_DATA.gnetif);
@@ -228,6 +321,64 @@ static void prvNETWORK_Task()
 			prvNETWORK_DATA.state = NETWORK_STATE_SERVICE;
 			break;
 		case NETWORK_STATE_SERVICE:
+
+			uint32_t value;
+			if(xTaskNotifyWait(0x0, 0xFFFFFFFF, &value, 0) == pdTRUE)
+			{
+			    if(value & NETWORK_MASK_SET_IP)
+			    {
+			        inet_pton(AF_INET, prvNETWORK_DATA.ip_addr_str, &prvNETWORK_DATA.ipaddr);
+			        netif_set_addr(&prvNETWORK_DATA.gnetif, &prvNETWORK_DATA.ipaddr, &prvNETWORK_DATA.netmask, &prvNETWORK_DATA.gw);
+
+			        CONFIGURATION_SetParameter_String("IP_ADDRESS", prvNETWORK_DATA.ip_addr_str, 1000);
+
+			        LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, "IP updated: %s\r\n", prvNETWORK_DATA.ip_addr_str);
+			    }
+
+			    if(value & NETWORK_MASK_SET_MASK)
+			    {
+			        inet_pton(AF_INET, prvNETWORK_DATA.ip_mask_str, &prvNETWORK_DATA.netmask);
+			        netif_set_addr(&prvNETWORK_DATA.gnetif, &prvNETWORK_DATA.ipaddr, &prvNETWORK_DATA.netmask, &prvNETWORK_DATA.gw);
+
+			        CONFIGURATION_SetParameter_String("IP_MASK", prvNETWORK_DATA.ip_mask_str, 1000);
+
+			        LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, "Mask updated: %s\r\n", prvNETWORK_DATA.ip_mask_str);
+			    }
+
+			    if(value & NETWORK_MASK_SET_GW)
+			    {
+			        inet_pton(AF_INET, prvNETWORK_DATA.ip_gw_str, &prvNETWORK_DATA.gw);
+			        netif_set_addr(&prvNETWORK_DATA.gnetif, &prvNETWORK_DATA.ipaddr, &prvNETWORK_DATA.netmask, &prvNETWORK_DATA.gw);
+
+			        CONFIGURATION_SetParameter_String("IP_GATEWAY", prvNETWORK_DATA.ip_gw_str, 1000);
+
+			        LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO, "Gateway updated: %s\r\n", prvNETWORK_DATA.ip_gw_str);
+			    }
+			    if(value & NETWORK_MASK_SET_ALL)
+			    {
+			        inet_pton(AF_INET, prvNETWORK_DATA.ip_addr_str, &prvNETWORK_DATA.ipaddr);
+			        inet_pton(AF_INET, prvNETWORK_DATA.ip_mask_str, &prvNETWORK_DATA.netmask);
+			        inet_pton(AF_INET, prvNETWORK_DATA.ip_gw_str, &prvNETWORK_DATA.gw);
+
+			        netif_set_addr(&prvNETWORK_DATA.gnetif,
+			                       &prvNETWORK_DATA.ipaddr,
+			                       &prvNETWORK_DATA.netmask,
+			                       &prvNETWORK_DATA.gw);
+
+			        CONFIGURATION_SetParameter_String("IP_ADDRESS", prvNETWORK_DATA.ip_addr_str, 1000);
+			        CONFIGURATION_SetParameter_String("IP_MASK", prvNETWORK_DATA.ip_mask_str, 1000);
+			        CONFIGURATION_SetParameter_String("IP_GATEWAY", prvNETWORK_DATA.ip_gw_str, 1000);
+
+			        LOGGING_Write("Network", LOGGING_MSG_TYPE_INFO,
+			                      "IP config updated: IP=%s MASK=%s GW=%s\r\n",
+			                      prvNETWORK_DATA.ip_addr_str,
+			                      prvNETWORK_DATA.ip_mask_str,
+			                      prvNETWORK_DATA.ip_gw_str);
+			    }
+
+			}
+
+
 			LOCK_TCPIP_CORE();
 			PHYLinkState = LAN8742_GetLinkState(&LAN8742);
 
@@ -276,6 +427,8 @@ static void prvNETWORK_Task()
 					netif_set_up(&prvNETWORK_DATA.gnetif);
 					netif_set_link_up(&prvNETWORK_DATA.gnetif);
 				}
+
+			  linkchanged = 0;
 			}
 			UNLOCK_TCPIP_CORE();
 			vTaskDelay(pdMS_TO_TICKS(100));
@@ -310,6 +463,68 @@ network_status_t NETWORK_Init(uint32_t timeout)
 	if(xSemaphoreTake(prvNETWORK_DATA.initSig, pdMS_TO_TICKS(timeout)) != pdFALSE) return NETWORK_STATUS_ERROR;
 
 	return NETWORK_STATUS_OK;
+}
+
+network_status_t NETWORK_SetIPAddress(const char* ip)
+{
+    strncpy(prvNETWORK_DATA.ip_addr_str, ip, sizeof(prvNETWORK_DATA.ip_addr_str)-1);
+    prvNETWORK_DATA.ip_addr_str[sizeof(prvNETWORK_DATA.ip_addr_str)-1] = '\0';
+
+    if(xTaskNotify(prvNETWORK_TASK_HANDLE, NETWORK_MASK_SET_IP, eSetBits) != pdTRUE)
+        return NETWORK_STATUS_ERROR;
+
+    return NETWORK_STATUS_OK;
+}
+
+network_status_t NETWORK_SetIPMask(const char* mask)
+{
+    strncpy(prvNETWORK_DATA.ip_mask_str, mask, sizeof(prvNETWORK_DATA.ip_mask_str)-1);
+    prvNETWORK_DATA.ip_mask_str[sizeof(prvNETWORK_DATA.ip_mask_str)-1] = '\0';
+
+    if(xTaskNotify(prvNETWORK_TASK_HANDLE, NETWORK_MASK_SET_MASK, eSetBits) != pdTRUE)
+        return NETWORK_STATUS_ERROR;
+
+    return NETWORK_STATUS_OK;
+}
+
+network_status_t NETWORK_SetGateway(const char* gw)
+{
+    strncpy(prvNETWORK_DATA.ip_gw_str, gw, sizeof(prvNETWORK_DATA.ip_gw_str)-1);
+    prvNETWORK_DATA.ip_gw_str[sizeof(prvNETWORK_DATA.ip_gw_str)-1] = '\0';
+
+    if(xTaskNotify(prvNETWORK_TASK_HANDLE, NETWORK_MASK_SET_GW, eSetBits) != pdTRUE)
+        return NETWORK_STATUS_ERROR;
+
+    return NETWORK_STATUS_OK;
+}
+
+network_status_t NETWORK_SetIPAll(const char* ip, const char* mask, const char* gw)
+{
+    if(ip == NULL || mask == NULL || gw == NULL)
+        return NETWORK_STATUS_ERROR;
+
+    strncpy(prvNETWORK_DATA.ip_addr_str, ip, sizeof(prvNETWORK_DATA.ip_addr_str) - 1);
+    strncpy(prvNETWORK_DATA.ip_mask_str, mask, sizeof(prvNETWORK_DATA.ip_mask_str) - 1);
+    strncpy(prvNETWORK_DATA.ip_gw_str, gw, sizeof(prvNETWORK_DATA.ip_gw_str) - 1);
+
+    prvNETWORK_DATA.ip_addr_str[sizeof(prvNETWORK_DATA.ip_addr_str) - 1] = '\0';
+    prvNETWORK_DATA.ip_mask_str[sizeof(prvNETWORK_DATA.ip_mask_str) - 1] = '\0';
+    prvNETWORK_DATA.ip_gw_str[sizeof(prvNETWORK_DATA.ip_gw_str) - 1] = '\0';
+
+    if(xTaskNotify(prvNETWORK_TASK_HANDLE, NETWORK_MASK_SET_ALL, eSetBits) != pdTRUE)
+        return NETWORK_STATUS_ERROR;
+
+    return NETWORK_STATUS_OK;
+}
+
+network_status_t NETWORK_GetMACAddr(uint8_t* mac)
+{
+    if(mac == NULL)
+        return NETWORK_STATUS_ERROR;
+
+    memcpy(mac, NETWORK_MAC_ADDR, 6);
+
+    return NETWORK_STATUS_OK;
 }
 
 /**

@@ -89,20 +89,13 @@ static configuration_param_t* prvCONFIGURATION_GetParam(const char* key)
     return NULL;
 }
 
-/**
- * @brief Serialize all configuration parameters into string buffer
- *
- * @param buffer Output buffer
- * @param maxSize Maximum buffer size
- * @param outSize Actual written size
- */
 static void prvCONFIGURATION_SerializeToString(char* buffer,
                                                uint32_t maxSize,
                                                uint32_t* outSize)
 {
     uint32_t offset = 0;
 
-    if(buffer == NULL || outSize == NULL)
+    if(buffer == NULL || outSize == NULL || maxSize == 0)
         return;
 
     buffer[0] = '\0';
@@ -112,19 +105,29 @@ static void prvCONFIGURATION_SerializeToString(char* buffer,
     {
         configuration_param_t* param = &prvCONFIGURATION_DATA.params[i];
 
+        if(param == NULL || param->name == NULL || param->value == NULL)
+            continue;
+
+        /* Safe length for value (prevents runaway strings) */
+        size_t valueLen = strnlen(param->value, CONFIGURATION_MAX_PARAM_VALUESIZE);
+
+        /* Write safely using bounded value length */
         int written = snprintf(&buffer[offset],
                                maxSize - offset,
-                               "%s:%s\r\n",
+                               "%s:%.*s\r\n",
                                param->name,
+                               (int)valueLen,
                                param->value);
 
         /* Check for error or overflow */
-        if(written <= 0 || (offset + written) >= maxSize)
+        if(written <= 0 || (offset + (uint32_t)written) >= maxSize)
         {
+            /* Ensure string termination */
+            buffer[maxSize - 1] = '\0';
             break;
         }
 
-        offset += written;
+        offset += (uint32_t)written;
     }
 
     *outSize = offset;
@@ -167,13 +170,12 @@ static void prvCONFIGURATION_UpdateFromFS(void)
     uint32_t fileSize = 0;
 
     char* line;
+    char* sep;
     char* key;
     char* value;
-    char* saveptr1;
-    char* saveptr2;
+    char* saveptr;
 
-
-    /* ===== 2. LOAD FROM FS ===== */
+    /* ===== LOAD FROM FS ===== */
     if(FSYSTEM_GetFileFromPath(
             CONFIGURATION_FILE_PATH,
             strlen(CONFIGURATION_FILE_PATH),
@@ -191,38 +193,68 @@ static void prvCONFIGURATION_UpdateFromFS(void)
 
     fileBuffer[fileSize] = '\0';
 
-    /* ===== 3. PARSE ===== */
-    line = strtok_r(fileBuffer, "\r\n", &saveptr1);
+    /* ===== PARSE ===== */
+    line = strtok_r(fileBuffer, "\r\n", &saveptr);
 
     while(line != NULL)
     {
-        key = strtok_r(line, ":", &saveptr2);
-        value = strtok_r(NULL, ":", &saveptr2);
+        /* pronađi prvi ':' */
+        sep = strchr(line, ':');
 
-        if((key != NULL) && (value != NULL))
+        if(sep != NULL)
         {
+            *sep = '\0';
+            key = line;
+            value = sep + 1;
+
+            /* trim key */
+            while(*key == ' ' || *key == '\t') key++;
+
+            /* trim value (left) */
+            while(*value == ' ' || *value == '\t') value++;
+
+            /* trim value (right) */
+            char* end = value + strlen(value) - 1;
+            while(end > value && (*end == ' ' || *end == '\t'))
+            {
+                *end = '\0';
+                end--;
+            }
+
             /* traži u runtime tabeli */
             for(uint32_t i = 0; i < prvCONFIGURATION_DATA.paramsCount; i++)
             {
                 configuration_param_t* param = &prvCONFIGURATION_DATA.params[i];
 
+                if(param->name == NULL || param->value == NULL)
+                    continue;
+
                 if(strcmp(param->name, key) == 0)
                 {
-					strncpy(param->value, value, sizeof(param->value) - 1);
-					param->value[sizeof(param->value) - 1] = '\0';
-					param->defaultValue = 0;
+                    size_t len = strnlen(value, CONFIGURATION_MAX_PARAM_VALUESIZE);
+
+                    memcpy(param->value, value, len);
+                    param->value[len] = '\0';
+
+                    param->defaultValue = 0;
+
+                    LOGGING_Write("CONFIG", LOGGING_MSG_TYPE_INFO,
+                                  "Loaded param: %s = %s\r\n",
+                                  param->name,
+                                  param->value);
+
                     break;
                 }
             }
         }
 
-        line = strtok_r(NULL, "\r\n", &saveptr1);
+        line = strtok_r(NULL, "\r\n", &saveptr);
     }
 
     LOGGING_Write("CONFIG", LOGGING_MSG_TYPE_INFO,
                   "Configuration loaded from FS\r\n");
 
-    /* ===== 4. PRINT PARAMETERS NOT UPDATED FROM FS ===== */
+    /* ===== DEFAULT PARAM REPORT ===== */
     for(uint32_t i = 0; i < prvCONFIGURATION_DATA.paramsCount; i++)
     {
         configuration_param_t* param = &prvCONFIGURATION_DATA.params[i];
@@ -422,6 +454,70 @@ configuration_status_t CONFIGURATION_GetParameter(const char* key, char* paramet
     xSemaphoreGive(prvCONFIGURATION_DATA.guard);
     return CONFIGURATION_STATUS_ERROR;
 }
+configuration_status_t CONFIGURATION_GetParameter_Int(const char* key, int32_t* value, uint8_t* defaultFlag)
+{
+    if(key == NULL || value == NULL || defaultFlag == NULL) return CONFIGURATION_STATUS_ERROR;
+    if(xSemaphoreTake(prvCONFIGURATION_DATA.guard, portMAX_DELAY) != pdTRUE) return CONFIGURATION_STATUS_ERROR;
+
+    configuration_param_t* param = prvCONFIGURATION_GetParam(key);
+
+    if(param == NULL || param->type != CONFIGURATION_PARAM_TYPE_INT)
+    {
+        xSemaphoreGive(prvCONFIGURATION_DATA.guard);
+        return CONFIGURATION_STATUS_ERROR;
+    }
+
+    *value = (int32_t)strtol((char*)param->value, NULL, 10);
+    *defaultFlag = param->defaultValue;
+
+    xSemaphoreGive(prvCONFIGURATION_DATA.guard);
+    return CONFIGURATION_STATUS_OK;
+}
+
+configuration_status_t CONFIGURATION_GetParameter_Float(const char* key, float* value, uint8_t* defaultFlag)
+{
+    if(key == NULL || value == NULL || defaultFlag == NULL) return CONFIGURATION_STATUS_ERROR;
+    if(xSemaphoreTake(prvCONFIGURATION_DATA.guard, portMAX_DELAY) != pdTRUE) return CONFIGURATION_STATUS_ERROR;
+
+    configuration_param_t* param = prvCONFIGURATION_GetParam(key);
+
+    if(param == NULL || param->type != CONFIGURATION_PARAM_TYPE_FLOAT)
+    {
+        xSemaphoreGive(prvCONFIGURATION_DATA.guard);
+        return CONFIGURATION_STATUS_ERROR;
+    }
+
+    float tmp;
+	int ret = sscanf((char*)param->value, "%f", &tmp);
+
+	if(ret != 1)
+	{
+		xSemaphoreGive(prvCONFIGURATION_DATA.guard);
+		return CONFIGURATION_STATUS_ERROR;
+	}
+
+	*value = tmp;
+	*defaultFlag = param->defaultValue;
+
+    xSemaphoreGive(prvCONFIGURATION_DATA.guard);
+    return CONFIGURATION_STATUS_OK;
+}
+
+configuration_status_t CONFIGURATION_GetParameter_String(const char* key, char* buffer, uint16_t bufferSize, uint8_t* defaultFlag)
+{
+    uint16_t size;
+
+    if(key == NULL || buffer == NULL || defaultFlag == NULL || bufferSize == 0) return CONFIGURATION_STATUS_ERROR;
+
+    if(CONFIGURATION_GetParameter(key, buffer, &size, defaultFlag) != CONFIGURATION_STATUS_OK) return CONFIGURATION_STATUS_ERROR;
+
+    if(size >= bufferSize) return CONFIGURATION_STATUS_ERROR;
+
+    buffer[size] = '\0';
+
+    return CONFIGURATION_STATUS_OK;
+}
+
 
 configuration_status_t CONFIGURATION_UpdateParamValue(const char* key, char* parameter, uint16_t paramSize, uint32_t timeout)
 {
@@ -441,7 +537,34 @@ configuration_status_t CONFIGURATION_UpdateParamValue(const char* key, char* par
 
     return CONFIGURATION_STATUS_OK;
 }
+configuration_status_t CONFIGURATION_SetParameter_String(const char* key, const char* value, uint32_t timeout)
+{
+    if(key == NULL || value == NULL) return CONFIGURATION_STATUS_ERROR;
 
+    return CONFIGURATION_UpdateParamValue(key, (char*)value, strlen(value), timeout);
+}
+configuration_status_t CONFIGURATION_SetParameter_Int(const char* key, int32_t value, uint32_t timeout)
+{
+    char buffer[32];
+
+    if(key == NULL) return CONFIGURATION_STATUS_ERROR;
+
+    int len = snprintf(buffer, sizeof(buffer), "%ld", value);
+    if(len <= 0 || len >= sizeof(buffer)) return CONFIGURATION_STATUS_ERROR;
+
+    return CONFIGURATION_UpdateParamValue(key, buffer, len, timeout);
+}
+configuration_status_t CONFIGURATION_SetParameter_Float(const char* key, float value, uint32_t timeout)
+{
+    char buffer[32];
+
+    if(key == NULL) return CONFIGURATION_STATUS_ERROR;
+
+    int len = snprintf(buffer, sizeof(buffer), "%.3f", value);
+    if(len <= 0 || len >= sizeof(buffer)) return CONFIGURATION_STATUS_ERROR;
+
+    return CONFIGURATION_UpdateParamValue(key, buffer, len, timeout);
+}
 configuration_status_t CONFIGURATION_StoreToFS(uint32_t timeout)
 {
     if(xTaskNotify(prvCONFIGURATION_DATA.taskHandle, CONFIGURATION_MASK_SAVE_TO_FS, eSetBits) != pdTRUE) return CONFIGURATION_STATUS_ERROR;

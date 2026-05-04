@@ -146,6 +146,9 @@ lan8742_IOCtx_t  LAN8742_IOCtx = {ETH_PHY_IO_Init,
                                ETH_PHY_IO_ReadReg,
                                ETH_PHY_IO_GetTick};
 
+
+extern uint8_t                 NETWORK_MAC_ADDR[6];
+
 /* Private functions ---------------------------------------------------------*/
 void pbuf_free_custom(struct pbuf *p);
 /*******************************************************************************
@@ -163,7 +166,13 @@ static void low_level_init(struct netif *netif)
 	uint32_t duplex, speed = 0U;
 	int32_t PHYLinkState = 0U;
 	ETH_MACConfigTypeDef MACConf = {0};
-	uint8_t macaddress[6]= {ETH_MAC_ADDR0, ETH_MAC_ADDR1, ETH_MAC_ADDR2, ETH_MAC_ADDR3, ETH_MAC_ADDR4, ETH_MAC_ADDR5};
+	uint8_t macaddress[6]= {
+			NETWORK_MAC_ADDR[0],
+			NETWORK_MAC_ADDR[1],
+			NETWORK_MAC_ADDR[2],
+			NETWORK_MAC_ADDR[3],
+			NETWORK_MAC_ADDR[4],
+			NETWORK_MAC_ADDR[5]};
 	osThreadAttr_t attributes;
 	HETH.Instance = ETH;
 	HETH.Init.MACAddr = macaddress;
@@ -179,12 +188,12 @@ static void low_level_init(struct netif *netif)
 	netif->hwaddr_len = ETH_HWADDR_LEN;
 
 	/* set MAC hardware address */
-	netif->hwaddr[0] =  ETH_MAC_ADDR0;
-	netif->hwaddr[1] =  ETH_MAC_ADDR1;
-	netif->hwaddr[2] =  ETH_MAC_ADDR2;
-	netif->hwaddr[3] =  ETH_MAC_ADDR3;
-	netif->hwaddr[4] =  ETH_MAC_ADDR4;
-	netif->hwaddr[5] =  ETH_MAC_ADDR5;
+	netif->hwaddr[0] =  macaddress[0];
+	netif->hwaddr[1] =  macaddress[1];
+	netif->hwaddr[2] =  macaddress[2];
+	netif->hwaddr[3] =  macaddress[3];
+	netif->hwaddr[4] =  macaddress[4];
+	netif->hwaddr[5] =  macaddress[5];
 
 	/* maximum transfer unit */
 	netif->mtu = ETH_MAX_PAYLOAD;

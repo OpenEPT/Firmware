@@ -34,6 +34,8 @@
 #include "dpcontrol.h"
 #include "charger.h"
 #include "fsystem.h"
+#include "configuration.h"
+#include "network.h"
 
 /**
  * @defgroup SERVICES Service
@@ -59,6 +61,7 @@ typedef struct
 	control_state_t		state;
 	uint32_t			disconnectionCounter;
 	uint32_t			numberOfStatusLinks;
+	uint16_t 			serverPort;
 }control_data_t;
 
 typedef struct
@@ -157,28 +160,43 @@ static void inline prvCONTROL_PrepareOkResponse(char* response, uint16_t* respon
 
 static void inline prvCONTROL_PrepareOkResponseBin(char* response, uint16_t* responseSize, char* msg, uint32_t msgSize)
 {
-	uint32_t	tmpIncreaseSize  = 0;
-	char* tmpResponsePtr = response;
-	tmpIncreaseSize = strlen(CONTROL_RESPONSE_OK_STATUS_MSG);
-	memcpy(tmpResponsePtr, CONTROL_RESPONSE_OK_STATUS_MSG, tmpIncreaseSize);
-	tmpResponsePtr	+= tmpIncreaseSize;
-	*responseSize	+= tmpIncreaseSize;
+    uint32_t tmpIncreaseSize = 0;
+    char* tmpResponsePtr = response;
 
-	memcpy(tmpResponsePtr, " ", 1);
-	tmpResponsePtr	+= 1;
-	*responseSize	+= 1;
+    /* OK */
+    tmpIncreaseSize = strlen(CONTROL_RESPONSE_OK_STATUS_MSG);
+    memcpy(tmpResponsePtr, CONTROL_RESPONSE_OK_STATUS_MSG, tmpIncreaseSize);
+    tmpResponsePtr += tmpIncreaseSize;
+    *responseSize += tmpIncreaseSize;
 
-	memcpy(tmpResponsePtr, "B", 1);
-	tmpResponsePtr	+= 1;
-	*responseSize	+= 1;
+    /* space */
+    memcpy(tmpResponsePtr, " ", 1);
+    tmpResponsePtr += 1;
+    *responseSize += 1;
 
-	memcpy(tmpResponsePtr, msg, msgSize);
-	tmpResponsePtr	+= msgSize;
-	*responseSize	+= msgSize;
+    /* B */
+    memcpy(tmpResponsePtr, "B", 1);
+    tmpResponsePtr += 1;
+    *responseSize += 1;
 
-	memcpy(tmpResponsePtr, "\r\n", 2);
-	tmpResponsePtr	+= 2;
-	*responseSize	+= 2;
+    /* === SIZE (2 bytes, big-endian) === */
+    uint16_t payloadSize = (uint16_t)msgSize;
+
+    tmpResponsePtr[0] = (payloadSize >> 8) & 0xFF;
+    tmpResponsePtr[1] = (payloadSize >> 0) & 0xFF;
+
+    tmpResponsePtr += 2;
+    *responseSize += 2;
+
+    /* payload */
+    memcpy(tmpResponsePtr, msg, msgSize);
+    tmpResponsePtr += msgSize;
+    *responseSize += msgSize;
+
+    /* CRLF */
+    memcpy(tmpResponsePtr, "\r\n", 2);
+    tmpResponsePtr += 2;
+    *responseSize += 2;
 }
 /**
  * @brief	Get device name from system service
@@ -973,6 +991,194 @@ static void prvCONTROL_FSystemBDSizeGet(const char* arguments, uint16_t argument
     LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "FSYSTEM BD size get: %lu\r\n", bdSize);
 }
 
+static void prvCONTROL_ParamCalGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    float vref, voff, vcor, coff, ccor;
+    uint8_t def;
+
+    char resp[128];
+    uint32_t respLen = 0;
+
+    if(CONFIGURATION_GetParameter_Float("CAL_V_REF", &vref, &def) != CONFIGURATION_STATUS_OK ||
+       CONFIGURATION_GetParameter_Float("CAL_V_OFF", &voff, &def) != CONFIGURATION_STATUS_OK ||
+       CONFIGURATION_GetParameter_Float("CAL_V_COR", &vcor, &def) != CONFIGURATION_STATUS_OK ||
+       CONFIGURATION_GetParameter_Float("CAL_C_OFF", &coff, &def) != CONFIGURATION_STATUS_OK ||
+       CONFIGURATION_GetParameter_Float("CAL_C_COR", &ccor, &def) != CONFIGURATION_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        return;
+    }
+
+    respLen = snprintf(resp, sizeof(resp),
+                       "VREF=%.6f VOFF=%.6f VCOR=%.6f COFF=%.6f CCOR=%.6f",
+                       vref, voff, vcor, coff, ccor);
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, resp, respLen);
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO,
+                  "Calibration parameters read: VREF=%.6f VOFF=%.6f VCOR=%.6f COFF=%.6f CCOR=%.6f\r\n",
+                  vref, voff, vcor, coff, ccor);
+}
+
+static void prvCONTROL_ParamCalSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    cmparse_value_t value;
+
+    float vref, voff, vcor, coff, ccor;
+
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "vref", &value) != CMPARSE_STATUS_OK ||
+       sscanf(value.value, "%f", &vref) != 1)
+        goto error;
+
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "voff", &value) != CMPARSE_STATUS_OK ||
+       sscanf(value.value, "%f", &voff) != 1)
+        goto error;
+
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "vcor", &value) != CMPARSE_STATUS_OK ||
+       sscanf(value.value, "%f", &vcor) != 1)
+        goto error;
+
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "coff", &value) != CMPARSE_STATUS_OK ||
+       sscanf(value.value, "%f", &coff) != 1)
+        goto error;
+
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "ccor", &value) != CMPARSE_STATUS_OK ||
+       sscanf(value.value, "%f", &ccor) != 1)
+        goto error;
+
+
+    CONFIGURATION_SetParameter_Float("CAL_V_REF", vref, 1000);
+    CONFIGURATION_SetParameter_Float("CAL_V_OFF", voff, 1000);
+    CONFIGURATION_SetParameter_Float("CAL_V_COR", vcor, 1000);
+    CONFIGURATION_SetParameter_Float("CAL_C_OFF", coff, 1000);
+    CONFIGURATION_SetParameter_Float("CAL_C_COR", ccor, 1000);
+
+    CONFIGURATION_StoreToFS(2000);
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO,
+                  "Calibration parameters updated: VREF=%.6f VOFF=%.6f VCOR=%.6f COFF=%.6f CCOR=%.6f\r\n",
+                  vref, voff, vcor, coff, ccor);
+    return;
+
+error:
+    prvCONTROL_PrepareErrorResponse(response, responseSize);
+
+	LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR,
+				  "Invalid calibration parameters (parsing failed)\r\n");
+}
+
+static void prvCONTROL_ParamShuntGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    float value;
+    uint8_t def;
+
+    if(CONFIGURATION_GetParameter_Float("SENS_SHUNT", &value, &def) != CONFIGURATION_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR,
+                      "Failed to read shunt parameter\r\n");
+        return;
+    }
+
+    char resp[32];
+    int len = snprintf(resp, sizeof(resp), "SHUNT=%.6f", value);
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, resp, len);
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO,
+                  "Shunt parameter read: SHUNT=%.6f\r\n", value);
+
+}
+static void prvCONTROL_GetFWVersion(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    char buffer[CONF_CONFIGURATION_MAX_PARAM_VALUESIZE];
+    uint32_t size = 0;
+
+    if(SYSTEM_GetFWVersion(buffer, &size) != SYSTEM_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR,
+                      "Unable to get FW version\r\n");
+        return;
+    }
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, buffer, size);
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO,
+                  "FW version read: %s\r\n", buffer);
+}
+static void prvCONTROL_GetHWSerial(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    char buffer[CONF_CONFIGURATION_MAX_PARAM_VALUESIZE];
+    uint32_t size = 0;
+
+    if(SYSTEM_GetDeviceSerial(buffer, &size) != SYSTEM_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR,
+                      "Unable to get HW serial\r\n");
+        return;
+    }
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, buffer, size);
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO,
+                  "HW serial read: %s\r\n", buffer);
+}
+
+static void prvCONTROL_ParamGainGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    float value;
+    uint8_t def;
+
+    if(CONFIGURATION_GetParameter_Float("SENS_GAIN", &value, &def) != CONFIGURATION_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR,
+                      "Failed to read gain parameter\r\n");
+        return;
+    }
+
+    char resp[32];
+    int len = snprintf(resp, sizeof(resp), "GAIN=%.6f", value);
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, resp, len);
+
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO,
+                  "Gain parameter read: GAIN=%.6f\r\n", value);
+}
+
+static void prvCONTROL_GetMAC(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    uint8_t mac[6];
+    char macStr[32];
+    uint32_t len;
+
+    if(NETWORK_GetMACAddr(mac) != NETWORK_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR,
+                      "Unable to get MAC address\r\n");
+        return;
+    }
+
+    len = snprintf(macStr, sizeof(macStr),
+                   "%02X:%02X:%02X:%02X:%02X:%02X",
+                   mac[0], mac[1], mac[2],
+                   mac[3], mac[4], mac[5]);
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, macStr, len);
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO,
+                  "MAC address read: %s\r\n", macStr);
+}
 /**
  * @brief	Enable load
  * @param	arguments: arguments defined within control message
@@ -2488,6 +2694,8 @@ static void prvCONTROL_TaskFunc(void* pvParameter)
 	int				err;
 	struct timeval	tv;
 	uint32_t		tmpval;
+	uint8_t 		def;
+	int32_t 		port;
 
 	for(;;){
 		switch(prvCONTROL_DATA.state)
@@ -2507,8 +2715,26 @@ static void prvCONTROL_TaskFunc(void* pvParameter)
 			}
 			LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "TCP connection successfully created\r\n");
 
+			if(CONFIGURATION_GetParameter_Int("CONTROL_SER_PORT", &port, &def) != CONFIGURATION_STATUS_OK)
+			{
+			    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get control port\r\n");
+			    prvCONTROL_DATA.state = CONTROL_STATE_ERROR;
+			    break;
+			}
+
+			/* Optional safety */
+			if(port <= 0 || port > 65535)
+			{
+			    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Invalid control port\r\n");
+			    prvCONTROL_DATA.state = CONTROL_STATE_ERROR;
+			    break;
+			}
+
+			prvCONTROL_DATA.serverPort = (uint16_t)port;
+
+
 			address.sin_family = AF_INET;
-			address.sin_port = htons(CONFIG_CONTROL_SERVER_PORT);
+			address.sin_port = htons(prvCONTROL_DATA.serverPort);
 			address.sin_addr.s_addr = INADDR_ANY;
 
 			err = bind(sock, (struct sockaddr *)&address, sizeof (address));
@@ -2517,7 +2743,7 @@ static void prvCONTROL_TaskFunc(void* pvParameter)
 				prvCONTROL_DATA.state = CONTROL_STATE_ERROR;
 				break;
 			}
-			LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "TCP Connection successfully bound to port %d\r\n", CONTROL_SERVER_PORT);
+			LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "TCP Connection successfully bound to port %d\r\n", prvCONTROL_DATA.serverPort);
 
 			listen(sock, 5);
 		    size = sizeof(remotehost);
@@ -2533,7 +2759,8 @@ static void prvCONTROL_TaskFunc(void* pvParameter)
 
 			break;
 		case CONTROL_STATE_SERVICE:
-			LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wait for new connection on port %d\r\n", CONTROL_SERVER_PORT);
+			LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO,"Wait for new connection on port %d\r\n", prvCONTROL_DATA.serverPort);
+
 			newconn = accept(sock, (struct sockaddr *)&remotehost, (socklen_t *)&size);
 
 			if(xSemaphoreTake(prvCONTROL_DATA.guard, portMAX_DELAY) != pdPASS)
@@ -2831,6 +3058,16 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("device fsystem bd read",   			prvCONTROL_FSystemRead);
 	CMPARSE_AddCommand("device fsystem bd write",  			prvCONTROL_FSystemWrite);
 	CMPARSE_AddCommand("device fsystem bd size get",  		prvCONTROL_FSystemBDSizeGet);
+
+
+	CMPARSE_AddCommand("device param cal get",  			prvCONTROL_ParamCalGet);
+	CMPARSE_AddCommand("device param cal set",  			prvCONTROL_ParamCalSet);
+	CMPARSE_AddCommand("device param shunt get",  			prvCONTROL_ParamShuntGet);
+	CMPARSE_AddCommand("device param gain get",  			prvCONTROL_ParamGainGet);
+
+	CMPARSE_AddCommand("device ipinfo mac get", 			prvCONTROL_GetMAC);
+	CMPARSE_AddCommand("device hwserial get",  				prvCONTROL_GetHWSerial);
+	CMPARSE_AddCommand("device swserial get",  				prvCONTROL_GetFWVersion);
 
 
 	return CONTROL_STATUS_OK;

@@ -29,6 +29,7 @@
 #include "control.h"
 #include "drv_aout.h"
 #include "drv_gpio.h"
+#include "configuration.h"
 
 /**
  * @defgroup SERVICES Services
@@ -139,6 +140,8 @@ typedef struct
     float    ovValue;
     float    uvValue;
     int32_t  ocValue;
+    float    shuntValue;
+    float    gainValue;
     dpcontrol_wave_chunk_msg_t		lastWaveChunkMsg;
     char	printBuffer[DPCONTROL_WAVE_CHUNK_PBS];
 } dpcontrol_data_t;
@@ -634,21 +637,30 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 		     * PROTECTION THRESHOLD INITIALIZATION (UV / OV / OC VALUES)
 		     **********************************************************************/
 
+		    uint8_t def;
+
+		    CONFIGURATION_GetParameter_Float("PROTECTIONS_OVOLTAGE_VALUE", &prvDPCONTROL_DATA.ovValue, &def);
+		    CONFIGURATION_GetParameter_Float("PROTECTIONS_UVOLTAGE_VALUE", &prvDPCONTROL_DATA.uvValue, &def);
+		    CONFIGURATION_GetParameter_Int("PROTECTIONS_OCURRENT_VALUE", &prvDPCONTROL_DATA.ocValue, &def);
+
+		    CONFIGURATION_GetParameter_Float("SENS_SHUNT", &prvDPCONTROL_DATA.shuntValue, &def);
+		    CONFIGURATION_GetParameter_Float("SENS_GAIN", &prvDPCONTROL_DATA.gainValue, &def);
+
 		    /* Apply thresholds to DAC */
 		    DRV_AOUT_SetVoltage(prvDPCONTROL_DATA.ovValue, DRV_AOUT_CHANNEL_C);
 		    DRV_AOUT_SetVoltage(prvDPCONTROL_DATA.uvValue, DRV_AOUT_CHANNEL_B);
 
-		    float ocVoltage = (DPCONTROL_SHUNT_VALUE *
-		                       DPCONTROL_INA_GAIN *
-		                       (float)(prvDPCONTROL_DATA.ocValue) / 1000.0f);
+		    float ocVoltage = (prvDPCONTROL_DATA.shuntValue * prvDPCONTROL_DATA.gainValue * (float)(prvDPCONTROL_DATA.ocValue) / 1000.0f);
 
 		    DRV_AOUT_SetVoltage(ocVoltage, DRV_AOUT_CHANNEL_A);
 
 		    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,
-		                  "Protection thresholds initialized (OV=%.2fV, UV=%.2fV, OC=%dmA)\r\n",
+		                  "Init: OV=%.2fV UV=%.2fV OC=%dmA | SHUNT=%.4f GAIN=%.2f\r\n",
 		                  prvDPCONTROL_DATA.ovValue,
 		                  prvDPCONTROL_DATA.uvValue,
-		                  prvDPCONTROL_DATA.ocValue);
+		                  prvDPCONTROL_DATA.ocValue,
+		                  prvDPCONTROL_DATA.shuntValue,
+		                  prvDPCONTROL_DATA.gainValue);
 
 		    /**********************************************************************
 		     * DAC INITIAL VALUE
@@ -1005,6 +1017,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			    }
 			    else
 			    {
+			    	CONFIGURATION_SetParameter_Float("PROTECTIONS_OVOLTAGE_VALUE", ov, 1000);
 					xSemaphoreGive(prvDPCONTROL_DATA.initSig);
 				    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,"OV threshold set to %.3f V\r\n", ov);
 			    }
@@ -1032,6 +1045,8 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			    }
 			    else
 			    {
+
+			        CONFIGURATION_SetParameter_Float("PROTECTIONS_UVOLTAGE_VALUE", uv, 1000);
 					xSemaphoreGive(prvDPCONTROL_DATA.initSig);
 				    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,"Under Voltage threshold set to %.3f V\r\n", uv);
 			    }
@@ -1059,6 +1074,8 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			    }
 			    else
 			    {
+
+			        CONFIGURATION_SetParameter_Int("PROTECTIONS_OCURRENT_VALUE", oc, 1000);
 					xSemaphoreGive(prvDPCONTROL_DATA.initSig);
 				    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,"Over Current threshold set to %d mA V\r\n", oc);
 			    }
@@ -1083,9 +1100,6 @@ dpcontrol_status_t DPCONTROL_Init(uint32_t initTimeout)
 	prvDPCONTROL_DATA.batState = DPCONTROL_BAT_STATE_ENABLE;
 	prvDPCONTROL_DATA.pathState = DPCONTROL_PPATH_STATE_ENABLE;
 	prvDPCONTROL_DATA.aoutData.data = 85; //100mA
-	prvDPCONTROL_DATA.ocValue = DPCONTROL_DEFAULT_OC_VALUE;
-	prvDPCONTROL_DATA.ovValue = DPCONTROL_DEFAULT_OV_VALUE;
-	prvDPCONTROL_DATA.uvValue = DPCONTROL_DEFAULT_UV_VALUE;
 
 	prvDPCONTROL_DATA.initSig = xSemaphoreCreateBinary();
 

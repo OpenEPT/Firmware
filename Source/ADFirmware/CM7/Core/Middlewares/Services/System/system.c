@@ -80,7 +80,9 @@ typedef  struct
 	system_link_status_t	linkStatus;    /**< Current link status (UP/DOWN) */
 	system_rgb_value_t		rgbValue;      /**< Current RGB LED values */
 	SemaphoreHandle_t		guard;         /**< Mutex for thread-safe parameter access */
-	char					deviceName[CONF_SYSTEM_DEFAULT_DEVICE_NAME_MAX]; /**< Device name storage */
+	char					deviceName[CONF_CONFIGURATION_MAX_PARAM_VALUESIZE]; /**< Device name storage */
+	char                    deviceSerial[CONF_CONFIGURATION_MAX_PARAM_VALUESIZE];
+	char                    deviceFwVersion[CONF_CONFIGURATION_MAX_PARAM_VALUESIZE];
 }system_data_t;
 /**
  * @}
@@ -186,6 +188,9 @@ static void prvSYSTEM_Task()
 	drv_timer_config_t			pwmTimerConfig;
 	uint32_t					notifyValue;
 
+	uint8_t def;
+	char buffer[CONF_CONFIGURATION_MAX_PARAM_VALUESIZE];
+
 	prvSYSTEM_DATA.linkStatus    = SYSTEM_LINK_STATUS_DOWN;
 	prvSYSTEM_DATA.rgbValue.red = 0;
 	prvSYSTEM_DATA.rgbValue.green = 0;
@@ -248,13 +253,6 @@ static void prvSYSTEM_Task()
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Logging service successfully initialized\r\n");
 
-			if(CONFIGURATION_Init(2000) != CONFIGURATION_STATUS_OK)
-			{
-				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
-				break;
-			}
-			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Configuration service successfully initialized\r\n");
-
 			if(FSYSTEM_Init(2000) != FSYSTEM_STATUS_OK)
 			{
 				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
@@ -262,9 +260,54 @@ static void prvSYSTEM_Task()
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "File system service successfully initialized\r\n");
 
-			//FSYSTEM_TestBD();
+			if(CONFIGURATION_Init(2000) != CONFIGURATION_STATUS_OK)
+			{
+				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
+				break;
+			}
+			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Configuration service successfully initialized\r\n");
 
-			//vTaskDelay(portMAX_DELAY);
+
+
+			/* Device Name */
+			if(CONFIGURATION_GetParameter_String("DEV_NAME", buffer, sizeof(buffer), &def) == CONFIGURATION_STATUS_OK)
+			{
+				memset(prvSYSTEM_DATA.deviceName, 0, sizeof(prvSYSTEM_DATA.deviceName));
+				memcpy(prvSYSTEM_DATA.deviceName, buffer, strlen(buffer));
+
+				LOGGING_Write("System", LOGGING_MSG_TYPE_INFO,"Device name loaded: %s\r\n",prvSYSTEM_DATA.deviceName);
+			}
+			else
+			{
+				LOGGING_Write("System", LOGGING_MSG_TYPE_WARNING,"Failed to load device name\r\n");
+			}
+
+			/* HW Serial */
+			if(CONFIGURATION_GetParameter_String("HW_SERIAL", buffer, sizeof(buffer), &def) == CONFIGURATION_STATUS_OK)
+			{
+				memset(prvSYSTEM_DATA.deviceSerial, 0, sizeof(prvSYSTEM_DATA.deviceSerial));
+				memcpy(prvSYSTEM_DATA.deviceSerial, buffer, strlen(buffer));
+
+				LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Device serial loaded: %s\r\n", prvSYSTEM_DATA.deviceSerial);
+			}
+			else
+			{
+				LOGGING_Write("System", LOGGING_MSG_TYPE_WARNING, "Failed to load device serial\r\n");
+			}
+
+			/* FW Version */
+			if(CONFIGURATION_GetParameter_String("FW_VERSION", buffer, sizeof(buffer), &def) == CONFIGURATION_STATUS_OK)
+			{
+				memset(prvSYSTEM_DATA.deviceFwVersion, 0, sizeof(prvSYSTEM_DATA.deviceFwVersion));
+				memcpy(prvSYSTEM_DATA.deviceFwVersion, buffer, strlen(buffer));
+
+				LOGGING_Write("System", LOGGING_MSG_TYPE_INFO,"FW version loaded: %s\r\n",prvSYSTEM_DATA.deviceFwVersion);
+			}
+			else
+			{
+				LOGGING_Write("System", LOGGING_MSG_TYPE_WARNING,"Failed to load FW version\r\n");
+			}
+
 
 
 //			if(CHARGER_Init(2000) != CHARGER_STATUS_OK)
@@ -420,23 +463,103 @@ system_status_t SYSTEM_SetLinkStatus(system_link_status_t linkStatus)
 
 system_status_t SYSTEM_SetDeviceName(const char* deviceName)
 {
-	if(strlen(deviceName) > CONF_SYSTEM_DEFAULT_DEVICE_NAME_MAX) return SYSTEM_STATE_ERROR;
+	if(deviceName == NULL) return SYSTEM_STATUS_ERROR;
+
+	size_t len = strnlen(deviceName, CONF_SYSTEM_DEFAULT_DEVICE_NAME_MAX);
+
+	if(len >= CONF_SYSTEM_DEFAULT_DEVICE_NAME_MAX) return SYSTEM_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvSYSTEM_DATA.guard, portMAX_DELAY) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
 	memset(prvSYSTEM_DATA.deviceName, 0, CONF_SYSTEM_DEFAULT_DEVICE_NAME_MAX);
-	memcpy(prvSYSTEM_DATA.deviceName, deviceName, strlen(deviceName));
+	memcpy(prvSYSTEM_DATA.deviceName, deviceName, len);
 
 	if(xSemaphoreGive(prvSYSTEM_DATA.guard) != pdTRUE) return SYSTEM_STATUS_ERROR;
+
 	return SYSTEM_STATUS_OK;
 }
 
 system_status_t SYSTEM_GetDeviceName(char* deviceName, uint32_t* deviceNameSize)
 {
+	if(deviceName == NULL || deviceNameSize == NULL) return SYSTEM_STATUS_ERROR;
+
 	if(xSemaphoreTake(prvSYSTEM_DATA.guard, portMAX_DELAY) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
-	memcpy(deviceName, prvSYSTEM_DATA.deviceName, strlen(prvSYSTEM_DATA.deviceName));
-	*deviceNameSize = strlen(prvSYSTEM_DATA.deviceName);
+	size_t len = strnlen(prvSYSTEM_DATA.deviceName, CONF_SYSTEM_DEFAULT_DEVICE_NAME_MAX);
+
+	memcpy(deviceName, prvSYSTEM_DATA.deviceName, len);
+	deviceName[len] = '\0';
+	*deviceNameSize = len;
+
+	if(xSemaphoreGive(prvSYSTEM_DATA.guard) != pdTRUE) return SYSTEM_STATUS_ERROR;
+
+	return SYSTEM_STATUS_OK;
+}
+
+system_status_t SYSTEM_SetDeviceSerial(const char* deviceSerial)
+{
+	if(deviceSerial == NULL) return SYSTEM_STATUS_ERROR;
+
+	size_t len = strnlen(deviceSerial, CONF_CONFIGURATION_MAX_PARAM_VALUESIZE);
+
+	if(len >= CONF_CONFIGURATION_MAX_PARAM_VALUESIZE) return SYSTEM_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvSYSTEM_DATA.guard, portMAX_DELAY) != pdTRUE) return SYSTEM_STATUS_ERROR;
+
+	memset(prvSYSTEM_DATA.deviceSerial, 0, CONF_CONFIGURATION_MAX_PARAM_VALUESIZE);
+	memcpy(prvSYSTEM_DATA.deviceSerial, deviceSerial, len);
+
+	if(xSemaphoreGive(prvSYSTEM_DATA.guard) != pdTRUE) return SYSTEM_STATUS_ERROR;
+
+	return SYSTEM_STATUS_OK;
+}
+
+system_status_t SYSTEM_GetDeviceSerial(char* deviceSerial, uint32_t* deviceSerialSize)
+{
+	if(deviceSerial == NULL || deviceSerialSize == NULL) return SYSTEM_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvSYSTEM_DATA.guard, portMAX_DELAY) != pdTRUE) return SYSTEM_STATUS_ERROR;
+
+	size_t len = strnlen(prvSYSTEM_DATA.deviceSerial, CONF_CONFIGURATION_MAX_PARAM_VALUESIZE);
+
+	memcpy(deviceSerial, prvSYSTEM_DATA.deviceSerial, len);
+	deviceSerial[len] = '\0';
+	*deviceSerialSize = len;
+
+	if(xSemaphoreGive(prvSYSTEM_DATA.guard) != pdTRUE) return SYSTEM_STATUS_ERROR;
+
+	return SYSTEM_STATUS_OK;
+}
+
+system_status_t SYSTEM_SetFWVersion(const char* fwVersion)
+{
+	if(fwVersion == NULL) return SYSTEM_STATUS_ERROR;
+
+	size_t len = strnlen(fwVersion, CONF_CONFIGURATION_MAX_PARAM_VALUESIZE);
+
+	if(len >= CONF_CONFIGURATION_MAX_PARAM_VALUESIZE) return SYSTEM_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvSYSTEM_DATA.guard, portMAX_DELAY) != pdTRUE) return SYSTEM_STATUS_ERROR;
+
+	memset(prvSYSTEM_DATA.deviceFwVersion, 0, CONF_CONFIGURATION_MAX_PARAM_VALUESIZE);
+	memcpy(prvSYSTEM_DATA.deviceFwVersion, fwVersion, len);
+
+	if(xSemaphoreGive(prvSYSTEM_DATA.guard) != pdTRUE) return SYSTEM_STATUS_ERROR;
+
+	return SYSTEM_STATUS_OK;
+}
+
+system_status_t SYSTEM_GetFWVersion(char* fwVersion, uint32_t* fwVersionSize)
+{
+	if(fwVersion == NULL || fwVersionSize == NULL) return SYSTEM_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvSYSTEM_DATA.guard, portMAX_DELAY) != pdTRUE) return SYSTEM_STATUS_ERROR;
+
+	size_t len = strnlen(prvSYSTEM_DATA.deviceFwVersion, CONF_CONFIGURATION_MAX_PARAM_VALUESIZE);
+
+	memcpy(fwVersion, prvSYSTEM_DATA.deviceFwVersion, len);
+	fwVersion[len] = '\0';
+	*fwVersionSize = len;
 
 	if(xSemaphoreGive(prvSYSTEM_DATA.guard) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
@@ -456,6 +579,20 @@ system_status_t SYSTEM_SetRGB(system_rgb_value_t value)
 	if(xTaskNotify(prvSYSTEM_TASK_HANDLE, SYSTEM_MASK_RGB_SET_COLOR, eSetBits) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
 	return SYSTEM_STATUS_OK;
+}
+
+system_status_t SYSTEM_Restart(void)
+{
+    LOGGING_Write("System", LOGGING_MSG_TYPE_WARNING, "System restarting...\r\n");
+
+    /* Mala pauza da se log flushuje */
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    /* Hard reset MCU */
+    NVIC_SystemReset();
+
+    /* Nikada se ne izvršava */
+    return SYSTEM_STATUS_OK;
 }
 /**
  * @}

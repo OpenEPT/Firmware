@@ -154,7 +154,60 @@ system_status_t SYSTEM_GetDeviceName(char* deviceName, uint32_t* deviceNameSize)
  * @param	value: RGB color values structure. See ::system_rgb_value_t
  * @retval	::system_status_t
  */
-system_status_t SYSTEM_SetRGB(system_rgb_value_t value);
+/**
+ * @brief   Set device serial number
+ *
+ * @param   deviceSerial Pointer to null-terminated string containing device serial
+ *
+ * @retval  ::SYSTEM_STATUS_OK       Serial successfully set
+ * @retval  ::SYSTEM_STATUS_ERROR    Invalid input or internal error
+ *
+ * @note    Maximum allowed length is defined by CONF_SYSTEM_DEFAULT_DEVICE_SERIAL_MAX
+ */
+system_status_t SYSTEM_SetDeviceSerial(const char* deviceSerial);
+
+/**
+ * @brief   Get device serial number
+ *
+ * @param   deviceSerial Pointer to buffer where serial will be copied
+ * @param   deviceSerialSize Pointer to variable where serial length will be stored
+ *
+ * @retval  ::SYSTEM_STATUS_OK       Serial successfully retrieved
+ * @retval  ::SYSTEM_STATUS_ERROR    Invalid input or internal error
+ *
+ * @note    Output string is null-terminated
+ * @note    Caller must ensure buffer is large enough
+ */
+system_status_t SYSTEM_GetDeviceSerial(char* deviceSerial, uint32_t* deviceSerialSize);
+
+/**
+ * @brief   Set firmware version string
+ *
+ * @param   fwVersion Pointer to null-terminated string containing firmware version
+ *
+ * @retval  ::SYSTEM_STATUS_OK       Firmware version successfully set
+ * @retval  ::SYSTEM_STATUS_ERROR    Invalid input or internal error
+ *
+ * @note    Maximum allowed length is defined by CONF_SYSTEM_DEFAULT_FW_VERSION_MAX
+ */
+system_status_t SYSTEM_SetFWVersion(const char* fwVersion);
+
+/**
+ * @brief   Get firmware version string
+ *
+ * @param   fwVersion Pointer to buffer where firmware version will be copied
+ * @param   fwVersionSize Pointer to variable where string length will be stored
+ *
+ * @retval  ::SYSTEM_STATUS_OK       Firmware version successfully retrieved
+ * @retval  ::SYSTEM_STATUS_ERROR    Invalid input or internal error
+ *
+ * @note    Output string is null-terminated
+ * @note    Caller must ensure buffer is large enough
+ */
+system_status_t SYSTEM_GetFWVersion(char* fwVersion, uint32_t* fwVersionSize);
+
+
+system_status_t SYSTEM_Restart(void);
 
 /**
  * @}

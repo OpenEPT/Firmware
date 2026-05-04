@@ -61,9 +61,12 @@ static cmparse_status_t prvCMPARSE_GetArguments(const char* command, char* argBu
 	while(commandIterator < prvCMPARSE_REGISTERED_COMMANDS_NO)
 	{
 		processedCommandCharNumber =  0;
-		commandIterator += 1;
 		tmp = strstr(command, prvCMPARSE_COMMANDS[commandIterator].command);
-		if(tmp == NULL)continue;
+		if(tmp == NULL)
+		{
+			commandIterator += 1;
+			continue;
+		}
 		processedCommandCharNumber += prvCMPARSE_COMMANDS[commandIterator].commandLength;
 		tmp += processedCommandCharNumber;
 		//Skip whitespace
@@ -82,6 +85,8 @@ static cmparse_status_t prvCMPARSE_GetArguments(const char* command, char* argBu
 			processedCommandCharNumber += 1;
 		}
 		*argSize = argBufferTmpSize;
+
+		commandIterator += 1;
 		return CMPARSE_STATUS_OK;
 
 	}

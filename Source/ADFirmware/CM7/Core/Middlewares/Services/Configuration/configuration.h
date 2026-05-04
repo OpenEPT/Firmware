@@ -76,6 +76,14 @@ configuration_status_t CONFIGURATION_Init(uint32_t initTimeout);
 configuration_status_t CONFIGURATION_UpdateFromFS(uint32_t initTimeout);
 configuration_status_t CONFIGURATION_StoreToFS(uint32_t initTimeout);
 configuration_status_t CONFIGURATION_GetParameter(const char* key, char* parameter, uint16_t* paramSize, uint8_t* defaultFlag);
+configuration_status_t CONFIGURATION_GetParameter_Int(const char* key, int32_t* value, uint8_t* defaultFlag);
+configuration_status_t CONFIGURATION_GetParameter_Float(const char* key, float* value, uint8_t* defaultFlag);
+configuration_status_t CONFIGURATION_GetParameter_String(const char* key, char* buffer, uint16_t bufferSize, uint8_t* defaultFlag);
+configuration_status_t CONFIGURATION_SetParameter_Int(const char* key, int32_t value, uint32_t timeout);
+configuration_status_t CONFIGURATION_SetParameter_Float(const char* key, float value, uint32_t timeout);
+configuration_status_t CONFIGURATION_SetParameter_String(const char* key, const char* value, uint32_t timeout);
+
+
 configuration_status_t CONFIGURATION_UpdateParamValue(const char* key, char* parameter, uint16_t paramSize, uint32_t timeout);
 
 /**
