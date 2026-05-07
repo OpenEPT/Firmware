@@ -41,7 +41,7 @@
  * @param   size: Number of bytes
  * @retval  1 if range is valid, 0 otherwise
  */
-static uint8_t prvM24C32_IsRangeValid(uint16_t memAddr, uint16_t size)
+static uint8_t prvM24C32_IsRangeValid(uint32_t memAddr, uint16_t size)
 {
     uint32_t endAddr;
 
@@ -67,7 +67,7 @@ static uint8_t prvM24C32_IsRangeValid(uint16_t memAddr, uint16_t size)
  * @param   timeout: Communication timeout in milliseconds
  * @retval  ::m24c32_status_t
  */
-static m24c32_status_t prvM24C32_Read(uint16_t memAddr, uint8_t* data, uint16_t size, uint32_t timeout)
+static m24c32_status_t prvM24C32_Read(uint32_t memAddr, uint8_t* data, uint16_t size, uint32_t timeout)
 {
     uint8_t devAddr;
     uint8_t addrBytes[2];
@@ -77,10 +77,16 @@ static m24c32_status_t prvM24C32_Read(uint16_t memAddr, uint8_t* data, uint16_t 
         return M24C32_STATUS_ERROR;
     }
 
-    addrBytes[0] = (uint8_t)((memAddr >> 8) & 0xFFU);
-    addrBytes[1] = (uint8_t)(memAddr & 0xFFU);
+    uint8_t addrHigh = (uint8_t)((memAddr >> 8) & 0xFFU);
+    uint8_t addrLow  = (uint8_t)(memAddr & 0xFFU);
 
-    devAddr = (uint8_t)(M24C32_DEV_ADDR << 1);
+    uint8_t a16 = (uint8_t)((memAddr >> 16) & 0x01U);
+    uint8_t a17 = (uint8_t)((memAddr >> 17) & 0x01U);
+
+    devAddr = (uint8_t)((0x54U << 1) | (a17 << 2) | (a16 << 1));
+
+    addrBytes[0] = addrHigh;
+    addrBytes[1] = addrLow;
 
     if(DRV_I2C_Transmit(DRV_I2C_INSTANCE_4, devAddr, addrBytes, 2U, timeout) != DRV_I2C_STATUS_OK)
     {
@@ -95,15 +101,7 @@ static m24c32_status_t prvM24C32_Read(uint16_t memAddr, uint8_t* data, uint16_t 
     return M24C32_STATUS_OK;
 }
 
-/**
- * @brief   Write one EEPROM page chunk
- * @param   memAddr: EEPROM internal memory address
- * @param   data: Pointer to transmit buffer
- * @param   size: Number of bytes to write in this chunk
- * @param   timeout: Communication timeout in milliseconds
- * @retval  ::m24c32_status_t
- */
-static m24c32_status_t prvM24C32_WritePage(uint16_t memAddr, const uint8_t* data, uint16_t size, uint32_t timeout)
+static m24c32_status_t prvM24C32_WritePage(uint32_t memAddr, const uint8_t* data, uint16_t size, uint32_t timeout)
 {
     uint8_t devAddr;
     uint8_t txBuffer[2U + M24C32_PAGE_SIZE_BYTES];
@@ -113,22 +111,36 @@ static m24c32_status_t prvM24C32_WritePage(uint16_t memAddr, const uint8_t* data
         return M24C32_STATUS_ERROR;
     }
 
-    txBuffer[0] = (uint8_t)((memAddr >> 8) & 0xFFU);
-    txBuffer[1] = (uint8_t)(memAddr & 0xFFU);
+    /* ===== Extract address bits ===== */
+    uint8_t addrHigh = (uint8_t)((memAddr >> 8) & 0xFFU);   /* A15–A8 */
+    uint8_t addrLow  = (uint8_t)(memAddr & 0xFFU);          /* A7–A0 */
+
+    uint8_t a16 = (uint8_t)((memAddr >> 16) & 0x01U);
+    uint8_t a17 = (uint8_t)((memAddr >> 17) & 0x01U);
+
+    /* ===== Build device address ===== */
+    /*
+     * 1 0 1 0 A2 A17 A16 R/W
+     * Assume A2=0 (or configurable)
+     */
+    devAddr = (uint8_t)(
+        (0x54U << 1) |      /* 1010 000x base */
+        (a17 << 2) |        /* bit position for A17 */
+        (a16 << 1)          /* bit position for A16 */
+    );
+
+    /* ===== Fill buffer ===== */
+    txBuffer[0] = addrHigh;
+    txBuffer[1] = addrLow;
     memcpy(&txBuffer[2], data, size);
 
-    devAddr = (uint8_t)(M24C32_DEV_ADDR << 1);
-
-    if(DRV_I2C_Transmit(DRV_I2C_INSTANCE_4, devAddr, txBuffer, (uint32_t)(size + 2U), timeout) != DRV_I2C_STATUS_OK)
+    /* ===== Transmit ===== */
+    if(DRV_I2C_Transmit(DRV_I2C_INSTANCE_4, devAddr,txBuffer, (uint32_t)(size + 2U), timeout) != DRV_I2C_STATUS_OK)
     {
         return M24C32_STATUS_ERROR;
     }
 
-    /*
-     * EEPROM requires internal write cycle time after page write.
-     * Fixed delay is used here because current DRV_I2C API does not expose
-     * a dedicated ACK-poll helper.
-     */
+    /* ===== Write cycle delay ===== */
     HAL_Delay(M24C32_WRITE_CYCLE_TIME_MS);
 
     return M24C32_STATUS_OK;
@@ -179,9 +191,9 @@ m24c32_status_t M24C32_ReadByte(uint16_t memAddr, uint8_t* data, uint32_t timeou
     return prvM24C32_Read(memAddr, data, 1U, timeout);
 }
 
-m24c32_status_t M24C32_Write(uint16_t memAddr, const uint8_t* data, uint16_t size, uint32_t timeout)
+m24c32_status_t M24C32_Write(uint32_t memAddr, const uint8_t* data, uint16_t size, uint32_t timeout)
 {
-    uint16_t currentAddr;
+    uint32_t currentAddr;
     uint16_t remaining;
     uint16_t chunkSize;
     uint16_t pageOffset;
@@ -197,8 +209,8 @@ m24c32_status_t M24C32_Write(uint16_t memAddr, const uint8_t* data, uint16_t siz
 
     while(remaining > 0U)
     {
-        pageOffset = (uint16_t)(currentAddr % M24C32_PAGE_SIZE_BYTES);
-        spaceInPage = (uint16_t)(M24C32_PAGE_SIZE_BYTES - pageOffset);
+        pageOffset = (uint32_t)(currentAddr % M24C32_PAGE_SIZE_BYTES);
+        spaceInPage = (uint32_t)(M24C32_PAGE_SIZE_BYTES - pageOffset);
         chunkSize = (remaining < spaceInPage) ? remaining : spaceInPage;
 
         if(prvM24C32_WritePage(currentAddr, data, chunkSize, timeout) != M24C32_STATUS_OK)
@@ -206,15 +218,15 @@ m24c32_status_t M24C32_Write(uint16_t memAddr, const uint8_t* data, uint16_t siz
             return M24C32_STATUS_ERROR;
         }
 
-        currentAddr = (uint16_t)(currentAddr + chunkSize);
+        currentAddr = (uint32_t)(currentAddr + chunkSize);
         data += chunkSize;
-        remaining = (uint16_t)(remaining - chunkSize);
+        remaining = (uint32_t)(remaining - chunkSize);
     }
 
     return M24C32_STATUS_OK;
 }
 
-m24c32_status_t M24C32_Read(uint16_t memAddr, uint8_t* data, uint16_t size, uint32_t timeout)
+m24c32_status_t M24C32_Read(uint32_t memAddr, uint8_t* data, uint16_t size, uint32_t timeout)
 {
     return prvM24C32_Read(memAddr, data, size, timeout);
 }

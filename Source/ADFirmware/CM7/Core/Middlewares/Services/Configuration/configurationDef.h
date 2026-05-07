@@ -25,6 +25,7 @@ typedef struct
 
     uint8_t     readOnly;    /*!< 1 = read-only, 0 = writable */
     uint8_t     defaultValue;
+    uint8_t     systemParam;
 } configuration_param_t;
 
 configuration_param_t* CONFIGURATIONDEF_GetDefaults(void);

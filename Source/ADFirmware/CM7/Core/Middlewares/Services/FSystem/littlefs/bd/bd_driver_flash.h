@@ -34,26 +34,11 @@
 #include <stdint.h>
 /*----------------------------------- LittleFS Includes -----------------------------------*/
 #include "../lfs.h"
+#include "globalConfig.h"
 
 /*------------------------------ Block Device Configuration -------------------------------*/
 /*Minimum data size which can be program to the flash. See MCU flash datasheet*/
-#define BD_DRIVER_FLASH_PROG_SIZE				0x00000001 //8 bytes
-/*Minimum data size which can be read from flash. See MCU flash datasheet*/
-#define BD_DRIVER_FLASH_READ_SIZE				0x00000001 //8 bytes
-/*One flash block size*/
-#define BD_DRIVER_FLASH_BLOCK_SIZE    			0x00000800 //2K	bytes
-/*Number of flash blocks used with file system*/
-#define BD_DRIVER_FLASH_BLOCK_COUNT    			0x00000100 //256 blocks
-/*One flash bank size*/
-#define BD_DRIVER_FLASH_BANK_SIZE				0x00080000 //512K Bytes
-/*Number of bank in flash*/
-#define BD_DRIVER_FLASH_BANK_COUNT				0x00000010 //2 bank
-/*Start of the flash memory part used with file system*/
-#define BD_DRIVER_FLASH_MEMORY_START_ADDRESS 	0x08080000 //
-/*First block in a flesh memory used by file system*/
-#define BD_DRIVER_FLASH_MEMORY_START_BLOCK 		0x00000100 //256
-/*Bank number used by file system*/
-#define BD_DRIVER_FLASH_MEMORY_START_BANK 		0x00000000 //256
+#define BD_DRIVER_FLASH_OFFSET				CONF_FSYSTEM_OFFSET //8 bytes
 
 
 

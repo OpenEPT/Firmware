@@ -968,7 +968,7 @@ static void prvCONTROL_FSystemWrite(const char* arguments, uint16_t argumentsLen
         return;
     }
 
-    if(FSYSTEM_WriteBDChunk(offset, dataPtr, &dataSize, 2000) != FSYSTEM_STATUS_OK)
+    if(FSYSTEM_WriteBDChunk(offset, dataPtr, &dataSize, 0, 2000) != FSYSTEM_STATUS_OK)
     {
         prvCONTROL_PrepareErrorResponse(response, responseSize);
         LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "FSYSTEM BD write failed\r\n");

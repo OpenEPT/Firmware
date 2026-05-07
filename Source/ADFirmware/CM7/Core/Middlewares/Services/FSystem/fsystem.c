@@ -55,9 +55,9 @@ typedef struct
     lfs_t lfs;
     struct lfs_config cfg;
 
-    uint8_t readBuffer[32];
-    uint8_t progBuffer[32];
-    uint8_t lookaheadBuffer[32];
+    uint8_t readBuffer[FSYSTEM_BLOCK_SIZE];
+    uint8_t progBuffer[FSYSTEM_BLOCK_SIZE];
+    uint8_t lookaheadBuffer[FSYSTEM_BLOCK_SIZE];
 
     uint8_t fsPresent;
 
@@ -73,6 +73,7 @@ typedef enum
 {
     FSYSTEM_COMMAND_READ_BD_CHUNK = 0,
     FSYSTEM_COMMAND_WRITE_BD_CHUNK,
+    FSYSTEM_COMMAND_WRITE_VERIFY_BD_CHUNK,
     FSYSTEM_COMMAND_FORMAT_BD,
 	FSYSTEM_COMMAND_GET_FILE,
 	FSYSTEM_COMMAND_WRITE_FILE
@@ -152,6 +153,61 @@ static uint32_t prvFSYSTEM_GetNextCommandId(void)
     return ++prvFSYSTEM_DATA.commandIdCounter;
 }
 
+static void prvFSYSTEM_CreateTestContent(lfs_t *lfs)
+{
+    int err;
+
+    // 1. Kreiraj direktorijume
+    err = lfs_mkdir(lfs, "/config");
+    if (err < 0 && err != LFS_ERR_EXIST)
+    {
+        LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR, "mkdir /config failed\r\n");
+    }
+
+    err = lfs_mkdir(lfs, "/logs");
+    if (err < 0 && err != LFS_ERR_EXIST)
+    {
+        LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR, "mkdir /logs failed\r\n");
+    }
+
+    // 2. Kreiraj fajl
+    lfs_file_t file;
+    err = lfs_file_open(lfs, &file, "/config/device.cfg",
+                        LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
+
+    if (err < 0)
+    {
+        LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR, "file open failed\r\n");
+        return;
+    }
+
+    // 3. Upiši sadržaj (KEY:VALUE format - tvoj standard)
+    const char *content =
+        "DEVICE_NAME:OpenEPT\r\n"
+        "IP_ADDRESS:192.168.1.100\r\n"
+        "PORT:8000\r\n";
+
+    lfs_file_write(lfs, &file, content, strlen(content));
+    lfs_file_close(lfs, &file);
+
+
+    // 4. Još jedan fajl (binary test)
+    err = lfs_file_open(lfs, &file, "/logs/raw.bin",
+                        LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
+
+    if (err >= 0)
+    {
+        uint8_t raw_data[16];
+        for (int i = 0; i < 16; i++)
+            raw_data[i] = i;
+
+        lfs_file_write(lfs, &file, raw_data, sizeof(raw_data));
+        lfs_file_close(lfs, &file);
+    }
+
+    LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "Test FS content created\r\n");
+}
+
 
 /**
  * @brief FSYSTEM main task
@@ -188,44 +244,35 @@ static void prvFSYSTEM_Task(void *pvParameters)
 			if(prvFSYSTEM_DATA.fsPresent == 0)
 			{
 
-//				if(M24C32_Write(0x0000, tx, sizeof(tx), 1000) != M24C32_STATUS_OK)
-//					Error_Handler();
-//
-//				if(M24C32_Read(0x0000, rx, sizeof(rx), 1000) != M24C32_STATUS_OK)
-//					Error_Handler();
+				/* LFS CONFIG */
+				prvFSYSTEM_DATA.cfg.read  = bd_driver_flash_read;
+				prvFSYSTEM_DATA.cfg.prog  = bd_driver_flash_prog;
+				prvFSYSTEM_DATA.cfg.erase = bd_driver_flash_erase;
+				prvFSYSTEM_DATA.cfg.sync  = bd_driver_flash_sync;
 
-//				/* LFS CONFIG */
-//				prvFSYSTEM_DATA.cfg.read  = bd_driver_flash_read;
-//				prvFSYSTEM_DATA.cfg.prog  = bd_driver_flash_prog;
-//				prvFSYSTEM_DATA.cfg.erase = bd_driver_flash_erase;
-//				prvFSYSTEM_DATA.cfg.sync  = bd_driver_flash_sync;
-//
-//				prvFSYSTEM_DATA.cfg.context = NULL;
-//
-//				prvFSYSTEM_DATA.cfg.read_size = 1;
-//				prvFSYSTEM_DATA.cfg.prog_size = 1;
-//
-//				prvFSYSTEM_DATA.cfg.block_size = 32;
-//				prvFSYSTEM_DATA.cfg.block_count = 128;
-//
-//				prvFSYSTEM_DATA.cfg.cache_size = 32;
-//				prvFSYSTEM_DATA.cfg.lookahead_size = 32;
-//				prvFSYSTEM_DATA.cfg.block_cycles = 100;
-//
-//				prvFSYSTEM_DATA.cfg.read_buffer = prvFSYSTEM_DATA.readBuffer;
-//				prvFSYSTEM_DATA.cfg.prog_buffer = prvFSYSTEM_DATA.progBuffer;
-//				prvFSYSTEM_DATA.cfg.lookahead_buffer = prvFSYSTEM_DATA.lookaheadBuffer;
-//
-//				int err = lfs_mount(&prvFSYSTEM_DATA.lfs, &prvFSYSTEM_DATA.cfg);
-//
-//				if (err)
-//				{
-//					if (lfs_format(&prvFSYSTEM_DATA.lfs, &prvFSYSTEM_DATA.cfg) != 0)
-//						Error_Handler();
-//
-//					if (lfs_mount(&prvFSYSTEM_DATA.lfs, &prvFSYSTEM_DATA.cfg) != 0)
-//						Error_Handler();
-//				}
+				prvFSYSTEM_DATA.cfg.context = NULL;
+
+				prvFSYSTEM_DATA.cfg.read_size = 1;
+				prvFSYSTEM_DATA.cfg.prog_size = FSYSTEM_BLOCK_SIZE;
+
+				prvFSYSTEM_DATA.cfg.block_size = FSYSTEM_BLOCK_SIZE;
+				prvFSYSTEM_DATA.cfg.block_count = FSYSTEM_BLOCK_COUNT;
+
+				prvFSYSTEM_DATA.cfg.cache_size = FSYSTEM_BLOCK_SIZE;
+				prvFSYSTEM_DATA.cfg.lookahead_size = FSYSTEM_BLOCK_SIZE;
+				prvFSYSTEM_DATA.cfg.block_cycles = FSYSTEM_BLOCK_SIZE;
+
+				prvFSYSTEM_DATA.cfg.read_buffer = prvFSYSTEM_DATA.readBuffer;
+				prvFSYSTEM_DATA.cfg.prog_buffer = prvFSYSTEM_DATA.progBuffer;
+				prvFSYSTEM_DATA.cfg.lookahead_buffer = prvFSYSTEM_DATA.lookaheadBuffer;
+
+				int err = lfs_mount(&prvFSYSTEM_DATA.lfs, &prvFSYSTEM_DATA.cfg);
+
+				if (err == LFS_ERR_OK)
+				{
+					prvFSYSTEM_DATA.fsPresent = 1;
+		            LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "File system present\r\n");
+				}
 			}
 
             LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "FSYSTEM initialized\r\n");
@@ -266,19 +313,98 @@ static void prvFSYSTEM_Task(void *pvParameters)
         	        break;
         	        case FSYSTEM_COMMAND_WRITE_BD_CHUNK:
         	        {
-        	            if(chunk != NULL && M24C32_Write(chunk->offset, chunk->buffer, chunk->size, 1000) == M24C32_STATUS_OK)
+        	            if(chunk != NULL)
         	            {
-        	                res.status = FSYSTEM_STATUS_OK;
+        	                uint8_t allowWrite = 1U;
+
+        	                /* ===== CHECK SYSTEM REGION PROTECTION ===== */
+        	                if(chunk->offset < FSYSTEM_OFFSET)
+        	                {
+        	                    uint32_t magic = 0;
+
+        	                    if(M24C32_Read(0x0000, (uint8_t*)&magic, sizeof(uint32_t), 1000) == M24C32_STATUS_OK)
+        	                    {
+        	                        if(magic == 0xA5A6A7A8)
+        	                        {
+        	                            /*  BLOCK WRITE */
+        	                            allowWrite = 0U;
+
+        	                            LOGGING_Write("FSYSTEM",
+        	                                          LOGGING_MSG_TYPE_WARNING,
+        	                                          "BD write blocked (protected system region) offset=%lu size=%lu\r\n",
+        	                                          chunk->offset,
+        	                                          chunk->size);
+        	                        }
+        	                    }
+        	                }
+
+        	                /* ===== EXECUTE WRITE ===== */
+        	                if(allowWrite == 1U)
+        	                {
+        	                    if(M24C32_Write(chunk->offset, chunk->buffer, chunk->size, 1000) == M24C32_STATUS_OK)
+        	                    {
+        	                        res.status = FSYSTEM_STATUS_OK;
+        	                    }
+        	                    else
+        	                    {
+        	                        res.status = FSYSTEM_STATUS_ERROR;
+        	                    }
+        	                }
+        	                else
+        	                {
+        	                    /* ✔ Silent success */
+        	                    res.status = FSYSTEM_STATUS_OK;
+        	                }
         	            }
+        	        }
+        	        break;
+        	        case FSYSTEM_COMMAND_WRITE_VERIFY_BD_CHUNK:
+        	        {
+        	        	if(chunk != NULL)
+						{
+							uint8_t verifyBuffer[FSYSTEM_BD_CHUNK_SIZE];
+
+							/* ===== WRITE ===== */
+							if(M24C32_Write(chunk->offset, chunk->buffer, chunk->size, 1000) != M24C32_STATUS_OK)
+							{
+								res.status = FSYSTEM_STATUS_ERROR;
+								break;
+							}
+
+							/* ===== READ BACK ===== */
+							if(M24C32_Read(chunk->offset, verifyBuffer, chunk->size, 1000) != M24C32_STATUS_OK)
+							{
+								res.status = FSYSTEM_STATUS_ERROR;
+								break;
+							}
+
+							/* ===== COMPARE ===== */
+							if(memcmp(chunk->buffer, verifyBuffer, chunk->size) == 0)
+							{
+								res.status = FSYSTEM_STATUS_OK;
+
+								LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO,
+											  "FSYSTEM: WRITE VERIFY OK (offset=%lu, size=%lu)\r\n",
+											  chunk->offset, chunk->size);
+							}
+							else
+							{
+								res.status = FSYSTEM_STATUS_ERROR;
+
+								LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR,
+											  "FSYSTEM: WRITE VERIFY FAILED (offset=%lu, size=%lu)\r\n",
+											  chunk->offset, chunk->size);
+							}
+						}
         	        }
         	        break;
         	        case FSYSTEM_COMMAND_FORMAT_BD:
         	        {
         	            uint8_t zeroBuffer[FSYSTEM_BD_CHUNK_SIZE];
-        	            memset(zeroBuffer, 0x00, FSYSTEM_BD_CHUNK_SIZE);
+        	            memset(zeroBuffer, 0xFF, FSYSTEM_BD_CHUNK_SIZE);
 
-        	            uint32_t totalSize = 4096;
-        	            uint32_t offset = 0;
+        	            uint32_t totalSize = CONF_FSYSTEM_BD_SIZE;
+        	            uint32_t offset = CONF_FSYSTEM_OFFSET;
 
         	            while(offset < totalSize)
         	            {
@@ -310,70 +436,97 @@ static void prvFSYSTEM_Task(void *pvParameters)
 
         	            if(fileReq != NULL)
         	            {
-        	                if(strcmp(fileReq->path, CONF_CONFIGURATION_FILE_PATH) == 0)
-        	                {
+							if(prvFSYSTEM_DATA.fsPresent == 1)
+							{
+								lfs_file_t file;
 
-        	                	if(prvFSYSTEM_DATA.fsPresent == 0)
-        	                	{
-        	                	    uint8_t header[CONF_CONFIGURATION_HEADER_SIZE];
+								if(lfs_file_open(&prvFSYSTEM_DATA.lfs, &file, fileReq->path, LFS_O_RDONLY) < 0)
+								{
+									res.status = FSYSTEM_STATUS_ERROR;
+									break;
+								}
 
-        	                	    /* ===== READ HEADER ===== */
-        	                	    if(M24C32_Read(0x0000, header, CONF_CONFIGURATION_HEADER_SIZE, 1000) != M24C32_STATUS_OK)
-        	                	    {
-        	                	        res.status = FSYSTEM_STATUS_ERROR;
-        	                	        break;
-        	                	    }
+								int32_t readSize = lfs_file_read(&prvFSYSTEM_DATA.lfs, &file, fileReq->dataBuffer, fileReq->dataBufferMaxSize);
 
-        	                	    /* ===== PARSE HEADER ===== */
-        	                	    uint32_t magic = 0;
-        	                	    memcpy(&magic, &header[0], sizeof(uint32_t));
+								if(readSize < 0)
+								{
+									lfs_file_close(&prvFSYSTEM_DATA.lfs, &file);
+									res.status = FSYSTEM_STATUS_ERROR;
+									break;
+								}
 
-        	                	    if(magic != 0xA5A6A7A8)
-        	                	    {
-        	                	        LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR, "Invalid config header magic\r\n");
-        	                	        res.status = FSYSTEM_STATUS_ERROR;
-        	                	        break;
-        	                	    }
+								if(lfs_file_close(&prvFSYSTEM_DATA.lfs, &file) < 0)
+								{
+									res.status = FSYSTEM_STATUS_ERROR;
+									break;
+								}
 
-        	                	    uint32_t configSize = 0;
-        	                	    memcpy(&configSize, &header[5], sizeof(uint32_t));
+								fileReq->fileSize = (uint32_t)readSize;
 
-        	                	    /* ===== VALIDATE SIZE ===== */
-        	                	    if(configSize == 0 || configSize > fileReq->dataBufferMaxSize)
-        	                	    {
-        	                	        LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR, "Invalid config size\r\n");
-        	                	        res.status = FSYSTEM_STATUS_ERROR;
-        	                	        break;
-        	                	    }
+								if(readSize < fileReq->dataBufferMaxSize)
+								{
+									fileReq->dataBuffer[readSize] = '\0';
+								}
 
-        	                	    /* ===== READ CONTENT ===== */
-        	                	    if(M24C32_Read(CONF_CONFIGURATION_HEADER_SIZE,
-        	                	                   (uint8_t*)fileReq->dataBuffer,
-        	                	                   configSize,
-        	                	                   1000) != M24C32_STATUS_OK)
-        	                	    {
-        	                	        res.status = FSYSTEM_STATUS_ERROR;
-        	                	        break;
-        	                	    }
+								LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "LittleFS file %s read successfully\r\n", fileReq->path);
 
+								res.status = FSYSTEM_STATUS_OK;
+							}
+							else
+							{
+								/* fallback ONLY for config */
+								if(strcmp(fileReq->path, CONF_CONFIGURATION_FILE_PATH) == 0)
+								{
+									uint8_t header[CONF_CONFIGURATION_HEADER_SIZE];
 
-    	                	        LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "Configuration file read successfully\r\n");
+									if(M24C32_Read(0x0000, header, CONF_CONFIGURATION_HEADER_SIZE, 1000) != M24C32_STATUS_OK)
+									{
+										res.status = FSYSTEM_STATUS_ERROR;
+										break;
+									}
 
-        	                	    if(configSize < fileReq->dataBufferMaxSize)
-        	                	    {
-        	                	        fileReq->dataBuffer[configSize] = '\0';
-        	                	    }
+									uint32_t magic = 0;
+									memcpy(&magic, &header[0], sizeof(uint32_t));
 
-        	                	    fileReq->fileSize = configSize;
+									if(magic != 0xA5A6A7A8)
+									{
+										LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR, "Invalid config header magic\r\n");
+										res.status = FSYSTEM_STATUS_ERROR;
+										break;
+									}
 
-        	                	    res.status = FSYSTEM_STATUS_OK;
-        	                	}
-        	                }
-        	                else
-        	                {
-        	                    /* OVDE kasnije ide LittleFS */
-        	                    res.status = FSYSTEM_STATUS_ERROR;
-        	                }
+									uint32_t configSize = 0;
+									memcpy(&configSize, &header[5], sizeof(uint32_t));
+
+									if(configSize == 0 || configSize > fileReq->dataBufferMaxSize)
+									{
+										LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR, "Invalid config size\r\n");
+										res.status = FSYSTEM_STATUS_ERROR;
+										break;
+									}
+
+									if(M24C32_Read(CONF_CONFIGURATION_HEADER_SIZE, (uint8_t*)fileReq->dataBuffer, configSize, 1000) != M24C32_STATUS_OK)
+									{
+										res.status = FSYSTEM_STATUS_ERROR;
+										break;
+									}
+
+									LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "Configuration file read from RAW\r\n");
+
+									if(configSize < fileReq->dataBufferMaxSize)
+									{
+										fileReq->dataBuffer[configSize] = '\0';
+									}
+
+									fileReq->fileSize = configSize;
+
+									res.status = FSYSTEM_STATUS_OK;
+								}
+								else
+								{
+									res.status = FSYSTEM_STATUS_ERROR;
+								}
+							}
         	            }
         	        }
         	        break;
@@ -383,9 +536,38 @@ static void prvFSYSTEM_Task(void *pvParameters)
 
         	            if(fileReq != NULL)
         	            {
-        	                if(strcmp(fileReq->path, CONF_CONFIGURATION_FILE_PATH) == 0)
+        	                if(prvFSYSTEM_DATA.fsPresent == 1)
         	                {
-        	                    if(prvFSYSTEM_DATA.fsPresent == 0)
+        	                    lfs_file_t file;
+
+        	                    if(lfs_file_open(&prvFSYSTEM_DATA.lfs, &file, fileReq->path, LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC) < 0)
+        	                    {
+        	                        res.status = FSYSTEM_STATUS_ERROR;
+        	                        break;
+        	                    }
+
+        	                    int32_t written = lfs_file_write(&prvFSYSTEM_DATA.lfs, &file, fileReq->dataBuffer, fileReq->fileSize);
+
+        	                    if(written < 0 || (uint32_t)written != fileReq->fileSize)
+        	                    {
+        	                        lfs_file_close(&prvFSYSTEM_DATA.lfs, &file);
+        	                        res.status = FSYSTEM_STATUS_ERROR;
+        	                        break;
+        	                    }
+
+        	                    if(lfs_file_close(&prvFSYSTEM_DATA.lfs, &file) < 0)
+        	                    {
+        	                        res.status = FSYSTEM_STATUS_ERROR;
+        	                        break;
+        	                    }
+
+        	                    LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "FS write OK (path=%s, size=%lu)\r\n", fileReq->path, fileReq->fileSize);
+
+        	                    res.status = FSYSTEM_STATUS_OK;
+        	                }
+        	                else
+        	                {
+        	                    if(strcmp(fileReq->path, CONF_CONFIGURATION_FILE_PATH) == 0)
         	                    {
         	                        uint8_t header[CONF_CONFIGURATION_HEADER_SIZE];
         	                        memset(header, 0x00, sizeof(header));
@@ -393,39 +575,29 @@ static void prvFSYSTEM_Task(void *pvParameters)
         	                        uint32_t magic = 0xA5A6A7A8;
         	                        memcpy(&header[0], &magic, sizeof(uint32_t));
 
-        	                        /* 1B whitespace */
         	                        header[4] = 0x20;
-
-        	                        /* config size */
         	                        memcpy(&header[5], &fileReq->fileSize, sizeof(uint32_t));
-
-        	                        /* 1B whitespace */
         	                        header[9] = 0x20;
 
-        	                        /* padding already zero */
-
-        	                        /* ===== WRITE HEADER ===== */
         	                        if(M24C32_Write(0x0000, header, CONF_CONFIGURATION_HEADER_SIZE, 1000) != M24C32_STATUS_OK)
         	                        {
         	                            res.status = FSYSTEM_STATUS_ERROR;
         	                            break;
         	                        }
 
-        	                        /* ===== WRITE CONTENT ===== */
-        	                        if(M24C32_Write(CONF_CONFIGURATION_HEADER_SIZE,
-        	                                        (uint8_t*)fileReq->dataBuffer,
-        	                                        fileReq->fileSize,
-        	                                        1000) != M24C32_STATUS_OK)
+        	                        if(M24C32_Write(CONF_CONFIGURATION_HEADER_SIZE, (uint8_t*)fileReq->dataBuffer, fileReq->fileSize, 1000) != M24C32_STATUS_OK)
         	                        {
         	                            res.status = FSYSTEM_STATUS_ERROR;
         	                            break;
         	                        }
 
-        	                        res.status = FSYSTEM_STATUS_OK;
+        	                        LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "RAW write OK (config, size=%lu)\r\n", fileReq->fileSize);
 
-        	                        LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO,
-        	                                      "Configuration file written (size=%lu)\r\n",
-        	                                      fileReq->fileSize);
+        	                        res.status = FSYSTEM_STATUS_OK;
+        	                    }
+        	                    else
+        	                    {
+        	                        res.status = FSYSTEM_STATUS_ERROR;
         	                    }
         	                }
         	            }
@@ -519,6 +691,17 @@ fsystem_status_t FSYSTEM_Init(uint32_t initTimeout)
 	    return FSYSTEM_STATUS_ERROR;
 	}
 
+
+
+    prvFSYSTEM_DATA.initSig = xSemaphoreCreateBinary();
+
+    if(prvFSYSTEM_DATA.initSig == NULL)
+    {
+        return FSYSTEM_STATUS_ERROR;
+    }
+
+    prvFSYSTEM_DATA.state = FSYSTEM_STATE_INIT;
+
     if(xTaskCreate(
             prvFSYSTEM_Task,
             FSYSTEM_TASK_NAME,
@@ -529,15 +712,6 @@ fsystem_status_t FSYSTEM_Init(uint32_t initTimeout)
     {
         return FSYSTEM_STATUS_ERROR;
     }
-
-    prvFSYSTEM_DATA.initSig = xSemaphoreCreateBinary();
-
-    if(prvFSYSTEM_DATA.initSig == NULL)
-    {
-        return FSYSTEM_STATUS_ERROR;
-    }
-
-    prvFSYSTEM_DATA.state = FSYSTEM_STATE_INIT;
 
     if(xSemaphoreTake(prvFSYSTEM_DATA.initSig, pdMS_TO_TICKS(initTimeout)) != pdPASS)
     {
@@ -672,7 +846,7 @@ fsystem_status_t FSYSTEM_ReadBDChunk(uint32_t offset, char* dataBuffer, uint32_t
     return FSYSTEM_STATUS_OK;
 }
 
-fsystem_status_t FSYSTEM_WriteBDChunk(uint32_t offset, char* dataBuffer, uint32_t* dataSize, uint32_t timeout)
+fsystem_status_t FSYSTEM_WriteBDChunk(uint32_t offset, char* dataBuffer, uint32_t* dataSize, uint8_t verify, uint32_t timeout)
 {
     if((dataBuffer == NULL) || (dataSize == NULL)) return FSYSTEM_STATUS_ERROR;
     if(*dataSize > FSYSTEM_BD_CHUNK_SIZE) return FSYSTEM_STATUS_ERROR;
@@ -701,7 +875,13 @@ fsystem_status_t FSYSTEM_WriteBDChunk(uint32_t offset, char* dataBuffer, uint32_
     memset(&req, 0, sizeof(req));
 
     req.type = FSYSTEM_COMMAND_TYPE_REQ;
-    req.command = FSYSTEM_COMMAND_WRITE_BD_CHUNK;
+    if(verify == 0){
+    	req.command = FSYSTEM_COMMAND_WRITE_BD_CHUNK;
+    }
+    else
+    {
+    	req.command = FSYSTEM_COMMAND_WRITE_VERIFY_BD_CHUNK;
+    }
     req.commandId = prvFSYSTEM_GetNextCommandId();
     req.data = chunk;
 
@@ -805,7 +985,7 @@ fsystem_status_t FSYSTEM_TestBD()
     /* ================= WRITE BASE PATTERN ================= */
     uint32_t size = FSYSTEM_BD_CHUNK_SIZE;
 
-    if(FSYSTEM_WriteBDChunk(0x0000, (char*)fsTestTx, &size, 2000) != FSYSTEM_STATUS_OK)
+    if(FSYSTEM_WriteBDChunk(0x0000, (char*)fsTestTx, &size, 0, 2000) != FSYSTEM_STATUS_OK)
     {
         LOGGING_Write("System", LOGGING_MSG_TYPE_ERROR, "FS TEST: Write FAILED\r\n");
         return;
@@ -850,7 +1030,7 @@ fsystem_status_t FSYSTEM_TestBD()
     /* ================= WRITE UPDATED PATTERN ================= */
     size = FSYSTEM_BD_CHUNK_SIZE;
 
-    if(FSYSTEM_WriteBDChunk(0x0000, (char*)fsTestTx, &size, 2000) != FSYSTEM_STATUS_OK)
+    if(FSYSTEM_WriteBDChunk(0x0000, (char*)fsTestTx, &size, 0,  2000) != FSYSTEM_STATUS_OK)
     {
         LOGGING_Write("System", LOGGING_MSG_TYPE_ERROR, "FS TEST: Write Updated FAILED\r\n");
         return;
@@ -913,7 +1093,7 @@ fsystem_status_t FSYSTEM_TestBD()
 
     	uint32_t tmpSize = writeSize;
 
-    	if(FSYSTEM_WriteBDChunk(offset, (char*)&fsTestTx[offset], &tmpSize, 2000) != FSYSTEM_STATUS_OK)
+    	if(FSYSTEM_WriteBDChunk(offset, (char*)&fsTestTx[offset], &tmpSize, 0,  2000) != FSYSTEM_STATUS_OK)
     	{
     	    LOGGING_Write("System", LOGGING_MSG_TYPE_ERROR, "FS TEST: Variable Write FAILED at offset %lu\r\n", offset);
     	    return;

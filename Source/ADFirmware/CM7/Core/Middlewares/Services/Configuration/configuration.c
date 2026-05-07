@@ -21,6 +21,7 @@
 #include "logging.h"
 #include "system.h"
 #include "fsystem.h"
+#include "m24c32.h"
 
 /**
  * @defgroup CONFIGURATION_PRIVATE_STRUCTURES Configuration private structures
@@ -108,8 +109,12 @@ static void prvCONFIGURATION_SerializeToString(char* buffer,
         if(param == NULL || param->name == NULL || param->value == NULL)
             continue;
 
+        /* SKIP SYSTEM PARAMETERS */
+        if(param->systemParam == 1U)
+            continue;
+
         /* Safe length for value (prevents runaway strings) */
-        size_t valueLen = strnlen(param->value, CONFIGURATION_MAX_PARAM_VALUESIZE);
+        size_t valueLen = strnlen((char*)param->value, CONFIGURATION_MAX_PARAM_VALUESIZE);
 
         /* Write safely using bounded value length */
         int written = snprintf(&buffer[offset],
@@ -162,7 +167,25 @@ static void prvCONFIGURATION_InitParams(void)
                sizeof(configuration_param_t));
     }
 }
+static void prvCONFIGURATION_ReportDefaultParams(void)
+{
+    for(uint32_t i = 0; i < prvCONFIGURATION_DATA.paramsCount; i++)
+    {
+        configuration_param_t* param = &prvCONFIGURATION_DATA.params[i];
 
+        if(param == NULL || param->name == NULL || param->value == NULL)
+            continue;
+
+        if(param->defaultValue == 1U)
+        {
+            LOGGING_Write("CONFIG",
+                          LOGGING_MSG_TYPE_WARNING,
+                          "Default param used: %s = %s\r\n",
+                          param->name,
+                          param->value);
+        }
+    }
+}
 
 static void prvCONFIGURATION_UpdateFromFS(void)
 {
@@ -254,20 +277,124 @@ static void prvCONFIGURATION_UpdateFromFS(void)
     LOGGING_Write("CONFIG", LOGGING_MSG_TYPE_INFO,
                   "Configuration loaded from FS\r\n");
 
-    /* ===== DEFAULT PARAM REPORT ===== */
-    for(uint32_t i = 0; i < prvCONFIGURATION_DATA.paramsCount; i++)
-    {
-        configuration_param_t* param = &prvCONFIGURATION_DATA.params[i];
+}
 
-        if(param->defaultValue == 1)
-        {
-            LOGGING_Write("CONFIG",
-                          LOGGING_MSG_TYPE_WARNING,
-                          "Default param used: %s = %s\r\n",
-                          param->name,
-                          param->value);
-        }
+static void prvCONFIGURATION_UpdateSystemParamFromBD(void)
+{
+    uint8_t header[CONF_CONFIGURATION_HEADER_SIZE];
+    uint32_t payloadSize = 0;
+
+    char* line;
+    char* sep;
+    char* key;
+    char* value;
+    char* saveptr;
+
+    static char payloadBuffer[CONFIGURATION_FILE_MAX_SIZE];
+
+    /* ===== READ HEADER ===== */
+    if(M24C32_Read(0x0000, header, CONF_CONFIGURATION_HEADER_SIZE, 1000) != M24C32_STATUS_OK)
+    {
+        LOGGING_Write("CONFIG", LOGGING_MSG_TYPE_ERROR,
+                      "System BD read failed (header)\r\n");
+        return;
     }
+
+    uint32_t magic = 0;
+    memcpy(&magic, &header[0], sizeof(uint32_t));
+
+    if(magic != 0xA5A6A7A8)
+    {
+        LOGGING_Write("CONFIG", LOGGING_MSG_TYPE_ERROR,
+                      "Invalid system MAGIC\r\n");
+        return;
+    }
+
+    memcpy(&payloadSize, &header[4], sizeof(uint32_t));
+
+    if(payloadSize == 0 || payloadSize >= CONFIGURATION_FILE_MAX_SIZE)
+    {
+        LOGGING_Write("CONFIG", LOGGING_MSG_TYPE_ERROR,
+                      "Invalid system payload size\r\n");
+        return;
+    }
+
+    /* ===== READ PAYLOAD ===== */
+    if(M24C32_Read(CONF_CONFIGURATION_HEADER_SIZE,
+                   (uint8_t*)payloadBuffer,
+                   payloadSize,
+                   1000) != M24C32_STATUS_OK)
+    {
+        LOGGING_Write("CONFIG", LOGGING_MSG_TYPE_ERROR,
+                      "System BD read failed (payload)\r\n");
+        return;
+    }
+
+    payloadBuffer[payloadSize] = '\0';
+
+    /* ===== PARSE ===== */
+    line = strtok_r(payloadBuffer, "\r\n", &saveptr);
+
+    while(line != NULL)
+    {
+        sep = strchr(line, ':');
+
+        if(sep != NULL)
+        {
+            *sep = '\0';
+            key = line;
+            value = sep + 1;
+
+            /* trim key */
+            while(*key == ' ' || *key == '\t') key++;
+
+            /* trim value (left) */
+            while(*value == ' ' || *value == '\t') value++;
+
+            /* trim value (right) */
+            char* end = value + strlen(value) - 1;
+            while(end > value && (*end == ' ' || *end == '\t'))
+            {
+                *end = '\0';
+                end--;
+            }
+
+            /* ===== SEARCH ONLY SYSTEM PARAMS ===== */
+            for(uint32_t i = 0; i < prvCONFIGURATION_DATA.paramsCount; i++)
+            {
+                configuration_param_t* param = &prvCONFIGURATION_DATA.params[i];
+
+                if(param->name == NULL || param->value == NULL)
+                    continue;
+
+                /* ONLY system params */
+                if(param->systemParam == 0U)
+                    continue;
+
+                if(strcmp(param->name, key) == 0)
+                {
+                    size_t len = strnlen(value, CONFIGURATION_MAX_PARAM_VALUESIZE);
+
+                    memcpy(param->value, value, len);
+                    param->value[len] = '\0';
+
+                    param->defaultValue = 0;
+
+                    LOGGING_Write("CONFIG", LOGGING_MSG_TYPE_INFO,
+                                  "System param: %s = %s\r\n",
+                                  param->name,
+                                  param->value);
+
+                    break;
+                }
+            }
+        }
+
+        line = strtok_r(NULL, "\r\n", &saveptr);
+    }
+
+    LOGGING_Write("CONFIG", LOGGING_MSG_TYPE_INFO,
+                  "System configuration loaded from BD\r\n");
 }
 
 
@@ -291,6 +418,11 @@ static void prvCONFIGURATION_Task(void *pvParameters)
 
         	prvCONFIGURATION_UpdateFromFS();
             LOGGING_Write("CONFIG", LOGGING_MSG_TYPE_INFO, "Configuration updated from FS\r\n");
+
+            prvCONFIGURATION_UpdateSystemParamFromBD();
+            LOGGING_Write("CONFIG", LOGGING_MSG_TYPE_INFO, "Configuration updated from System memory\r\n");
+
+            prvCONFIGURATION_ReportDefaultParams();
 
             prvCONFIGURATION_DATA.state = CONFIGURATION_STATE_SERVICE;
 

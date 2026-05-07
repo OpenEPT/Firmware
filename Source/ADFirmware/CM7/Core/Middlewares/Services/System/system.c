@@ -125,9 +125,9 @@ static void	prvBUTTON_Callback(drv_gpio_pin pin)
  */
 static system_status_t prvSYSTEM_SetRGBState(red, blue, green)
 {
-	if(DRV_Timer_Channel_PWM_Start(DRV_TIMER_1, DRV_TIMER_CHANNEL_2, red, portMAX_DELAY) != DRV_TIMER_STATUS_OK) return SYSTEM_STATUS_OK;
+	if(DRV_Timer_Channel_PWM_Start(DRV_TIMER_1, DRV_TIMER_CHANNEL_4, red, portMAX_DELAY) != DRV_TIMER_STATUS_OK) return SYSTEM_STATUS_OK;
 	if(DRV_Timer_Channel_PWM_Start(DRV_TIMER_1, DRV_TIMER_CHANNEL_3, green, portMAX_DELAY) != DRV_TIMER_STATUS_OK) return SYSTEM_STATUS_OK;
-	if(DRV_Timer_Channel_PWM_Start(DRV_TIMER_1, DRV_TIMER_CHANNEL_4, blue, portMAX_DELAY) != DRV_TIMER_STATUS_OK) return SYSTEM_STATUS_OK;
+	if(DRV_Timer_Channel_PWM_Start(DRV_TIMER_1, DRV_TIMER_CHANNEL_2, blue, portMAX_DELAY) != DRV_TIMER_STATUS_OK) return SYSTEM_STATUS_OK;
 	return SYSTEM_STATUS_ERROR;
 }
 /**
@@ -193,7 +193,7 @@ static void prvSYSTEM_Task()
 
 	prvSYSTEM_DATA.linkStatus    = SYSTEM_LINK_STATUS_DOWN;
 	prvSYSTEM_DATA.rgbValue.red = 0;
-	prvSYSTEM_DATA.rgbValue.green = 0;
+	prvSYSTEM_DATA.rgbValue.green =0;
 	prvSYSTEM_DATA.rgbValue.blue = 50;
 
 	for(;;)
@@ -256,7 +256,6 @@ static void prvSYSTEM_Task()
 			if(FSYSTEM_Init(2000) != FSYSTEM_STATUS_OK)
 			{
 				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
-				break;
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "File system service successfully initialized\r\n");
 

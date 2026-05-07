@@ -33,6 +33,9 @@
 #define FSYSTEM_TASK_NAME        		CONF_FSYSTEM_TASK_NAME
 #define FSYSTEM_TASK_PRIO        		CONF_FSYSTEM_PRIO
 #define FSYSTEM_TASK_STACK       		CONF_FSYSTEM_STACK_SIZE
+#define FSYSTEM_OFFSET					CONF_FSYSTEM_OFFSET
+#define FSYSTEM_BLOCK_SIZE			    CONF_FSYSTEM_BLOCK_SIZE
+#define FSYSTEM_BLOCK_COUNT			    CONF_FSYSTEM_BLOCK_COUNT
 #define FSYSTEM_BD_CHUNK_SIZE	 		CONF_FSYSTEM_BD_CHUNK_SIZE
 #define FSYSTEM_BD_CHUNK_MIN_SIZE 		CONF_FSYSTEM_BD_CHUNK_MIN_SIZE
 #define FSYSTEM_BD_SIZE					CONF_FSYSTEM_BD_SIZE
@@ -142,7 +145,7 @@ fsystem_status_t FSYSTEM_ReadBDChunk(uint32_t offset, char* dataBuffer, uint32_t
  * @retval FSYSTEM_STATUS_OK     Write successful
  * @retval FSYSTEM_STATUS_ERROR  Write failed or invalid parameters
  */
-fsystem_status_t FSYSTEM_WriteBDChunk(uint32_t offset, char* dataBuffer, uint32_t* dataSize, uint32_t timeout);
+fsystem_status_t FSYSTEM_WriteBDChunk(uint32_t offset, char* dataBuffer, uint32_t* dataSize, uint8_t verify, uint32_t timeout);
 
 /**
  * @brief Format block device (BD)

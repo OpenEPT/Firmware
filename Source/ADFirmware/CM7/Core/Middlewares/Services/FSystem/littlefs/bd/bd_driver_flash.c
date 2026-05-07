@@ -44,12 +44,6 @@ int bd_driver_flash_init(const struct lfs_config *c,
     (void)c;
     (void)cfg;
 
-    if(M24C32_Init() != M24C32_STATUS_OK)
-        return -1;
-
-    if(M24C32_Ping(100) != M24C32_STATUS_OK)
-        return -1;
-
     return 0;
 }
 
@@ -60,7 +54,7 @@ int bd_driver_flash_read(const struct lfs_config *c,
                          void* buffer,
                          lfs_size_t size)
 {
-    uint16_t addr = (block * c->block_size) + off;
+    uint32_t addr = BD_DRIVER_FLASH_OFFSET + (block * c->block_size) + off;
 
     if(M24C32_Read(addr, (uint8_t*)buffer, size, 100) != M24C32_STATUS_OK)
         return -1;
@@ -74,7 +68,7 @@ int bd_driver_flash_prog(const struct lfs_config *c,
                          const void* buffer,
                          lfs_size_t size)
 {
-    uint16_t addr = (block * c->block_size) + off;
+    uint32_t addr = BD_DRIVER_FLASH_OFFSET + (block * c->block_size) + off;
 
     if(M24C32_Write(addr, (const uint8_t*)buffer, size, 100) != M24C32_STATUS_OK)
         return -1;
@@ -88,8 +82,8 @@ int bd_driver_flash_erase(const struct lfs_config *c,
     uint8_t eraseBuf[M24C32_PAGE_SIZE_BYTES];
     memset(eraseBuf, 0xFF, sizeof(eraseBuf));
 
-    uint16_t addr = block * c->block_size;
-    uint16_t remaining = c->block_size;
+    uint32_t addr = BD_DRIVER_FLASH_OFFSET + block * c->block_size;
+    uint32_t remaining = c->block_size;
 
     while(remaining > 0)
     {

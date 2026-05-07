@@ -19,6 +19,7 @@
 #define CORE_HAL_M24C32_M24C32_H_
 
 #include <stdint.h>
+#include "globalConfig.h"
 
 /**
  * @defgroup HAL Hardware Abstraction Layer
@@ -34,10 +35,10 @@
  * @defgroup M24C32_PUBLIC_DEFINES M24C32 driver public defines
  * @{
  */
-#define M24C32_MEMORY_SIZE_BYTES         4096U   /*!< Total EEPROM size in bytes */
-#define M24C32_PAGE_SIZE_BYTES           32U     /*!< EEPROM page size in bytes */
-#define M24C32_WRITE_CYCLE_TIME_MS       10U     /*!< EEPROM internal write cycle time */
-#define M24C32_DEV_ADDR                  0x55U   /*!< 7-bit I2C device address */
+#define M24C32_MEMORY_SIZE_BYTES         256*1024U   			/*!< Total EEPROM size in bytes */
+#define M24C32_PAGE_SIZE_BYTES           256U     				/*!< EEPROM page size in bytes */
+#define M24C32_WRITE_CYCLE_TIME_MS       10U     				/*!< EEPROM internal write cycle time */
+#define M24C32_DEV_ADDR                  0x55U   				/*!< 7-bit I2C device address */
 /**
  * @}
  */
@@ -104,7 +105,7 @@ m24c32_status_t M24C32_ReadByte(uint16_t memAddr, uint8_t* data, uint32_t timeou
  * @param   timeout: Communication timeout in milliseconds
  * @retval  ::m24c32_status_t
  */
-m24c32_status_t M24C32_Write(uint16_t memAddr, const uint8_t* data, uint16_t size, uint32_t timeout);
+m24c32_status_t M24C32_Write(uint32_t memAddr, const uint8_t* data, uint16_t size, uint32_t timeout);
 
 /**
  * @brief   Read multiple bytes from EEPROM
@@ -114,7 +115,7 @@ m24c32_status_t M24C32_Write(uint16_t memAddr, const uint8_t* data, uint16_t siz
  * @param   timeout: Communication timeout in milliseconds
  * @retval  ::m24c32_status_t
  */
-m24c32_status_t M24C32_Read(uint16_t memAddr, uint8_t* data, uint16_t size, uint32_t timeout);
+m24c32_status_t M24C32_Read(uint32_t memAddr, uint8_t* data, uint16_t size, uint32_t timeout);
 
 /**
  * @}
