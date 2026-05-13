@@ -21,25 +21,25 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
   8 .ARM.attributes 00000030  00000000  00000000  00002010  2**0
                   CONTENTS, READONLY
-  9 .debug_info   00005e3b  00000000  00000000  00002040  2**0
+  9 .debug_info   00006198  00000000  00000000  00002040  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 10 .debug_abbrev 000011c5  00000000  00000000  00007e7b  2**0
+ 10 .debug_abbrev 00001222  00000000  00000000  000081d8  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 11 .debug_aranges 00000688  00000000  00000000  00009040  2**3
+ 11 .debug_aranges 000006a0  00000000  00000000  00009400  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 12 .debug_rnglists 000004cc  00000000  00000000  000096c8  2**0
+ 12 .debug_rnglists 000004de  00000000  00000000  00009aa0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_macro  000377ad  00000000  00000000  00009b94  2**0
+ 13 .debug_macro  00037b02  00000000  00000000  00009f7e  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_line   00006d7d  00000000  00000000  00041341  2**0
+ 14 .debug_line   00006df5  00000000  00000000  00041a80  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_str    0017070d  00000000  00000000  000480be  2**0
+ 15 .debug_str    00171c2f  00000000  00000000  00048875  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .comment      00000043  00000000  00000000  001b87cb  2**0
+ 16 .comment      00000043  00000000  00000000  001ba4a4  2**0
                   CONTENTS, READONLY
- 17 .debug_frame  000018d0  00000000  00000000  001b8810  2**2
+ 17 .debug_frame  00001944  00000000  00000000  001ba4e8  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_line_str 00000087  00000000  00000000  001ba0e0  2**0
+ 18 .debug_line_str 00000087  00000000  00000000  001bbe2c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -240,6 +240,7 @@ void HAL_MspInit(void)
  81003bc:	b480      	push	{r7}
  81003be:	b083      	sub	sp, #12
  81003c0:	af00      	add	r7, sp, #0
+
   /* USER CODE BEGIN MspInit 0 */
 
   /* USER CODE END MspInit 0 */

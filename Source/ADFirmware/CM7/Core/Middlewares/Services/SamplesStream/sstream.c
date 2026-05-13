@@ -164,6 +164,8 @@ static void prvSSTREAM_NewPacketSampled(uint32_t packetAddress, uint8_t packetID
 
     portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
 
+	DRV_GPIO_Pin_ToggleFromISR(SSTREAM_LED_PORT, SSTREAM_LED_PIN);
+
 }
 
 /**

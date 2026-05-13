@@ -39,9 +39,9 @@
 #define LOGGING_MAX_NUMBER_OF_CHANNELS  1                   /*!< Maximum number of output channels */
 #define LOGGING_TRANSMIT_TIMEOUT        1000                /*!< Transmission timeout in milliseconds */
 
-#define LOGGING_TASK_NAME               CONFIG_LOGGING_TASK_NAME        /*!< Logging service task name */
-#define LOGGING_TASK_PRIO               CONFIG_LOGGING_PRIO             /*!< Logging service task priority */
-#define LOGGING_TASK_STACK              CONFIG_LOGGING_STACK_SIZE       /*!< Logging service task stack size */
+#define LOGGING_TASK_NAME               CONF_LOGGING_TASK_NAME        /*!< Logging service task name */
+#define LOGGING_TASK_PRIO               CONF_LOGGING_PRIO             /*!< Logging service task priority */
+#define LOGGING_TASK_STACK              CONF_LOGGING_STACK_SIZE       /*!< Logging service task stack size */
 
 
 /**

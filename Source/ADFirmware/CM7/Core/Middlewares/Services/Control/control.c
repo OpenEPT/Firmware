@@ -2995,7 +2995,7 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	if(prvCONTROL_DATA.guard == NULL) return CONTROL_STATUS_ERROR;
 
 	prvCONTROL_DATA.state = CONTROL_STATE_INIT;
-	memset(prvCONTROL_STATUS_LINK_DATA, 0, CONFIG_CONTROL_STATUS_LINK_MAX_NO*sizeof(control_status_link_data_t));
+	memset(prvCONTROL_STATUS_LINK_DATA, 0, CONF_CONTROL_STATUS_LINK_MAX_NO*sizeof(control_status_link_data_t));
 
 	if(xSemaphoreTake(prvCONTROL_DATA.initSig, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CONTROL_STATUS_ERROR;
 
@@ -3123,7 +3123,7 @@ control_status_t 	CONTROL_LinkClosed()
 
 control_status_t 	CONTROL_StatusLinkCreate(control_status_link_instance_t* statusLinkInstance, control_status_link_ip_info_t statusServerIp, uint32_t timeout)
 {
-	if(prvCONTROL_DATA.numberOfStatusLinks > CONFIG_CONTROL_STATUS_LINK_MAX_NO) return CONTROL_STATUS_ERROR;
+	if(prvCONTROL_DATA.numberOfStatusLinks > CONF_CONTROL_STATUS_LINK_MAX_NO) return CONTROL_STATUS_ERROR;
 	statusLinkInstance->linkInstanceNo = prvCONTROL_DATA.numberOfStatusLinks;
 	memcpy(&statusLinkInstance->ipInfo, &statusServerIp, sizeof(control_status_link_ip_info_t));
 

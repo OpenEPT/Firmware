@@ -26,7 +26,23 @@
  */
 
 /**
- * @defgroup SYSTEM_SERVICE System Service
+ * @defgroup SYSTEM_SERVICE System service
+ *
+ * @brief Core system management service
+ *
+ * System service is responsible for:
+ *  - System initialization
+ *  - Hardware initialization
+ *  - RGB status indication
+ *  - Link status indication
+ *  - Device information management
+ *  - Error reporting
+ *  - Central service startup
+ *
+ * The service acts as a top-level middleware component
+ * responsible for initialization and coordination of
+ * all major application services.
+ *
  * @{
  */
 
@@ -34,15 +50,10 @@
  * @defgroup SYSTEM_PUBLIC_DEFINES System service public defines
  * @{
  */
-#define SYSTEM_TASK_NAME				CONF_SYSTEM_TASK_NAME			/*!< System service task name */
-#define SYSTEM_TASK_PRIO				CONF_SYSTEM_TASK_PRIO			/*!< System service task priority */
-#define SYSTEM_TASK_STACK_SIZE			CONF_SYSTEM_TASK_STACK_SIZE		/*!< System service task stack size */
-
-#define	SYSTEM_ERROR_STATUS_DIODE_PORT	CONF_SYSTEM_ERROR_STATUS_DIODE_PORT	/*!< Error status LED GPIO port */
-#define	SYSTEM_ERROR_STATUS_DIODE_PIN	CONF_SYSTEM_ERROR_STATUS_DIODE_PIN	/*!< Error status LED GPIO pin */
-
-#define	SYSTEM_LINK_STATUS_DIODE_PORT	CONF_SYSTEM_LINK_STATUS_DIODE_PORT	/*!< Link status LED GPIO port */
-#define	SYSTEM_LINK_STATUS_DIODE_PIN	CONF_SYSTEM_LINK_STATUS_DIODE_PIN	/*!< Link status LED GPIO pin */
+#define SYSTEM_TASK_NAME				CONF_SYSTEM_TASK_NAME				/*!< System service task name */
+#define SYSTEM_TASK_PRIO				CONF_SYSTEM_TASK_PRIO				/*!< System service task priority */
+#define SYSTEM_TASK_STACK_SIZE			CONF_SYSTEM_TASK_STACK_SIZE			/*!< System service task stack size */
+#define SYSTEM_RGB_DEFAULT_BRIGHTNESS   CONF_SYSTEM_RGB_DEFAULT_BRIGHTNESS	/*!< System service RGB Diode brightness */
 
 /**
  * @}
@@ -115,98 +126,175 @@ typedef struct
  */
 
 /**
- * @brief	Initialize the system service
- * @retval	::system_status_t
+ * @brief Initialize system service
+ *
+ * This function creates system task and initializes
+ * internal synchronization resources.
+ *
+ * @retval SYSTEM_STATUS_OK     System service successfully initialized
+ * @retval SYSTEM_STATUS_ERROR  System service initialization failed
  */
-system_status_t SYSTEM_Init();
+system_status_t SYSTEM_Init(void);
+
 /**
- * @brief	Start the system service
- * @retval	::system_status_t
+ * @brief Start RTOS scheduler
+ *
+ * This function initializes CMSIS-RTOS kernel and
+ * starts task scheduling.
+ *
+ * @retval SYSTEM_STATUS_OK     Scheduler successfully started
+ * @retval SYSTEM_STATUS_ERROR  Scheduler start failed
+ *
+ * @note Function should never return on success
  */
-system_status_t SYSTEM_Start();
+system_status_t SYSTEM_Start(void);
+
 /**
- * @brief	Report system error with specified severity level
- * @param	errorLevel: Error severity level. See ::system_error_level_t
- * @retval	::system_status_t
+ * @brief Report system error state
+ *
+ * This function updates system RGB indication
+ * according to specified error level.
+ *
+ * @param errorLevel System error severity level
+ *
+ * @retval SYSTEM_STATUS_OK     Error state successfully reported
+ * @retval SYSTEM_STATUS_ERROR  Error indication failed
  */
 system_status_t SYSTEM_ReportError(system_error_level_t errorLevel);
+
 /**
- * @brief	Set the system link status indication
- * @param	linkStatus: Link status to set. See ::system_link_status_t
- * @retval	::system_status_t
+ * @brief Update system link status
+ *
+ * This function updates internal link state and
+ * RGB indication according to current link status.
+ *
+ * @param linkStatus System link status value
+ *
+ * @retval SYSTEM_STATUS_OK     Link status successfully updated
+ * @retval SYSTEM_STATUS_ERROR  Failed to update link status
+ *
+ * @note Function is thread-safe
  */
 system_status_t SYSTEM_SetLinkStatus(system_link_status_t linkStatus);
+
 /**
- * @brief	Set the device name
- * @param	deviceName: Null-terminated string containing the device name
- * @retval	::system_status_t
+ * @brief Set device name
+ *
+ * This function updates internal device name value.
+ *
+ * @param deviceName Null-terminated device name string
+ *
+ * @retval SYSTEM_STATUS_OK     Device name successfully updated
+ * @retval SYSTEM_STATUS_ERROR  Invalid input or internal error
+ *
+ * @note Function is thread-safe
  */
 system_status_t SYSTEM_SetDeviceName(const char* deviceName);
+
 /**
- * @brief	Get the current device name
- * @param	deviceName: Buffer to store the device name
- * @param	deviceNameSize: Pointer to variable containing buffer size, updated with actual name length
- * @retval	::system_status_t
+ * @brief Get device name
+ *
+ * This function copies internal device name
+ * to user provided buffer.
+ *
+ * @param deviceName Pointer to output buffer
+ * @param deviceNameSize Pointer to output string length
+ *
+ * @retval SYSTEM_STATUS_OK     Device name successfully retrieved
+ * @retval SYSTEM_STATUS_ERROR  Invalid input or internal error
+ *
+ * @note Output string is null-terminated
+ * @note Function is thread-safe
  */
 system_status_t SYSTEM_GetDeviceName(char* deviceName, uint32_t* deviceNameSize);
+
 /**
- * @brief	Set RGB LED color values
- * @param	value: RGB color values structure. See ::system_rgb_value_t
- * @retval	::system_status_t
- */
-/**
- * @brief   Set device serial number
+ * @brief Set device serial number
  *
- * @param   deviceSerial Pointer to null-terminated string containing device serial
+ * This function updates internal device serial value.
  *
- * @retval  ::SYSTEM_STATUS_OK       Serial successfully set
- * @retval  ::SYSTEM_STATUS_ERROR    Invalid input or internal error
+ * @param deviceSerial Null-terminated serial string
  *
- * @note    Maximum allowed length is defined by CONF_SYSTEM_DEFAULT_DEVICE_SERIAL_MAX
+ * @retval SYSTEM_STATUS_OK     Device serial successfully updated
+ * @retval SYSTEM_STATUS_ERROR  Invalid input or internal error
+ *
+ * @note Function is thread-safe
  */
 system_status_t SYSTEM_SetDeviceSerial(const char* deviceSerial);
 
 /**
- * @brief   Get device serial number
+ * @brief Get device serial number
  *
- * @param   deviceSerial Pointer to buffer where serial will be copied
- * @param   deviceSerialSize Pointer to variable where serial length will be stored
+ * This function copies internal device serial
+ * to user provided buffer.
  *
- * @retval  ::SYSTEM_STATUS_OK       Serial successfully retrieved
- * @retval  ::SYSTEM_STATUS_ERROR    Invalid input or internal error
+ * @param deviceSerial Pointer to output buffer
+ * @param deviceSerialSize Pointer to output string length
  *
- * @note    Output string is null-terminated
- * @note    Caller must ensure buffer is large enough
+ * @retval SYSTEM_STATUS_OK     Device serial successfully retrieved
+ * @retval SYSTEM_STATUS_ERROR  Invalid input or internal error
+ *
+ * @note Output string is null-terminated
+ * @note Function is thread-safe
  */
 system_status_t SYSTEM_GetDeviceSerial(char* deviceSerial, uint32_t* deviceSerialSize);
 
 /**
- * @brief   Set firmware version string
+ * @brief Set firmware version string
  *
- * @param   fwVersion Pointer to null-terminated string containing firmware version
+ * This function updates internal firmware version value.
  *
- * @retval  ::SYSTEM_STATUS_OK       Firmware version successfully set
- * @retval  ::SYSTEM_STATUS_ERROR    Invalid input or internal error
+ * @param fwVersion Null-terminated firmware version string
  *
- * @note    Maximum allowed length is defined by CONF_SYSTEM_DEFAULT_FW_VERSION_MAX
+ * @retval SYSTEM_STATUS_OK     Firmware version successfully updated
+ * @retval SYSTEM_STATUS_ERROR  Invalid input or internal error
+ *
+ * @note Function is thread-safe
  */
 system_status_t SYSTEM_SetFWVersion(const char* fwVersion);
 
 /**
- * @brief   Get firmware version string
+ * @brief Get firmware version string
  *
- * @param   fwVersion Pointer to buffer where firmware version will be copied
- * @param   fwVersionSize Pointer to variable where string length will be stored
+ * This function copies internal firmware version
+ * to user provided buffer.
  *
- * @retval  ::SYSTEM_STATUS_OK       Firmware version successfully retrieved
- * @retval  ::SYSTEM_STATUS_ERROR    Invalid input or internal error
+ * @param fwVersion Pointer to output buffer
+ * @param fwVersionSize Pointer to output string length
  *
- * @note    Output string is null-terminated
- * @note    Caller must ensure buffer is large enough
+ * @retval SYSTEM_STATUS_OK     Firmware version successfully retrieved
+ * @retval SYSTEM_STATUS_ERROR  Invalid input or internal error
+ *
+ * @note Output string is null-terminated
+ * @note Function is thread-safe
  */
 system_status_t SYSTEM_GetFWVersion(char* fwVersion, uint32_t* fwVersionSize);
 
+/**
+ * @brief Set RGB LED color
+ *
+ * This function updates internal RGB values and
+ * notifies system task to apply PWM changes.
+ *
+ * @param value RGB color structure
+ *
+ * @retval SYSTEM_STATUS_OK     RGB color successfully updated
+ * @retval SYSTEM_STATUS_ERROR  Failed to update RGB color
+ *
+ * @note Function is thread-safe
+ */
+system_status_t SYSTEM_SetRGB(system_rgb_value_t value);
 
+/**
+ * @brief Restart MCU
+ *
+ * This function performs software reset using
+ * NVIC system reset mechanism.
+ *
+ * @retval SYSTEM_STATUS_OK Reset successfully requested
+ *
+ * @note Function should never return after reset
+ */
 system_status_t SYSTEM_Restart(void);
 
 /**

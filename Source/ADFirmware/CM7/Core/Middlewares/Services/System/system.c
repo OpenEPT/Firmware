@@ -44,6 +44,7 @@
 #include "eez_dib.h"
 #include "fsystem.h"
 #include "configuration.h"
+#include "Bringup/bringup.h"
 
 
 /**
@@ -106,24 +107,18 @@ static TaskHandle_t  prvSYSTEM_TASK_HANDLE;	/**< System task handle */
  */
 
 /**
- * @brief GPIO callback function for button press events
- * 
- * @param pin GPIO pin that triggered the callback
- * @retval None
+ * @brief Set RGB LED PWM duty cycle values
+ *
+ * This function updates PWM duty cycle values for RGB LED channels.
+ *
+ * @param red     Red channel intensity value
+ * @param blue    Blue channel intensity value
+ * @param green   Green channel intensity value
+ *
+ * @retval SYSTEM_STATUS_OK     RGB state successfully updated
+ * @retval SYSTEM_STATUS_ERROR  Failed to update RGB PWM channels
  */
-static void	prvBUTTON_Callback(drv_gpio_pin pin)
-{
-
-}
-/**
- * @brief Set RGB LED state with the specified color values
- * 
- * @param red Red color intensity (0-255)
- * @param blue Blue color intensity (0-255)
- * @param green Green color intensity (0-255)
- * @retval SYSTEM_STATUS_OK if successful, SYSTEM_STATUS_ERROR otherwise
- */
-static system_status_t prvSYSTEM_SetRGBState(red, blue, green)
+static system_status_t prvSYSTEM_SetRGBState(uint8_t red, uint8_t blue, uint8_t green)
 {
 	if(DRV_Timer_Channel_PWM_Start(DRV_TIMER_1, DRV_TIMER_CHANNEL_4, red, portMAX_DELAY) != DRV_TIMER_STATUS_OK) return SYSTEM_STATUS_OK;
 	if(DRV_Timer_Channel_PWM_Start(DRV_TIMER_1, DRV_TIMER_CHANNEL_3, green, portMAX_DELAY) != DRV_TIMER_STATUS_OK) return SYSTEM_STATUS_OK;
@@ -131,33 +126,61 @@ static system_status_t prvSYSTEM_SetRGBState(red, blue, green)
 	return SYSTEM_STATUS_ERROR;
 }
 /**
- * @brief Callback function triggered when stream acquisition state changes
- * 
- * Updates the DIB acquisition state based on stream state changes and logs the event.
- * 
+ * @brief Acquisition state change callback
+ *
+ * This callback is triggered whenever stream
+ * acquisition state changes.
+ *
  * @param id Stream identifier
- * @param state New acquisition state (active, inactive, or undefined)
+ * @param state New acquisition state
+ *
  * @retval None
  */
 static void prvSYSTEM_AcquisitionStateChanged(uint32_t id, sstream_acquisition_state_t state)
 {
-//	if(state == SSTREAM_ACQUISITION_STATE_ACTIVE)
-//	{
-//		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to active\r\n");
-//		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_ACTIVE, id, 0);
-//
-//	}
-//	else if(state == SSTREAM_ACQUISITION_STATE_INACTIVE)
-//	{
-//		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to inactive\r\n");
-//		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_INACTIVE, id, 0);
-//	}
-//	else
-//	{
-//		LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Acquistion state changed to undefined state\r\n");
-//		EEZ_DIB_SetAcquisitionState(EEZ_DIB_ACQUISIIION_STATE_UNDEF, id, 0);
-//	}
 
+}
+
+/**
+ * @brief Initialize PWM timer used for RGB LED control
+ *
+ * @retval SYSTEM_STATUS_OK     PWM successfully initialized
+ * @retval SYSTEM_STATUS_ERROR  PWM initialization failed
+ */
+static system_status_t prvSYSTEM_InitPWM(void)
+{
+	drv_timer_channel_config_t pwmTimerChConfig;
+	drv_timer_config_t         pwmTimerConfig;
+
+	pwmTimerConfig.mode       = DRV_TIMER_COUNTER_MODE_UP;
+	pwmTimerConfig.prescaler  = 2000;
+	pwmTimerConfig.preload    = DRV_TIMER_PRELOAD_DISABLE;
+	pwmTimerConfig.div        = DRV_TIMER_DIV_1;
+	pwmTimerConfig.period     = 256;
+
+	if(DRV_Timer_Init_Instance(DRV_TIMER_1, &pwmTimerConfig) != DRV_TIMER_STATUS_OK)
+	{
+		return SYSTEM_STATUS_ERROR;
+	}
+
+	pwmTimerChConfig.mode = DRV_TIMER_CHANNEL_MODE_PWM1;
+
+	if(DRV_Timer_Channel_Init(DRV_TIMER_1, DRV_TIMER_CHANNEL_2, &pwmTimerChConfig) != DRV_TIMER_STATUS_OK)
+	{
+		return SYSTEM_STATUS_ERROR;
+	}
+
+	if(DRV_Timer_Channel_Init(DRV_TIMER_1, DRV_TIMER_CHANNEL_3, &pwmTimerChConfig) != DRV_TIMER_STATUS_OK)
+	{
+		return SYSTEM_STATUS_ERROR;
+	}
+
+	if(DRV_Timer_Channel_Init(DRV_TIMER_1, DRV_TIMER_CHANNEL_4, &pwmTimerChConfig) != DRV_TIMER_STATUS_OK)
+	{
+		return SYSTEM_STATUS_ERROR;
+	}
+
+	return SYSTEM_STATUS_OK;
 }
 
 
@@ -183,9 +206,6 @@ static void prvSYSTEM_AcquisitionStateChanged(uint32_t id, sstream_acquisition_s
 
 static void prvSYSTEM_Task()
 {
-	drv_gpio_pin_init_conf_t 	userLedConf;
-	drv_timer_channel_config_t 	pwmTimerChConfig;
-	drv_timer_config_t			pwmTimerConfig;
 	uint32_t					notifyValue;
 
 	uint8_t def;
@@ -201,8 +221,6 @@ static void prvSYSTEM_Task()
 		switch(prvSYSTEM_DATA.state)
 		{
 		case SYSTEM_STATE_INIT:
-			userLedConf.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
-			userLedConf.pullState = DRV_GPIO_PIN_PULL_NOPULL;
 			notifyValue = 0;
 
 			if(DRV_SYSTEM_InitDrivers() != DRV_SYSTEM_STATUS_OK)
@@ -210,37 +228,7 @@ static void prvSYSTEM_Task()
 				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
 				break;
 			}
-			DRV_GPIO_Port_Init(SYSTEM_LINK_STATUS_DIODE_PORT);
-			DRV_GPIO_Port_Init(SYSTEM_ERROR_STATUS_DIODE_PORT);
-			DRV_GPIO_Pin_Init(SYSTEM_LINK_STATUS_DIODE_PORT, SYSTEM_LINK_STATUS_DIODE_PIN, &userLedConf);
-			DRV_GPIO_Pin_Init(SYSTEM_ERROR_STATUS_DIODE_PORT, SYSTEM_ERROR_STATUS_DIODE_PIN, &userLedConf);
-			DRV_GPIO_Pin_EnableInt(DRV_GPIO_PORT_C, 13, 5, prvBUTTON_Callback);
-
-			memset(prvSYSTEM_DATA.deviceName, 0, CONF_SYSTEM_DEFAULT_DEVICE_NAME_MAX);
-			memcpy(prvSYSTEM_DATA.deviceName, CONF_SYSTEM_DEFAULT_DEVICE_NAME, strlen(CONF_SYSTEM_DEFAULT_DEVICE_NAME));
-
-			pwmTimerConfig.mode 		= DRV_TIMER_COUNTER_MODE_UP;
-			pwmTimerConfig.prescaler 	= 2000;
-			pwmTimerConfig.preload		= DRV_TIMER_PRELOAD_DISABLE;
-			pwmTimerConfig.div			= DRV_TIMER_DIV_1;
-			pwmTimerConfig.period		= 256;
-			if(DRV_Timer_Init_Instance(DRV_TIMER_1, &pwmTimerConfig) != DRV_TIMER_STATUS_OK)
-			{
-				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
-				break;
-			}
-			pwmTimerChConfig.mode = DRV_TIMER_CHANNEL_MODE_PWM1;
-			if(DRV_Timer_Channel_Init(DRV_TIMER_1, DRV_TIMER_CHANNEL_2, &pwmTimerChConfig) != DRV_TIMER_STATUS_OK)
-			{
-				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
-				break;
-			}
-			if(DRV_Timer_Channel_Init(DRV_TIMER_1, DRV_TIMER_CHANNEL_3, &pwmTimerChConfig) != DRV_TIMER_STATUS_OK)
-			{
-				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
-				break;
-			}
-			if(DRV_Timer_Channel_Init(DRV_TIMER_1, DRV_TIMER_CHANNEL_4, &pwmTimerChConfig) != DRV_TIMER_STATUS_OK)
+			if(prvSYSTEM_InitPWM() != SYSTEM_STATUS_OK)
 			{
 				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
 				break;
@@ -306,8 +294,6 @@ static void prvSYSTEM_Task()
 			{
 				LOGGING_Write("System", LOGGING_MSG_TYPE_WARNING,"Failed to load FW version\r\n");
 			}
-
-
 
 //			if(CHARGER_Init(2000) != CHARGER_STATUS_OK)
 //			{
@@ -386,6 +372,7 @@ static void prvSYSTEM_Task()
 
 system_status_t SYSTEM_Init()
 {
+#if(CONF_BRINGUP_ENABLE == 0)
 	prvSYSTEM_DATA.state = SYSTEM_STATE_INIT;
 
 	if(xTaskCreate(prvSYSTEM_Task,
@@ -402,6 +389,9 @@ system_status_t SYSTEM_Init()
 	prvSYSTEM_DATA.guard = xSemaphoreCreateMutex();
 
 	if(prvSYSTEM_DATA.guard == NULL) return SYSTEM_STATUS_ERROR;
+#else
+	BRINGUP_Init();
+#endif
 
 
 	return SYSTEM_STATUS_OK;
@@ -425,15 +415,12 @@ system_status_t SYSTEM_ReportError(system_error_level_t errorLevel)
 	{
 	case SYSTEM_ERROR_LEVEL_LOW:
 		prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
-		if(DRV_GPIO_Pin_SetState(SYSTEM_ERROR_STATUS_DIODE_PORT, SYSTEM_ERROR_STATUS_DIODE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK) return SYSTEM_STATUS_ERROR;
-		break;
+			break;
 	case SYSTEM_ERROR_LEVEL_MEDIUM:
 		prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
-		if(DRV_GPIO_Pin_SetState(SYSTEM_ERROR_STATUS_DIODE_PORT, SYSTEM_ERROR_STATUS_DIODE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK) return SYSTEM_STATUS_ERROR;
 		break;
 	case SYSTEM_ERROR_LEVEL_HIGH:
 		prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
-		if(DRV_GPIO_Pin_SetState(SYSTEM_ERROR_STATUS_DIODE_PORT, SYSTEM_ERROR_STATUS_DIODE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK) return SYSTEM_STATUS_ERROR;
 		break;
 	}
 	return SYSTEM_STATUS_OK;
@@ -444,18 +431,28 @@ system_status_t SYSTEM_SetLinkStatus(system_link_status_t linkStatus)
 	system_status_t returnValue = SYSTEM_STATUS_OK;
 	if(xSemaphoreTake(prvSYSTEM_DATA.guard, portMAX_DELAY) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
+	system_rgb_value_t rgb;
+
 	prvSYSTEM_DATA.linkStatus = linkStatus;
+
+
+	if(xSemaphoreGive(prvSYSTEM_DATA.guard) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
 	if(linkStatus == SYSTEM_LINK_STATUS_UP)
 	{
-		if(DRV_GPIO_Pin_SetState(SYSTEM_LINK_STATUS_DIODE_PORT, SYSTEM_LINK_STATUS_DIODE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK) returnValue = SYSTEM_STATUS_ERROR;
+		rgb.red = 0;
+		rgb.green = SYSTEM_RGB_DEFAULT_BRIGHTNESS;
+		rgb.blue = SYSTEM_RGB_DEFAULT_BRIGHTNESS;
+		if(SYSTEM_SetRGB(rgb) != SYSTEM_STATUS_OK) returnValue = SYSTEM_STATUS_ERROR;
 	}
 	else
 	{
-		if(DRV_GPIO_Pin_SetState(SYSTEM_LINK_STATUS_DIODE_PORT, SYSTEM_LINK_STATUS_DIODE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK) returnValue = SYSTEM_STATUS_ERROR;
+		rgb.red = SYSTEM_RGB_DEFAULT_BRIGHTNESS;
+		rgb.green = 0;
+		rgb.blue = SYSTEM_RGB_DEFAULT_BRIGHTNESS;
+		if(SYSTEM_SetRGB(rgb) != SYSTEM_STATUS_OK) returnValue = SYSTEM_STATUS_ERROR;
 	}
 
-	if(xSemaphoreGive(prvSYSTEM_DATA.guard) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
 	return returnValue;
 }
@@ -484,7 +481,7 @@ system_status_t SYSTEM_GetDeviceName(char* deviceName, uint32_t* deviceNameSize)
 
 	if(xSemaphoreTake(prvSYSTEM_DATA.guard, portMAX_DELAY) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
-	size_t len = strnlen(prvSYSTEM_DATA.deviceName, CONF_SYSTEM_DEFAULT_DEVICE_NAME_MAX);
+	size_t len = strnlen(prvSYSTEM_DATA.deviceName, CONF_CONFIGURATION_MAX_PARAM_VALUESIZE);
 
 	memcpy(deviceName, prvSYSTEM_DATA.deviceName, len);
 	deviceName[len] = '\0';
@@ -584,13 +581,10 @@ system_status_t SYSTEM_Restart(void)
 {
     LOGGING_Write("System", LOGGING_MSG_TYPE_WARNING, "System restarting...\r\n");
 
-    /* Mala pauza da se log flushuje */
     vTaskDelay(pdMS_TO_TICKS(100));
 
-    /* Hard reset MCU */
     NVIC_SystemReset();
 
-    /* Nikada se ne izvršava */
     return SYSTEM_STATUS_OK;
 }
 /**

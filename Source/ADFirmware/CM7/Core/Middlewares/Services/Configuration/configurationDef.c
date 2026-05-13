@@ -139,7 +139,7 @@ static configuration_param_t prvCONFIGURATION_DEFAULTS[] =
 		},
 		{
 			.name = "CONTROL_SER_PORT",
-			.value = STR(CONFIG_CONTROL_SERVER_PORT),
+			.value = STR(CONF_CONTROL_SERVER_PORT),
 			.type = CONFIGURATION_PARAM_TYPE_INT,
 			.readOnly = 0,
 			.defaultValue = 1,

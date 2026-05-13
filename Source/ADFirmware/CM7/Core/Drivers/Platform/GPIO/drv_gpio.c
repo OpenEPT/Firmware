@@ -244,7 +244,7 @@ drv_gpio_pin_state_t 	DRV_GPIO_Pin_ReadState(drv_gpio_port_t port, drv_gpio_pin 
 	return state;
 }
 
-drv_gpio_status_t DRV_GPIO_Pin_ToogleFromISR(drv_gpio_port_t port, drv_gpio_pin pin)
+drv_gpio_status_t DRV_GPIO_Pin_ToggleFromISR(drv_gpio_port_t port, drv_gpio_pin pin)
 {
 	BaseType_t * pxHigherPriorityTaskWoken = pdFALSE;
 	if(prvDRV_GPIO_PORTS[port].initState != DRV_GPIO_PORT_INIT_STATUS_INITIALIZED || prvDRV_GPIO_PORTS[port].lock == NULL) return DRV_GPIO_STATUS_ERROR;

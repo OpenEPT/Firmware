@@ -32,21 +32,21 @@
  * @defgroup CONTROL_PUBLIC_DEFINES Control service public defines
  * @{
  */
-#define CONTROL_BUFFER_SIZE						CONFIG_CONTROL_BUFFER_SIZE				/*!< Request and response buffer sizes */
-#define CONTROL_SERVER_PORT						CONFIG_CONTROL_SERVER_PORT				/*!< Control service TCP PORT number value */
+#define CONTROL_BUFFER_SIZE						CONF_CONTROL_BUFFER_SIZE				/*!< Request and response buffer sizes */
+#define CONTROL_SERVER_PORT						CONF_CONTROL_SERVER_PORT				/*!< Control service TCP PORT number value */
 
-#define CONTROL_TASK_NAME						CONFIG_CONTROL_TASK_NAME				/*!< Control service task name */
-#define CONTROL_TASK_PRIO						CONFIG_CONTROL_PRIO						/*!< Control service task prio */
-#define CONTROL_TASK_STACK						CONFIG_CONTROL_STACK_SIZE				/*!< Control service task stack size */
+#define CONTROL_TASK_NAME						CONF_CONTROL_TASK_NAME				/*!< Control service task name */
+#define CONTROL_TASK_PRIO						CONF_CONTROL_PRIO						/*!< Control service task prio */
+#define CONTROL_TASK_STACK						CONF_CONTROL_STACK_SIZE				/*!< Control service task stack size */
 
 #define CONTROL_RESPONSE_OK_STATUS_MSG			CONF_CONTROL_RESPONSE_OK_STATUS_MSG		/*!< Default OK response message */
 #define CONTROL_RESPONSE_ERROR_STATUS_MSG		CONF_CONTROL_RESPONSE_ERROR_STATUS_MSG	/*!< Default ERROR response message */
 
-#define CONTROL_STATUS_LINK_MAX_NO				CONFIG_CONTROL_STATUS_LINK_MAX_NO		/*!< MAX Number of status links */
-#define CONTROL_STATUS_LINK_TASK_NAME			CONFIG_CONTROL_STATUS_LINK_TASK_NAME	/*!< Status link task name */
-#define CONTROL_STATUS_LINK_TASK_PRIO			CONFIG_CONTROL_STATUS_LINK_PRIO			/*!< Status link task prio */
-#define CONTROL_STATUS_LINK_TASK_STACK			CONFIG_CONTROL_STATUS_LINK_STACK_SIZE	/*!< Status link task stack size */
-#define CONTROL_STATUS_LINK_MESSAGES_MAX_NO		CONFIG_CONTROL_STATUS_MESSAGES_MAX_NO	/*!< Status messages queue buffer size */
+#define CONTROL_STATUS_LINK_MAX_NO				CONF_CONTROL_STATUS_LINK_MAX_NO		/*!< MAX Number of status links */
+#define CONTROL_STATUS_LINK_TASK_NAME			CONF_CONTROL_STATUS_LINK_TASK_NAME	/*!< Status link task name */
+#define CONTROL_STATUS_LINK_TASK_PRIO			CONF_CONTROL_STATUS_LINK_PRIO			/*!< Status link task prio */
+#define CONTROL_STATUS_LINK_TASK_STACK			CONF_CONTROL_STATUS_LINK_STACK_SIZE	/*!< Status link task stack size */
+#define CONTROL_STATUS_LINK_MESSAGES_MAX_NO		CONF_CONTROL_STATUS_MESSAGES_MAX_NO	/*!< Status messages queue buffer size */
 /**
  * @}
  */
