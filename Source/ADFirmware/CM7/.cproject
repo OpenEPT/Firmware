@@ -51,6 +51,7 @@
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/Middlewares/Third_Party/LwIP/system&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Middlewares/Services/EezDib/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/HAL/BQ25150/&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/HAL/BQ25180/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/HAL/M24C32/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/Middlewares/Third_Party/LwIP/src/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/Middlewares/Third_Party/FreeRTOS/Source/include&quot;"/>

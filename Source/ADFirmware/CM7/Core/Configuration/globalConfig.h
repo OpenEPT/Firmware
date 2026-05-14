@@ -236,6 +236,8 @@
 #define CONF_CHARGER_TASK_NAME                  "Charger Task" /*!< Charger task name */
 #define CONF_CHARGER_STACK_SIZE                 1024        /*!< Charger task stack size */
 #define CONF_CHARGER_PRIO                       3           /*!< Charger task priority */
+#define CONF_CHARGER_CONNECTION_PORT 			1
+#define CONF_CHARGER_CONNECTION_PIN				12
 
 /**
  * @}

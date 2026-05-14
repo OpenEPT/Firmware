@@ -619,18 +619,21 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 		    protectionPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
 
 		    /* --- UNDER VOLTAGE --- */
-		    DRV_GPIO_Pin_Init(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, &protectionPinConfig);
+		    DRV_GPIO_Port_Init(CONF_DPCONTROL_UV_PORT);
 		    DRV_GPIO_RegisterCallback(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, prvDPCONTROL_UnderVoltageCB, CONF_DPCONTROL_UV_ISR_PRIO);
+		    DRV_GPIO_Pin_Init(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, &protectionPinConfig);
 		    prvDPCONTROL_DATA.underVoltage = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN);
 
 		    /* --- OVER VOLTAGE --- */
-		    DRV_GPIO_Pin_Init(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN, &protectionPinConfig);
+		    DRV_GPIO_Port_Init(CONF_DPCONTROL_OV_PORT);
 		    DRV_GPIO_RegisterCallback(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN, prvDPCONTROL_OverVoltageCB, CONF_DPCONTROL_OV_ISR_PRIO);
+		    DRV_GPIO_Pin_Init(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN, &protectionPinConfig);
 		    prvDPCONTROL_DATA.overVoltage = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN);
 
 		    /* --- OVER CURRENT --- */
-		    DRV_GPIO_Pin_Init(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN, &protectionPinConfig);
+		    DRV_GPIO_Port_Init(CONF_DPCONTROL_OC_PORT);
 		    DRV_GPIO_RegisterCallback(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN, prvDPCONTROL_OverCurrentCB, CONF_DPCONTROL_OC_ISR_PRIO);
+		    DRV_GPIO_Pin_Init(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN, &protectionPinConfig);
 		    prvDPCONTROL_DATA.overCurrent = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN);
 
 		    /**********************************************************************

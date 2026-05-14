@@ -601,6 +601,33 @@ static void prvCONTROL_ChargingEnable(const char* arguments, uint16_t argumentsL
 }
 
 /**
+ * @brief	Get charger connection status
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_ChargingConStatusGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	charger_con_status_t	connectionStatus = CHARGER_CON_STATUS_DISCONNECTED;
+	char					connectionStatusString[10];
+	uint32_t				connectionStatusStringLength = 0;
+
+	if(CHARGER_GetConnectionStatus(&connectionStatus, 1000) != CHARGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get charger connection status\r\n");
+	}
+	else
+	{
+		memset(connectionStatusString, 0, 10);
+		connectionStatusStringLength = sprintf(connectionStatusString, "%u", (int)connectionStatus);
+		prvCONTROL_PrepareOkResponse(response, responseSize, connectionStatusString, connectionStatusStringLength);
+	}
+}
+
+/**
  * @brief	Disable charging
  * @param	arguments: arguments defined within control message
  * @param	argumentsLength: arguments message length
@@ -3070,6 +3097,7 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("device rgb setcolor",     		prvCONTROL_SetRGBColor);
 
 
+	CMPARSE_AddCommand("charger connection status get", prvCONTROL_ChargingConStatusGet);
 	CMPARSE_AddCommand("charger charging enable",       prvCONTROL_ChargingEnable);
 	CMPARSE_AddCommand("charger charging disable",      prvCONTROL_ChargingDisable);
 	CMPARSE_AddCommand("charger charging get",      	prvCONTROL_ChargingGet);

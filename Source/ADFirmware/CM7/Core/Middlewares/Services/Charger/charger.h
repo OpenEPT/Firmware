@@ -37,6 +37,10 @@
 #define CHARGER_TASK_NAME				CONF_CHARGER_TASK_NAME			/*!< Charger service task name */
 #define CHARGER_TASK_PRIO				CONF_CHARGER_PRIO				/*!< Charger service task priority */
 #define CHARGER_TASK_STACK				CONF_CHARGER_STACK_SIZE			/*!< Charger service task stack size */
+
+#define CHARGER_CONNECTION_PORT 		CONF_CHARGER_CONNECTION_PORT
+#define CHARGER_CONNECTION_PIN			CONF_CHARGER_CONNECTION_PIN
+
 /**
  * @}
  */
@@ -59,9 +63,19 @@ typedef enum {
  */
 typedef enum {
 	CHARGER_STATE_INIT,				/*!< Initialization state */
+	CHARGER_STATE_UNDEF,				/*!< Initialization state */
 	CHARGER_STATE_SERVICE,			/*!< Charging service active */
 	CHARGER_STATE_ERROR				/*!< Charger service in error state */
 } charger_state_t;
+
+/**
+ * @brief Charger connection status
+ */
+typedef enum {
+	CHARGER_CON_STATUS_DISCONNECTED = 0,
+	CHARGER_CON_STATUS_CONNECTED = 1
+} charger_con_status_t;
+
 
 /**
  * @brief Charging enable/disable state
@@ -159,6 +173,9 @@ charger_status_t CHARGER_GetChargingTermVoltage(float* voltage, uint32_t initTim
  * @retval	::charger_status_t
  */
 charger_status_t CHARGER_GetRegContent(uint8_t regAddr, uint8_t* regData, uint32_t initTimeout);
+
+
+charger_status_t CHARGER_GetConnectionStatus(charger_con_status_t* status, uint32_t initTimeout);
 
 /**
  * @}
