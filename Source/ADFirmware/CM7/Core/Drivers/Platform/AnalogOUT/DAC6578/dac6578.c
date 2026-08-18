@@ -77,8 +77,6 @@ static dac6578_status_t prvDAC6578_WriteCommand(uint8_t command, uint16_t value,
     uint8_t devAddr;
     uint8_t txBuffer[3];
 
-    return DAC6578_STATUS_OK;
-
     if(value > DAC6578_MAX_VALUE)
     {
         return DAC6578_STATUS_ERROR;
@@ -116,7 +114,7 @@ dac6578_status_t DAC6578_Init(void)
     return DAC6578_STATUS_OK;
 }
 
-dac6578_status_t DAC6578_SetChannelValue(dac6578_channel_t channel, uint16_t value, uint32_t timeout)
+dac6578_status_t DAC6578_SetAndUpdateChannelValue(dac6578_channel_t channel, uint16_t value, uint32_t timeout)
 {
     uint8_t command;
 
@@ -128,6 +126,88 @@ dac6578_status_t DAC6578_SetChannelValue(dac6578_channel_t channel, uint16_t val
     command = (uint8_t)(DAC6578_COMMAND_WRITE_INPUT_AND_UPDATE_DAC_REG | (uint8_t)channel);
 
     return prvDAC6578_WriteCommand(command, value, timeout);
+}
+
+dac6578_status_t DAC6578_SetChannelValue(dac6578_channel_t channel,
+                                         uint16_t value,
+                                         uint32_t timeout)
+{
+    uint8_t command;
+
+    if((prvDAC6578_IsChannelValid(channel) == 0U) ||
+       (value > DAC6578_MAX_VALUE))
+    {
+        return DAC6578_STATUS_ERROR;
+    }
+
+    command = (uint8_t)(DAC6578_COMMAND_WRITE_INPUT_REG |
+                        (uint8_t)channel);
+
+    return prvDAC6578_WriteCommand(command, value, timeout);
+}
+
+dac6578_status_t DAC6578_SetChannelState(dac6578_channel_t channel,
+                                         dac6578_channel_state_t state,
+                                         uint32_t timeout)
+{
+    uint8_t devAddr;
+    uint8_t txBuffer[3];
+    uint8_t channelMask;
+
+    if((prvDAC6578_IsChannelValid(channel) == 0U) ||
+       ((state != DAC6578_CHANNEL_DISABLED) &&
+        (state != DAC6578_CHANNEL_ENABLED)))
+    {
+        return DAC6578_STATUS_ERROR;
+    }
+
+    channelMask = (uint8_t)(1U << (uint8_t)channel);
+
+    txBuffer[0] = DAC6578_COMMAND_POWER_ON_OFF_DAC;
+
+    if(state == DAC6578_CHANNEL_ENABLED)
+    {
+        txBuffer[1] = 0x00U;
+    }
+    else
+    {
+        txBuffer[1] = 0x60U;
+    }
+
+    txBuffer[1] |= (uint8_t)(channelMask >> 3U);
+    txBuffer[2]  = (uint8_t)(channelMask << 5U);
+
+    devAddr = (uint8_t)(DAC6578_DEV_ADDR << 1U);
+
+    if(DRV_I2C_Transmit(DRV_I2C_INSTANCE_2,
+                        devAddr,
+                        txBuffer,
+                        sizeof(txBuffer),
+                        timeout) != DRV_I2C_STATUS_OK)
+    {
+        return DAC6578_STATUS_ERROR;
+    }
+
+    return DAC6578_STATUS_OK;
+}
+
+dac6578_status_t DAC6578_Reset(uint32_t timeout)
+{
+    uint8_t devAddr;
+    uint8_t txBuffer[3];
+
+    txBuffer[0] = DAC6578_COMMAND_SOFTWARE;
+    txBuffer[1] = 0x00U;
+    txBuffer[2] = 0x00U;
+
+    devAddr = (uint8_t)(DAC6578_DEV_ADDR << 1U);
+
+    if(DRV_I2C_Transmit(DRV_I2C_INSTANCE_2, devAddr, txBuffer, 1, timeout) != DRV_I2C_STATUS_OK)
+    {
+        return DAC6578_STATUS_ERROR;
+    }
+
+    return DAC6578_STATUS_OK;
 }
 
 /**

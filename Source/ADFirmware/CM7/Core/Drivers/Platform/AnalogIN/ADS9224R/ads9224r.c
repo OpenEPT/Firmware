@@ -113,7 +113,6 @@ void		   		HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
-	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_1);
 	if((prvADS9224R_DATA.trigger == ADS9224R_SDO_A) && (hspi->Instance == SPI5))
 	{
 		if(prvADS9224R_DATA.callback != 0) prvADS9224R_DATA.callback(0);
@@ -137,7 +136,6 @@ static void		   		prvADS9224R_DMAHalfComplitedCallback1(DMA_HandleTypeDef *_hdma
 {
 	//DRV_GPIO_Pin_SetStateFromISR(DRV_GPIO_PORT_B, 14, DRV_GPIO_PIN_STATE_RESET);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
-	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_1);
 //	ADS9224R_StopAcquisiton();
 
 	if((prvADS9224R_DATA.trigger == ADS9224R_SDO_A) && (_hdma->Instance == DMA1_Stream1))
@@ -793,8 +791,7 @@ static ads9224r_status_t prvADS9224R_ACQ_SetState(uint8_t* sdoaBuffer0, uint8_t*
 	DRV_GPIO_Pin_Init(DRV_GPIO_PORT_B, 2, &outPinConfig);
 	DRV_GPIO_Pin_SetState(DRV_GPIO_PORT_B, 2, DRV_GPIO_PIN_STATE_RESET);
 
-	DRV_GPIO_Port_Init(DRV_GPIO_PORT_D);
-	DRV_GPIO_Pin_Init(DRV_GPIO_PORT_D, 1, &outPinConfig);
+
 
 
 

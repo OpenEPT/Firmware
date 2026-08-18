@@ -62,8 +62,8 @@ typedef enum {
  * @brief Charger service state
  */
 typedef enum {
+	CHARGER_STATE_UNDEF = 0,				/*!< Initialization state */
 	CHARGER_STATE_INIT,				/*!< Initialization state */
-	CHARGER_STATE_UNDEF,				/*!< Initialization state */
 	CHARGER_STATE_SERVICE,			/*!< Charging service active */
 	CHARGER_STATE_ERROR				/*!< Charger service in error state */
 } charger_state_t;

@@ -130,6 +130,36 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
 
 		__HAL_RCC_I2C1_CLK_ENABLE();
 	}
+	else if(hi2c->Instance==I2C2)
+	{
+		/* USER CODE BEGIN I2C2_MspInit 0 */
+
+		/* USER CODE END I2C2_MspInit 0 */
+
+		/** Initializes the peripherals clock
+		*/
+		PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C2;
+		PeriphClkInitStruct.I2c123ClockSelection = RCC_I2C123CLKSOURCE_D2PCLK1;
+		if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+		{
+		  Error_Handler();
+		}
+
+		__HAL_RCC_GPIOB_CLK_ENABLE();
+		/**I2C2 GPIO Configuration
+		PB10     ------> I2C2_SCL
+		PB11     ------> I2C2_SDA
+		*/
+		GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11;
+		GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+		GPIO_InitStruct.Pull = GPIO_NOPULL;
+		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+		GPIO_InitStruct.Alternate = GPIO_AF4_I2C2;
+		HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+		/* Peripheral clock enable */
+		__HAL_RCC_I2C2_CLK_ENABLE();
+	}
 	else if(hi2c->Instance == I2C4)
 	{
 		PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C4;
@@ -205,6 +235,7 @@ drv_i2c_status_t DRV_I2C_Instance_Init(drv_i2c_instance_t instance, drv_i2c_conf
 	}
 
 	handle = &prvDRV_I2C_INSTANCES[instance];
+	handle->instance = instance;
 
 	if(handle->lock == NULL)
 	{
@@ -221,13 +252,20 @@ drv_i2c_status_t DRV_I2C_Instance_Init(drv_i2c_instance_t instance, drv_i2c_conf
 	peripheral = prvDRV_I2C_GetPeripheral(instance);
 	if(peripheral == NULL)
 	{
-		return DRV_I2C_STATUS_ERROR;
+		return DRV_I2C_STATUS_ERROR; //
 	}
 
 	handle->deviceHandler.Instance = peripheral;
 
 	/* Default timing value kept from original driver */
-	handle->deviceHandler.Init.Timing           = 0x10C0ECFF;
+	if(handle->deviceHandler.Instance == I2C2)
+	{
+		handle->deviceHandler.Init.Timing           = 0x10C0ECFF;
+	}
+	else
+	{
+		handle->deviceHandler.Init.Timing           = 0x10C0ECFF;
+	}
 	handle->deviceHandler.Init.OwnAddress1      = 0;
 	handle->deviceHandler.Init.AddressingMode   = I2C_ADDRESSINGMODE_7BIT;
 	handle->deviceHandler.Init.DualAddressMode  = I2C_DUALADDRESS_DISABLE;
@@ -284,39 +322,88 @@ drv_i2c_status_t DRV_I2C_Instance_DeInit(drv_i2c_instance_t instance)
 	return DRV_I2C_STATUS_OK;
 }
 
-drv_i2c_status_t DRV_I2C_Transmit(drv_i2c_instance_t instance, uint8_t addr, uint8_t* data, uint32_t size, uint32_t timeout)
+drv_i2c_status_t DRV_I2C_Transmit(drv_i2c_instance_t instance,
+                                  uint8_t addr,
+                                  uint8_t* data,
+                                  uint32_t size,
+                                  uint32_t timeout)
 {
-	drv_i2c_handle_t* handle = NULL;
-	drv_i2c_status_t status = DRV_I2C_STATUS_OK;
+    drv_i2c_handle_t* handle = NULL;
+    drv_i2c_status_t status = DRV_I2C_STATUS_OK;
 
-	if((prvDRV_I2C_IsValidInstance(instance) == 0U) || (data == NULL))
-	{
-		return DRV_I2C_STATUS_ERROR;
-	}
+    if((prvDRV_I2C_IsValidInstance(instance) == 0U) || (data == NULL))
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
 
-	handle = &prvDRV_I2C_INSTANCES[instance];
+    handle = &prvDRV_I2C_INSTANCES[instance];
 
-	if((handle->initState != DRV_I2C_INITIALIZATION_STATUS_INIT) || (handle->lock == NULL))
-	{
-		return DRV_I2C_STATUS_ERROR;
-	}
+    if((handle->initState != DRV_I2C_INITIALIZATION_STATUS_INIT) ||
+       (handle->lock == NULL))
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
 
-	if(xSemaphoreTake(handle->lock, pdMS_TO_TICKS(timeout)) != pdTRUE)
-	{
-		return DRV_I2C_STATUS_ERROR;
-	}
+    if(__get_IPSR() != 0U)
+    {
+        BaseType_t higherPriorityTaskWoken = pdFALSE;
 
-	if(HAL_I2C_Master_Transmit(&handle->deviceHandler, addr, data, size, timeout) != HAL_OK)
-	{
-		status = DRV_I2C_STATUS_ERROR;
-	}
+        /*
+         * ISR context.
+         *
+         * A semaphore cannot block from an ISR. If the I2C peripheral
+         * is already in use, return an error immediately.
+         */
+        if(xSemaphoreTakeFromISR(handle->lock,
+                                 &higherPriorityTaskWoken) != pdTRUE)
+        {
+            return DRV_I2C_STATUS_ERROR;
+        }
 
-	if(xSemaphoreGive(handle->lock) != pdTRUE)
-	{
-		status = DRV_I2C_STATUS_ERROR;
-	}
+        if(HAL_I2C_Master_Transmit(&handle->deviceHandler,
+                                  addr,
+                                  data,
+                                  size,
+                                  timeout) != HAL_OK)
+        {
+            status = DRV_I2C_STATUS_ERROR;
+        }
 
-	return status;
+        if(xSemaphoreGiveFromISR(handle->lock,
+                                 &higherPriorityTaskWoken) != pdTRUE)
+        {
+            status = DRV_I2C_STATUS_ERROR;
+        }
+
+        portYIELD_FROM_ISR(higherPriorityTaskWoken);
+    }
+    else
+    {
+        /*
+         * Task context.
+         */
+        if(xSemaphoreTake(handle->lock,
+                          pdMS_TO_TICKS(timeout)) != pdTRUE)
+        {
+            return DRV_I2C_STATUS_ERROR;
+        }
+
+        if(HAL_I2C_Master_Transmit(&handle->deviceHandler,
+                                  addr,
+                                  data,
+                                  size,
+                                  timeout) != HAL_OK)
+        {
+            status = DRV_I2C_STATUS_ERROR;
+        }
+
+        if(xSemaphoreGive(handle->lock) != pdTRUE)
+        {
+            status = DRV_I2C_STATUS_ERROR;
+        }
+    }
+
+    return status;
 }
 
 drv_i2c_status_t DRV_I2C_Receive(drv_i2c_instance_t instance, uint8_t addr, uint8_t* data, uint32_t size, uint32_t timeout)

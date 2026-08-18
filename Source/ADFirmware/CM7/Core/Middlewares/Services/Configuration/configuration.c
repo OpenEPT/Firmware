@@ -692,7 +692,7 @@ configuration_status_t CONFIGURATION_SetParameter_Float(const char* key, float v
 
     if(key == NULL) return CONFIGURATION_STATUS_ERROR;
 
-    int len = snprintf(buffer, sizeof(buffer), "%.3f", value);
+    int len = snprintf(buffer, sizeof(buffer), "%.4f", value);
     if(len <= 0 || len >= sizeof(buffer)) return CONFIGURATION_STATUS_ERROR;
 
     return CONFIGURATION_UpdateParamValue(key, buffer, len, timeout);

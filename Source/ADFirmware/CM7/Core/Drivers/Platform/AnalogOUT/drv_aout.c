@@ -127,7 +127,8 @@ drv_aout_status_t DRV_AOUT_Init()
 	HAL_DAC_Stop(&prvDRV_AOUT_DAC_HANDLER, DAC_CHANNEL_2);
 
 	/*Set external DAC*/
-	//if(DAC6578_Init() != DAC6578_STATUS_OK) return DRV_AOUT_STATUS_ERROR;
+	if(DAC6578_Init() != DAC6578_STATUS_OK) return DRV_AOUT_STATUS_ERROR;
+	if(DAC6578_Reset(1000) != DAC6578_STATUS_OK) return DRV_AOUT_STATUS_ERROR;
 	return DRV_AOUT_STATUS_OK;
 }
 
@@ -138,10 +139,12 @@ drv_aout_status_t DRV_AOUT_SetEnable(drv_aout_active_status_t aStatus)
 	case DRV_AOUT_ACTIVE_STATUS_DISABLED:
 		prvDRV_AOUT_DAC_ACTIVE_STATUS = DRV_AOUT_ACTIVE_STATUS_DISABLED;
 		HAL_DAC_Stop(&prvDRV_AOUT_DAC_HANDLER, DAC_CHANNEL_2);
+		DAC6578_SetChannelState(DRV_AOUT_CHANNEL_D, DAC6578_CHANNEL_DISABLED, 1000);
 		break;
 	case DRV_AOUT_ACTIVE_STATUS_ENABLED:
 		prvDRV_AOUT_DAC_ACTIVE_STATUS = DRV_AOUT_ACTIVE_STATUS_ENABLED;
 		HAL_DAC_Start(&prvDRV_AOUT_DAC_HANDLER, DAC_CHANNEL_2);
+		DAC6578_SetChannelState(DRV_AOUT_CHANNEL_D, DAC6578_CHANNEL_ENABLED, 1000);
 		break;
 	}
 	return DRV_AOUT_STATUS_OK;
@@ -152,29 +155,29 @@ drv_aout_status_t DRV_AOUT_SetValue(uint32_t value, drv_aout_channel_t channel)
 	switch(channel)
 	{
 	case DRV_AOUT_CHANNEL_A:
-		if(DAC6578_SetChannelValue(DRV_AOUT_CHANNEL_A, value, 1000) != DAC6578_STATUS_OK)
+		if(DAC6578_SetAndUpdateChannelValue(DRV_AOUT_CHANNEL_A, value, 1000) != DAC6578_STATUS_OK)
 		{
 			returnValue = 1;
 		}
 		break;
 	case DRV_AOUT_CHANNEL_B:
-		if(DAC6578_SetChannelValue(DRV_AOUT_CHANNEL_B, value, 1000) != DAC6578_STATUS_OK)
+		if(DAC6578_SetAndUpdateChannelValue(DRV_AOUT_CHANNEL_B, value, 1000) != DAC6578_STATUS_OK)
 		{
 			returnValue = 1;
 		}
 		break;
 	case DRV_AOUT_CHANNEL_C:
-		if(DAC6578_SetChannelValue(DRV_AOUT_CHANNEL_C, value, 1000) != DAC6578_STATUS_OK)
+		if(DAC6578_SetAndUpdateChannelValue(DRV_AOUT_CHANNEL_C, value, 1000) != DAC6578_STATUS_OK)
 		{
 			returnValue = 1;
 		}
 		break;
 	case DRV_AOUT_CHANNEL_D:
-//		if(DAC6578_SetChannelValue(DRV_AOUT_CHANNEL_D, value, 1000) != DAC6578_STATUS_OK)
-//		{
-//			returnValue = 1;
-//		}
-		if(HAL_DAC_SetValue(&prvDRV_AOUT_DAC_HANDLER, DAC_CHANNEL_2, DAC_ALIGN_12B_R, value) != HAL_OK) return DRV_AOUT_STATUS_ERROR;
+		if(DAC6578_SetAndUpdateChannelValue(DRV_AOUT_CHANNEL_D, value, 1000) != DAC6578_STATUS_OK)
+		{
+			returnValue = 1;
+		}
+//		if(HAL_DAC_SetValue(&prvDRV_AOUT_DAC_HANDLER, DAC_CHANNEL_2, DAC_ALIGN_12B_R, value) != HAL_OK) return DRV_AOUT_STATUS_ERROR;
 		break;
 	case DRV_AOUT_CHANNEL_E:
 	case DRV_AOUT_CHANNEL_F:

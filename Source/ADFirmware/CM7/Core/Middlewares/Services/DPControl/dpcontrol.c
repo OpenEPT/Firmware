@@ -170,6 +170,20 @@ TIM_HandleTypeDef 				DPCONTROL_TIM;
  */
 static dpcontrol_status_t prvDPCONTROL_ExecuteWaveChunk();
 
+/**
+ * @brief Convert load current to DAC control voltage
+ *
+ * @param current Current [mA]
+ *
+ * @return Corresponding DAC voltage [V]
+ */
+static float prvDPCONTROL_CurrentToVoltage(uint32_t current)
+{
+    return ((float)current / 1000.0f) *
+           8.8 *
+           0.075;
+}
+
 static dpcontrol_status_t prvDPCONTROL_SetLoadState(dpcontrol_load_state_t loadState)
 {
 	if(loadState == DPCONTROL_LOAD_STATE_ENABLE)
@@ -313,7 +327,9 @@ static dpcontrol_status_t prvDPCONTROL_ExecuteWaveChunk()
 		//Set output
 		if(prvDPCONTROL_WAVE_DATA.current->baseValue > 0)
 		{
-			DRV_AOUT_SetValue(prvDPCONTROL_WAVE_DATA.current->baseValue, DRV_AOUT_CHANNEL_D);
+			DRV_AOUT_SetVoltage(
+			    prvDPCONTROL_CurrentToVoltage(prvDPCONTROL_WAVE_DATA.current->baseValue),
+			    DRV_AOUT_CHANNEL_D);
 			prvDPCONTROL_DATA.aoutData.data = prvDPCONTROL_WAVE_DATA.current->baseValue;
 			if(prvDPCONTROL_DATA.loadState == DPCONTROL_LOAD_STATE_DISABLE)
 			{
@@ -653,7 +669,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 		    DRV_AOUT_SetVoltage(prvDPCONTROL_DATA.ovValue, DRV_AOUT_CHANNEL_C);
 		    DRV_AOUT_SetVoltage(prvDPCONTROL_DATA.uvValue, DRV_AOUT_CHANNEL_B);
 
-		    float ocVoltage = (prvDPCONTROL_DATA.shuntValue * prvDPCONTROL_DATA.gainValue * (float)(prvDPCONTROL_DATA.ocValue) / 1000.0f);
+		    float ocVoltage = 1.625 + (prvDPCONTROL_DATA.shuntValue * prvDPCONTROL_DATA.gainValue * (float)(prvDPCONTROL_DATA.ocValue) / 1000.0f);
 
 		    DRV_AOUT_SetVoltage(ocVoltage, DRV_AOUT_CHANNEL_A);
 
@@ -668,7 +684,9 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 		    /**********************************************************************
 		     * DAC INITIAL VALUE
 		     **********************************************************************/
-		    DRV_AOUT_SetValue(prvDPCONTROL_DATA.aoutData.data, DRV_AOUT_CHANNEL_D);
+		    DRV_AOUT_SetVoltage(
+		        prvDPCONTROL_CurrentToVoltage(prvDPCONTROL_DATA.aoutData.data),
+		        DRV_AOUT_CHANNEL_D);
 
 		    /**********************************************************************
 		     * TIMER INITIALIZATION
@@ -700,7 +718,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 					prvDPCONTROL_DATA.state = DPCONTROL_STATE_ERROR;
 					break;
 				}
-				if(DRV_AOUT_SetValue(aoutValue, DRV_AOUT_CHANNEL_D) != DRV_AOUT_STATUS_OK)
+				if(DRV_AOUT_SetVoltage(prvDPCONTROL_CurrentToVoltage(aoutValue), DRV_AOUT_CHANNEL_D) != DRV_AOUT_STATUS_OK)
 				{
 					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to set DAC value\r\n");
 				}
@@ -1069,7 +1087,8 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 			    oc = prvDPCONTROL_DATA.ocValue;
 
 			    xSemaphoreGive(prvDPCONTROL_DATA.guard);
-			    voltageValue = (CONF_DPCONTROL_SHUNT_VALUE*CONF_DPCONTROL_INA_GAIN*(float)(oc)/1000.0f);
+			    //1.625 is because of offset
+			    voltageValue = 1.625 + (CONF_DPCONTROL_SHUNT_VALUE*CONF_DPCONTROL_INA_GAIN*(float)(oc)/1000.0f);
 
 			    if(DRV_AOUT_SetVoltage(voltageValue, DRV_AOUT_CHANNEL_A) != DRV_AOUT_STATUS_OK)
 			    {

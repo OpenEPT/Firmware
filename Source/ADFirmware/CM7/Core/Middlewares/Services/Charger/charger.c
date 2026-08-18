@@ -494,6 +494,10 @@ charger_status_t	CHARGER_SetChargingState(charger_charging_state_t state, uint32
 
 charger_status_t	CHARGER_GetChargingState(charger_charging_state_t* state, uint32_t initTimeout)
 {
+#if CONF_CHARGER_ENABLE==0
+	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
+#endif
+
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)
@@ -535,6 +539,10 @@ charger_status_t	CHARGER_SetChargingCurrent(uint16_t current, uint32_t initTimeo
 
 charger_status_t	CHARGER_GetChargingCurrent(uint16_t* current, uint32_t initTimeout)
 {
+#if CONF_CHARGER_ENABLE==0
+	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
+#endif
+
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)
@@ -575,6 +583,10 @@ charger_status_t	CHARGER_SetChargingTermCurrent(uint16_t current, uint32_t initT
 }
 charger_status_t	CHARGER_GetChargingTermCurrent(uint16_t* current, uint32_t initTimeout)
 {
+#if CONF_CHARGER_ENABLE==0
+	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
+#endif
+
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)
@@ -591,6 +603,10 @@ charger_status_t	CHARGER_GetChargingTermCurrent(uint16_t* current, uint32_t init
 }
 charger_status_t	CHARGER_SetChargingTermVoltage(float voltage, uint32_t initTimeout)
 {
+#if CONF_CHARGER_ENABLE==0
+	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
+#endif
+
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)
@@ -614,6 +630,10 @@ charger_status_t	CHARGER_SetChargingTermVoltage(float voltage, uint32_t initTime
 }
 charger_status_t	CHARGER_GetChargingTermVoltage(float* voltage, uint32_t initTimeout)
 {
+#if CONF_CHARGER_ENABLE==0
+	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
+#endif
+
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)
@@ -631,6 +651,10 @@ charger_status_t	CHARGER_GetChargingTermVoltage(float* voltage, uint32_t initTim
 
 charger_status_t CHARGER_GetConnectionStatus(charger_con_status_t* status, uint32_t initTimeout)
 {
+#if CONF_CHARGER_ENABLE==0
+	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
+#endif
+
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	*status = prvCHARGER_DATA.connectionStatus;
@@ -642,6 +666,10 @@ charger_status_t CHARGER_GetConnectionStatus(charger_con_status_t* status, uint3
 }
 charger_status_t	CHARGER_GetRegContent(uint8_t regAddr, uint8_t* regData, uint32_t initTimeout)
 {
+#if CONF_CHARGER_ENABLE==0
+	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
+#endif
+
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)

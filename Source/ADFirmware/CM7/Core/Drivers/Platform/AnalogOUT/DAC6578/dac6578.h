@@ -150,6 +150,15 @@ typedef enum
 } dac6578_channel_t;
 
 /**
+ * @brief DAC6578 channel state
+ */
+typedef enum
+{
+    DAC6578_CHANNEL_DISABLED = 0,  /*!< Channel powered down, output High-Z */
+    DAC6578_CHANNEL_ENABLED        /*!< Channel operating normally */
+} dac6578_channel_state_t;
+
+/**
  * @}
  */
 
@@ -187,9 +196,64 @@ dac6578_status_t DAC6578_Init(void);
  * - No internal scaling is performed here
  * - Use DAC6578_FLOAT_TO_DVALUE() for voltage-based input
  */
+dac6578_status_t DAC6578_SetAndUpdateChannelValue(dac6578_channel_t channel,
+                                         uint16_t value,
+                                         uint32_t timeout);
+
+/**
+ * @brief Set DAC value for selected channel without updating the output
+ *
+ * Writes a 10-bit digital value to the input register of the selected
+ * DAC channel. The corresponding DAC output remains unchanged.
+ *
+ * @param channel  DAC channel (see ::dac6578_channel_t)
+ * @param value    Digital value (0–1023)
+ * @param timeout  I2C communication timeout [ms]
+ *
+ * @retval DAC6578_STATUS_OK     Value successfully written
+ * @retval DAC6578_STATUS_ERROR  Communication or validation error
+ *
+ * @note
+ * - This function only updates the input register
+ * - The DAC output is not updated
+ * - No internal scaling is performed
+ * - Use DAC6578_FLOAT_TO_DVALUE() for voltage-based input
+ */
 dac6578_status_t DAC6578_SetChannelValue(dac6578_channel_t channel,
                                          uint16_t value,
                                          uint32_t timeout);
+
+/**
+ * @brief Enable or disable selected DAC channel
+ *
+ * Controls the operating state of the selected DAC channel.
+ *
+ * When disabled, the channel is placed in power-down mode with
+ * a high-impedance (High-Z) output. When enabled, the channel
+ * returns to normal operation using its currently stored DAC value.
+ *
+ * @param channel  DAC channel (see ::dac6578_channel_t)
+ * @param state    Desired channel state (see ::dac6578_channel_state_t)
+ * @param timeout  I2C communication timeout [ms]
+ *
+ * @retval DAC6578_STATUS_OK     Channel state successfully changed
+ * @retval DAC6578_STATUS_ERROR  Communication or validation error
+ */
+dac6578_status_t DAC6578_SetChannelState(dac6578_channel_t channel,
+                                         dac6578_channel_state_t state,
+                                         uint32_t timeout);
+
+/**
+ * @brief Perform software reset of DAC6578
+ *
+ * Resets the DAC6578 device through the software reset command.
+ *
+ * @param timeout  I2C communication timeout [ms]
+ *
+ * @retval DAC6578_STATUS_OK     Reset command successfully sent
+ * @retval DAC6578_STATUS_ERROR  Communication error
+ */
+dac6578_status_t DAC6578_Reset(uint32_t timeout);
 
 /**
  * @}

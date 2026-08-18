@@ -1466,7 +1466,7 @@ static void prvCONTROL_GetUVoltageValue(const char* arguments, uint16_t argument
     else
     {
         memset(valueString, 0, sizeof(valueString));
-        valueStringLength = sprintf(valueString, "%.3f", value);
+        valueStringLength = sprintf(valueString, "%.4f", value);
         prvCONTROL_PrepareOkResponse(response, responseSize, valueString, valueStringLength);
     }
 }
@@ -1488,7 +1488,7 @@ static void prvCONTROL_SetUVoltageValue(const char* arguments, uint16_t argument
     if(DPCONTROL_SetUVValue(value, 1000) == DPCONTROL_STATUS_OK)
     {
         prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
-        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "UV value %.3f set\r\n", value);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "UV value %.4f set\r\n", value);
     }
     else
     {
@@ -1557,7 +1557,7 @@ static void prvCONTROL_SetOVoltageValue(const char* arguments, uint16_t argument
     if(DPCONTROL_SetOVValue(value, 1000) == DPCONTROL_STATUS_OK)
     {
         prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
-        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "OV value %.3f set\r\n", value);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "OV value %.4f set\r\n", value);
     }
     else
     {
