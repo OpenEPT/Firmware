@@ -27,9 +27,13 @@
  * @defgroup CONFIGURATION_PRIVATE_STRUCTURES Configuration private structures
  * @{
  */
-#define CONFIGURATION_MASK_UPDATE_FROM_FS   0x00000001
-#define CONFIGURATION_MASK_SET_PARAM        0x00000002
-#define CONFIGURATION_MASK_SAVE_TO_FS   0x00000004
+#define CONFIGURATION_MASK_UPDATE_FROM_FS   			0x00000001
+#define CONFIGURATION_MASK_SET_PARAM        			0x00000002
+#define CONFIGURATION_MASK_SAVE_TO_FS   				0x00000004
+#define CONFIGURATION_MASK_CHARGER_TEST_BD           	0x00000008
+#define CONFIGURATION_MASK_CHARGER_UPDATE_FROM_BD    	0x00000010
+#define CONFIGURATION_MASK_CHARGER_SAVE_TO_BD        	0x00000020
+#define CONFIGURATION_MASK_CHARGER_SET_PARAM         	0x00000040
 /**
  * @brief Configuration internal data structure
  */
@@ -42,8 +46,13 @@ typedef struct
     configuration_param_t params[CONFIGURATION_MAX_PARAMS];
     uint32_t              paramsCount;
 
+
+    configuration_param_t chargerParams[CONFIGURATION_MAX_PARAMS];
+    uint32_t              chargerParamsCount;
+
     configuration_param_t lastParam;
 
+    uint8_t               chargerPresent;
 } configuration_data_t;
 
 /**

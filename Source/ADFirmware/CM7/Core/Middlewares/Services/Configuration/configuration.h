@@ -86,6 +86,12 @@ configuration_status_t CONFIGURATION_SetParameter_String(const char* key, const 
 
 configuration_status_t CONFIGURATION_UpdateParamValue(const char* key, char* parameter, uint16_t paramSize, uint32_t timeout);
 
+configuration_status_t CONFIGURATION_CHARGER_TestBD(uint8_t* present, uint32_t timeout);
+configuration_status_t CONFIGURATION_CHARGER_UpdateFromBD(uint32_t timeout);
+configuration_status_t CONFIGURATION_CHARGER_StoreToBD(uint32_t timeout);
+configuration_status_t CONFIGURATION_CHARGER_UpdateParamValue(const char* key, char* parameter, uint16_t paramSize, uint32_t timeout);
+configuration_status_t CONFIGURATION_CHARGER_GetParameter(const char* key, char* parameter, uint16_t* paramSize, uint8_t* defaultFlag);
+
 /**
  * @}
  */

@@ -172,6 +172,56 @@ static configuration_param_t prvCONFIGURATION_DEFAULTS[] =
 		}
 };
 
+/**
+ * @brief Default charger configuration table
+ */
+static configuration_param_t prvCONFIGURATION_CHARGER_DEFAULTS[] =
+{
+        {
+            .name = "HW_SERIAL",
+            .value = "0123456789",
+            .type = CONFIGURATION_PARAM_TYPE_STRING,
+            .readOnly = 1,
+            .defaultValue = 1,
+            .systemParam = 1
+        },
+        {
+            .name = "FW_VERSION",
+            .value = "1.0.0",
+            .type = CONFIGURATION_PARAM_TYPE_STRING,
+            .readOnly = 0,
+            .defaultValue = 1,
+            .systemParam = 1
+        },
+        {
+            .name = "CH_CURRENT",
+            .value = "100",
+            .type = CONFIGURATION_PARAM_TYPE_INT,
+            .readOnly = 0,
+            .defaultValue = 1,
+            .systemParam = 1
+        },
+        {
+            .name = "TERM_VOLTAGE",
+            .value = "4.2",
+            .type = CONFIGURATION_PARAM_TYPE_FLOAT,
+            .readOnly = 0,
+            .defaultValue = 1,
+            .systemParam = 1
+        },
+        {
+            .name = "TERM_CURRENT",
+            .value = "20",
+            .type = CONFIGURATION_PARAM_TYPE_INT,
+            .readOnly = 0,
+            .defaultValue = 1,
+            .systemParam = 1
+        }
+};
+
+#define CONFIGURATION_CHARGER_DEFAULTS_COUNT \
+    (sizeof(prvCONFIGURATION_CHARGER_DEFAULTS) / sizeof(configuration_param_t))
+
 #define CONFIGURATION_DEFAULTS_COUNT \
     (sizeof(prvCONFIGURATION_DEFAULTS) / sizeof(configuration_param_t))
 
@@ -183,4 +233,14 @@ configuration_param_t* CONFIGURATIONDEF_GetDefaults(void)
 uint32_t CONFIGURATIONDEF_GetDefaultsCount(void)
 {
     return CONFIGURATION_DEFAULTS_COUNT;
+}
+
+configuration_param_t* CONFIGURATIONDEF_CHARGER_GetDefaults(void)
+{
+    return prvCONFIGURATION_CHARGER_DEFAULTS;
+}
+
+uint32_t CONFIGURATIONDEF_CHARGER_GetDefaultsCount(void)
+{
+    return CONFIGURATION_CHARGER_DEFAULTS_COUNT;
 }

@@ -53,6 +53,7 @@
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/HAL/BQ25150/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/HAL/BQ25180/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/HAL/M24C32/&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/HAL/AT24CS01/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/Middlewares/Third_Party/LwIP/src/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/Middlewares/Third_Party/FreeRTOS/Source/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F&quot;"/>

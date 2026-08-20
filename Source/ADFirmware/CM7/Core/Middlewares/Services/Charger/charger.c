@@ -22,6 +22,7 @@
 #include "logging.h"
 #include "control.h"
 #include "bq25180.h"
+#include "at24cs01.h"
 #include "drv_gpio.h"
 
 /**
@@ -164,7 +165,7 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 	drv_gpio_pin_init_conf_t protectionPinConfig;
 	charger_con_status_t previousConnectionStatus;
 
-	protectionPinConfig.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
+	protectionPinConfig.mode = DRV_GPIO_PIN_MODE_INPUT;
 	protectionPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
 
 	prvCHARGER_DATA.connectionStatus = CHARGER_CON_STATUS_DISCONNECTED;
@@ -219,6 +220,12 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to initialize BQ25180\r\n");
 				break;
+			}
+
+			if(AT24CS01_Ping(1000) != AT24CS01_STATUS_OK)
+			{
+				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to Communicate with charger EEPROM\r\n");
 			}
 
 			if(BQ25180_Ping(1000) != BQ25180_STATUS_OK)

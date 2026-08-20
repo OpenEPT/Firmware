@@ -20,8 +20,8 @@ typedef enum
 typedef struct
 {
     char        	name[CONFIGURATION_MAX_PARAM_VALUESIZE];        /*!< Parameter name */
-    uint8_t        value[CONFIGURATION_MAX_PARAM_VALUESIZE];   /*!< Value stored as string */
-    configuration_param_type_t type; /*!< Parameter type */
+    uint8_t        value[CONFIGURATION_MAX_PARAM_VALUESIZE];        /*!< Value stored as string */
+    configuration_param_type_t type;                                /*!< Parameter type */
 
     uint8_t     readOnly;    /*!< 1 = read-only, 0 = writable */
     uint8_t     defaultValue;
@@ -30,5 +30,7 @@ typedef struct
 
 configuration_param_t* CONFIGURATIONDEF_GetDefaults(void);
 uint32_t CONFIGURATIONDEF_GetDefaultsCount(void);
+configuration_param_t* CONFIGURATIONDEF_CHARGER_GetDefaults(void);
+uint32_t CONFIGURATIONDEF_CHARGER_GetDefaultsCount(void);
 
 #endif /* CORE_MIDDLEWARES_SERVICES_CONFIGURATION_CONFIGURATIONDEF_H_ */
