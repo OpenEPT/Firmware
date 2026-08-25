@@ -92,8 +92,8 @@ typedef enum
 	BQ25180_ILIM_VALUE_300	= 3,		/*!< Input current limit 200mA */
 	BQ25180_ILIM_VALUE_400	= 4,		/*!< Input current limit 300mA */
 	BQ25180_ILIM_VALUE_500	= 5,		/*!< Input current limit 400mA */
-	BQ25180_ILIM_VALUE_665	= 6,		/*!< Input current limit 500mA */
-	BQ25180_ILIM_VALUE_1050	= 7			/*!< Input current limit 600mA */
+	BQ25180_ILIM_VALUE_700	= 6,		/*!< Input current limit 500mA */
+	BQ25180_ILIM_VALUE_1100	= 7			/*!< Input current limit 600mA */
 }bq25180_ilim_value_t;
 
 

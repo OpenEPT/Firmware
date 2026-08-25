@@ -1,14 +1,39 @@
+/**
+ ********************************************************************************
+ * @file	configurationDef.c
+ *
+ * @brief	Configuration parameter definitions implementation.
+ * 			This file contains default device and charger configuration parameter
+ * 			tables and provides functions for accessing the default parameter
+ * 			values and parameter counts.
+ *
+ * @author	Haris Turkmanovic
+ * @email	haris.turkmanovic@gmail.com
+ * @date	April 2026
+ ********************************************************************************
+ */
+
 #include "configuration.h"
 #include "globalConfig.h"
 #include "configurationDef.h"
 
+/**
+ * @brief Helper macro used for converting macro values to strings
+ */
 #define STR_HELPER(x) #x
+
+/**
+ * @brief Convert macro value to string
+ */
 #define STR(x) STR_HELPER(x)
 
 
 
 /**
- * @brief Default configuration table
+ * @brief Default device configuration parameter table
+ *
+ * Contains default values and properties of all configuration parameters
+ * used by the main device.
  */
 static configuration_param_t prvCONFIGURATION_DEFAULTS[] =
 {
@@ -173,12 +198,15 @@ static configuration_param_t prvCONFIGURATION_DEFAULTS[] =
 };
 
 /**
- * @brief Default charger configuration table
+ * @brief Default charger configuration parameter table
+ *
+ * Contains default values and properties of all configuration parameters
+ * associated with the optional charger module.
  */
 static configuration_param_t prvCONFIGURATION_CHARGER_DEFAULTS[] =
 {
         {
-            .name = "HW_SERIAL",
+            .name = "HW_SER",
             .value = "0123456789",
             .type = CONFIGURATION_PARAM_TYPE_STRING,
             .readOnly = 1,
@@ -186,7 +214,7 @@ static configuration_param_t prvCONFIGURATION_CHARGER_DEFAULTS[] =
             .systemParam = 1
         },
         {
-            .name = "FW_VERSION",
+            .name = "FW_VER",
             .value = "1.0.0",
             .type = CONFIGURATION_PARAM_TYPE_STRING,
             .readOnly = 0,
@@ -194,7 +222,7 @@ static configuration_param_t prvCONFIGURATION_CHARGER_DEFAULTS[] =
             .systemParam = 1
         },
         {
-            .name = "CH_CURRENT",
+            .name = "CH_CUR",
             .value = "100",
             .type = CONFIGURATION_PARAM_TYPE_INT,
             .readOnly = 0,
@@ -202,7 +230,7 @@ static configuration_param_t prvCONFIGURATION_CHARGER_DEFAULTS[] =
             .systemParam = 1
         },
         {
-            .name = "TERM_VOLTAGE",
+            .name = "TERM_VOLT",
             .value = "4.2",
             .type = CONFIGURATION_PARAM_TYPE_FLOAT,
             .readOnly = 0,
@@ -210,8 +238,16 @@ static configuration_param_t prvCONFIGURATION_CHARGER_DEFAULTS[] =
             .systemParam = 1
         },
         {
-            .name = "TERM_CURRENT",
-            .value = "20",
+            .name = "TERM_CUR",
+            .value = "3",
+            .type = CONFIGURATION_PARAM_TYPE_INT,
+            .readOnly = 0,
+            .defaultValue = 1,
+            .systemParam = 1
+        },
+        {
+            .name = "MAX_CUR",
+            .value = "5",
             .type = CONFIGURATION_PARAM_TYPE_INT,
             .readOnly = 0,
             .defaultValue = 1,

@@ -144,7 +144,7 @@ static at24cs01_status_t prvAT24CS01_WritePage(uint8_t memAddr,
     if(DRV_I2C_Transmit(DRV_I2C_INSTANCE_1,
                         (uint8_t)(AT24CS01_DEV_ADDR << 1),
                         txBuffer,
-                        (uint32_t)(size + 1U),
+                        (uint32_t)(size + 1),
                         timeout) != DRV_I2C_STATUS_OK)
     {
         return AT24CS01_STATUS_ERROR;

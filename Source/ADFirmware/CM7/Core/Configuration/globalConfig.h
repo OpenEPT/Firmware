@@ -234,7 +234,7 @@
 #define CONF_CHARGER_ENABLE                     0           /*!< Enable/disable charger service */
 
 #define CONF_CHARGER_TASK_NAME                  "Charger Task" /*!< Charger task name */
-#define CONF_CHARGER_STACK_SIZE                 1024        /*!< Charger task stack size */
+#define CONF_CHARGER_STACK_SIZE                 2048        /*!< Charger task stack size */
 #define CONF_CHARGER_PRIO                       3           /*!< Charger task priority */
 #define CONF_CHARGER_CONNECTION_PORT 			3
 #define CONF_CHARGER_CONNECTION_PIN				10
@@ -422,7 +422,7 @@
 
 #define CONF_CONFIGURATION_TASK_NAME                "Configuration service" /*!< Configuration task name */
 #define CONF_CONFIGURATION_TASK_PRIO                3       /*!< Configuration task priority */
-#define CONF_CONFIGURATION_TASK_STACK_SIZE          1024    /*!< Configuration task stack size */
+#define CONF_CONFIGURATION_TASK_STACK_SIZE          2048    /*!< Configuration task stack size */
 
 #define CONF_CONFIGURATION_FILE_PATH                "config/device.cfg" /*!< Configuration file path */
 #define CONF_CONFIGURATION_FILE_MAX_SIZE            2048    /*!< Maximum configuration file size */

@@ -34,8 +34,8 @@
  * @defgroup BQ25180_PRIVATE_DEFINES BQ25180 driver defines and default values
  * @{
  */
-#define BQ25180_CHARGE_INT_PORT        2     	/*!< GPIO port used for BQ25180 interrupt signal */
-#define BQ25180_CHARGE_INT_PIN         2      	/*!< GPIO pin used for BQ25180 interrupt signal */
+#define BQ25180_CHARGE_INT_PORT        4     	/*!< GPIO port used for BQ25180 interrupt signal */
+#define BQ25180_CHARGE_INT_PIN         7      	/*!< GPIO pin used for BQ25180 interrupt signal */
 #define BQ25180_CHARGE_INT_PRIO        5       /*!< Interrupt priority for BQ25180 interrupt line */
 
 #define BQ25180_DEV_ADDR               0x6A    /*!< BQ25180 I2C slave device address */
@@ -169,7 +169,7 @@ bq25180_status_t BQ25180_Init()
 	// Configure the pin for the button
 	drv_gpio_pin_init_conf_t button_pin_conf;
 	button_pin_conf.mode = DRV_GPIO_PIN_MODE_IT_FALLING;
-	button_pin_conf.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+	button_pin_conf.pullState = DRV_GPIO_PIN_PULL_UP;
 
 
 	if(DRV_GPIO_Port_Init(BQ25180_CHARGE_INT_PORT) != DRV_GPIO_STATUS_OK)
@@ -375,9 +375,6 @@ bq25180_status_t BQ25180_WDG_SetStatus(bq25180_wdg_status status, uint32_t timeo
 bq25180_status_t BQ25180_ILim_Set(bq25180_ilim_value_t value, uint32_t timeout)
 {
     uint8_t regData = 0;
-
-    /* Validate ILIM value */
-    if(value > BQ25180_ILIM_VALUE_1050) return BQ25180_STATUS_ERROR;
 
     /* Read current register value */
     if(prvBQ25180_ReadReg(BQ25180_REG_TMR_ILIM, &regData, timeout) != BQ25180_STATUS_OK)

@@ -794,6 +794,77 @@ static void prvCONTROL_ChargingTermCurrentGet(const char* arguments, uint16_t ar
 		prvCONTROL_PrepareOkResponse(response, responseSize, chargingTermCurrentString, chargingTermCurrentStringLength);
 	}
 }
+
+/**
+ * @brief	Set maximum charging current value
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_ChargingMaxCurrentSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	cmparse_value_t				value;
+	uint32_t					current;
+
+	memset(&value, 0, sizeof(cmparse_value_t));
+
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain maximum charging current value\r\n");
+		return;
+	}
+
+	sscanf(value.value, "%lu", &current);
+
+	if(CHARGER_SetChargingMaxCurrent(current, 1000) == CHARGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Maximum charging current set to %lu\r\n", current);
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set maximum charging current\r\n");
+		return;
+	}
+}
+/**
+ * @brief	Get maximum charging current value
+ * @param	arguments: arguments defined within control message
+ * @param	argumentsLength: arguments message length
+ * @param	response: response message content
+ * @param	responseSize: length of response message
+ * @retval	void
+ */
+static void prvCONTROL_ChargingMaxCurrentGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	charger_max_charging_current_t	current;
+	char						currentString[10];
+	uint32_t					currentStringLength = 0;
+
+	if(CHARGER_GetChargingMaxCurrent(&current, 1000) != CHARGER_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get maximum charging current\r\n");
+	}
+	else
+	{
+		memset(currentString, 0, sizeof(currentString));
+
+		currentStringLength = sprintf(currentString, "%u", (unsigned int)current);
+
+		prvCONTROL_PrepareOkResponse(response, responseSize, currentString, currentStringLength);
+
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Maximum charging current read: %u\r\n", (unsigned int)current);
+	}
+}
+
+
+
+
 /**
  * @brief	Set charger termination voltage content
  * @param	arguments: arguments defined within control message
@@ -1018,6 +1089,99 @@ static void prvCONTROL_FSystemBDSizeGet(const char* arguments, uint16_t argument
     LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "FSYSTEM BD size get: %lu\r\n", bdSize);
 }
 
+
+static void prvCONTROL_ChargerBDFormat(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    if(FSYSTEM_FormatBD(10000) == FSYSTEM_STATUS_OK)
+    {
+        prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "FSYSTEM BD format executed\r\n");
+    }
+    else
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "FSYSTEM BD format failed\r\n");
+    }
+}
+
+static void prvCONTROL_ChargerBDRead(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+
+    static uint8_t readBuffer[128];
+    uint32_t readSize = 128;
+    memset(readBuffer, 0, 128);
+
+    if(CONFIGURATION_CHARGER_ReadFullBD(readBuffer, 128, 5000) != CONFIGURATION_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Charger BD read failed\r\n");
+        return;
+    }
+
+    /* vracamo RAW podatke direktno */
+    prvCONTROL_PrepareOkResponseBin(response, responseSize, (char*)readBuffer, readSize);
+
+}
+
+static void prvCONTROL_ChargerBDWrite(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    cmparse_value_t value;
+    cmparse_value_bin_t valueBin;
+    uint32_t offset;
+    uint32_t size;
+
+    char* dataPtr;
+    uint32_t dataSize;
+
+    memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "size", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		return;
+	}
+	sscanf(value.value, "%lu", &size);
+
+
+    memset(&value, 0, sizeof(cmparse_value_t));
+    if(CMPARSE_GetArgValueBin(arguments, argumentsLength, "data", &valueBin, size) != CMPARSE_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        return;
+    }
+
+    dataPtr  = valueBin.value;
+    dataSize = valueBin.size;
+
+    if(dataSize != size)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "FSYSTEM BD write size mismatch\r\n");
+        return;
+    }
+
+    if(CONFIGURATION_CHARGER_WriteFullBD(dataPtr, dataSize, 5000) != CONFIGURATION_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "FSYSTEM BD write failed\r\n");
+        return;
+    }
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "FSYSTEM BD write OK (offset=%lu size=%lu)\r\n", offset, size);
+}
+static void prvCONTROL_ChargerBDSizeGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    uint32_t bdSize = FSYSTEM_BD_SIZE;
+
+    char sizeStr[16];
+    snprintf(sizeStr, sizeof(sizeStr), "%lu", bdSize);
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, sizeStr, strlen(sizeStr));
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "FSYSTEM BD size get: %lu\r\n", bdSize);
+}
+
 static void prvCONTROL_ParamCalGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
     float vref, voff, vcor, coff, ccor;
@@ -1107,6 +1271,13 @@ static void prvCONTROL_ParamStore(const char* arguments,
         LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Configuration store to FS failed\r\n");
         return;
     }
+    if(CONFIGURATION_CHARGER_StoreToBD(5000) != CONFIGURATION_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Configuration store to FS failed\r\n");
+        return;
+    }
 
     prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 
@@ -1184,6 +1355,38 @@ static void prvCONTROL_GetHWSerial(const char* arguments, uint16_t argumentsLeng
 
     LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO,
                   "HW serial read: %s\r\n", buffer);
+}
+
+static void prvCONTROL_ChargerGetFWVersion(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    char buffer[CONF_CONFIGURATION_MAX_PARAM_VALUESIZE];
+
+    if(CHARGER_GetFwVersion(buffer, sizeof(buffer), 1000) != CHARGER_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get charger FW version\r\n");
+        return;
+    }
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, buffer, strlen(buffer));
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Charger FW version read: %s\r\n", buffer);
+}
+
+static void prvCONTROL_ChargerGetHWSerial(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+    char buffer[CONF_CONFIGURATION_MAX_PARAM_VALUESIZE];
+
+    if(CHARGER_GetSerial(buffer, sizeof(buffer), 1000) != CHARGER_STATUS_OK)
+    {
+        prvCONTROL_PrepareErrorResponse(response, responseSize);
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get charger HW serial\r\n");
+        return;
+    }
+
+    prvCONTROL_PrepareOkResponse(response, responseSize, buffer, strlen(buffer));
+
+    LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Charger HW serial read: %s\r\n", buffer);
 }
 
 static void prvCONTROL_ParamGainGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
@@ -3107,9 +3310,17 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("charger charging current get",  	prvCONTROL_ChargingCurrentGet);
 	CMPARSE_AddCommand("charger charging termcurrent set",  prvCONTROL_ChargingTermCurrentSet);
 	CMPARSE_AddCommand("charger charging termcurrent get",  prvCONTROL_ChargingTermCurrentGet);
+	CMPARSE_AddCommand("charger charging maxcurrent set",  	prvCONTROL_ChargingMaxCurrentSet);
+	CMPARSE_AddCommand("charger charging maxcurrent get",  	prvCONTROL_ChargingMaxCurrentGet);
 	CMPARSE_AddCommand("charger charging termvoltage set",  prvCONTROL_ChargingTermVoltageSet);
 	CMPARSE_AddCommand("charger charging termvoltage get",  prvCONTROL_ChargingTermVoltageGet);
 	CMPARSE_AddCommand("charger reg read",  				prvCONTROL_ChargerReadReg);
+	CMPARSE_AddCommand("charger bd size get",  				prvCONTROL_ChargerBDFormat);
+	CMPARSE_AddCommand("charger bd read",  					prvCONTROL_ChargerBDRead);
+	CMPARSE_AddCommand("charger bd write",  				prvCONTROL_ChargerBDWrite);
+	CMPARSE_AddCommand("charger bd format",  				prvCONTROL_ChargerBDFormat);
+	CMPARSE_AddCommand("charger hwserial get",  			prvCONTROL_ChargerGetHWSerial);
+	CMPARSE_AddCommand("charger fwversion get",  			prvCONTROL_ChargerGetFWVersion);
 
 	CMPARSE_AddCommand("device fsystem bd format", 			prvCONTROL_FSystemFormat);
 	CMPARSE_AddCommand("device fsystem bd read",   			prvCONTROL_FSystemRead);

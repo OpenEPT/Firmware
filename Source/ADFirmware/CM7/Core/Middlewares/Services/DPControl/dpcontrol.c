@@ -899,7 +899,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Latch successfully reset\r\n");
 					}
 				}
-				//xSemaphoreGive(prvDPCONTROL_DATA.initSig);
+				xSemaphoreGive(prvDPCONTROL_DATA.initSig);
 			}
 
 			if(value & DPCONTROL_MASK_SET_UV_DETECTED)

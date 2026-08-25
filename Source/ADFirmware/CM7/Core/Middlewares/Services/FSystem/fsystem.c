@@ -27,94 +27,96 @@
 #include "littlefs/bd/bd_driver_flash.h"
 
 /**
- * @defgroup FSYSTEM_PRIVATE_STRUCTURES FSYSTEM private structures
+ * @defgroup FSYSTEM_PRIVATE_STRUCTURES File system service private structures
  * @{
  */
 
-typedef struct
-{
-	uint32_t offset;
-	uint32_t size;
-	uint8_t  buffer[FSYSTEM_BD_CHUNK_SIZE];
-}fsystem_bd_chunk_info_t;
-
 /**
- * @brief FSYSTEM internal data structure
+ * @brief Block device chunk information
  */
 typedef struct
 {
-    fsystem_state_t state;
-    SemaphoreHandle_t initSig;
-    TaskHandle_t taskHandle;
-    QueueHandle_t commandRequestQueue;
-    QueueHandle_t commandResponseQueue;
-    uint32_t 		commandIdCounter;
+    uint32_t offset;                            /*!< Block device chunk offset */
+    uint32_t size;                              /*!< Block device chunk size */
+    uint8_t  buffer[FSYSTEM_BD_CHUNK_SIZE];     /*!< Block device chunk data buffer */
+} fsystem_bd_chunk_info_t;
 
-
-    /* LittleFS context */
-    lfs_t lfs;
-    struct lfs_config cfg;
-
-    uint8_t readBuffer[FSYSTEM_BLOCK_SIZE];
-    uint8_t progBuffer[FSYSTEM_BLOCK_SIZE];
-    uint8_t lookaheadBuffer[FSYSTEM_BLOCK_SIZE];
-
-    uint8_t fsPresent;
-
-} fsystem_data_t;
-
-typedef enum
-{
-    FSYSTEM_COMMAND_TYPE_REQ = 0,
-    FSYSTEM_COMMAND_TYPE_RES
-} fsystem_command_type_t;
-
-typedef enum
-{
-    FSYSTEM_COMMAND_READ_BD_CHUNK = 0,
-    FSYSTEM_COMMAND_WRITE_BD_CHUNK,
-    FSYSTEM_COMMAND_WRITE_VERIFY_BD_CHUNK,
-    FSYSTEM_COMMAND_FORMAT_BD,
-	FSYSTEM_COMMAND_GET_FILE,
-	FSYSTEM_COMMAND_WRITE_FILE
-} fsystem_command_t;
-
+/**
+ * @brief File system service internal data
+ */
 typedef struct
 {
-    char*    path;
-    uint32_t pathSize;
+    fsystem_state_t state;                      /*!< Current file system service state */
+    SemaphoreHandle_t initSig;                  /*!< Initialization synchronization semaphore */
+    TaskHandle_t taskHandle;                    /*!< File system service task handle */
+    QueueHandle_t commandRequestQueue;           /*!< Command request queue */
+    QueueHandle_t commandResponseQueue;          /*!< Command response queue */
+    uint32_t commandIdCounter;                  /*!< Command identifier counter */
 
-    char*    dataBuffer;
-    uint32_t dataBufferMaxSize;
+    lfs_t lfs;                                  /*!< LittleFS instance */
+    struct lfs_config cfg;                      /*!< LittleFS configuration */
+    uint8_t readBuffer[FSYSTEM_BLOCK_SIZE];     /*!< LittleFS read cache buffer */
+    uint8_t progBuffer[FSYSTEM_BLOCK_SIZE];     /*!< LittleFS program cache buffer */
+    uint8_t lookaheadBuffer[FSYSTEM_BLOCK_SIZE]; /*!< LittleFS lookahead buffer */
+    uint8_t fsPresent;                          /*!< File system presence flag */
+} fsystem_data_t;
 
-    uint32_t fileSize;
+/**
+ * @brief File system command type
+ */
+typedef enum
+{
+    FSYSTEM_COMMAND_TYPE_REQ = 0,               /*!< Command request */
+    FSYSTEM_COMMAND_TYPE_RES                    /*!< Command response */
+} fsystem_command_type_t;
 
+/**
+ * @brief File system command
+ */
+typedef enum
+{
+    FSYSTEM_COMMAND_READ_BD_CHUNK = 0,          /*!< Read block device chunk */
+    FSYSTEM_COMMAND_WRITE_BD_CHUNK,             /*!< Write block device chunk */
+    FSYSTEM_COMMAND_WRITE_VERIFY_BD_CHUNK,      /*!< Write and verify block device chunk */
+    FSYSTEM_COMMAND_FORMAT_BD,                  /*!< Format block device */
+    FSYSTEM_COMMAND_GET_FILE,                   /*!< Read file */
+    FSYSTEM_COMMAND_WRITE_FILE                  /*!< Write file */
+} fsystem_command_t;
+
+/**
+ * @brief File operation request data
+ */
+typedef struct
+{
+    char* path;                                 /*!< File path */
+    uint32_t pathSize;                          /*!< File path size */
+    char* dataBuffer;                           /*!< File data buffer */
+    uint32_t dataBufferMaxSize;                 /*!< Maximum data buffer size */
+    uint32_t fileSize;                          /*!< File size */
 } fsystem_file_request_t;
 
 /**
- * @brief FSYSTEM command request
+ * @brief File system command request
  */
 typedef struct
 {
-    fsystem_command_type_t type;
-    fsystem_command_t      command;
-    uint32_t               commandId;
-    fsystem_status_t       status;
-    void*                  data;
-
+    fsystem_command_type_t type;                /*!< Command type */
+    fsystem_command_t command;                  /*!< Requested command */
+    uint32_t commandId;                         /*!< Command identifier */
+    fsystem_status_t status;                    /*!< Command status */
+    void* data;                                 /*!< Command-specific data */
 } fsystem_command_request_t;
 
 /**
- * @brief FSYSTEM command response
+ * @brief File system command response
  */
 typedef struct
 {
-    fsystem_command_type_t type;
-    fsystem_command_t      command;
-    uint32_t               commandId;
-    fsystem_status_t       status;
-    void*                  data;
-
+    fsystem_command_type_t type;                /*!< Command type */
+    fsystem_command_t command;                  /*!< Executed command */
+    uint32_t commandId;                         /*!< Command identifier */
+    fsystem_status_t status;                    /*!< Command execution status */
+    void* data;                                 /*!< Command-specific response data */
 } fsystem_command_response_t;
 
 /**
@@ -122,14 +124,20 @@ typedef struct
  */
 
 /**
- * @defgroup FSYSTEM_PRIVATE_DATA FSYSTEM private data
+ * @defgroup FSYSTEM_PRIVATE_DATA File system service private data
  * @{
  */
 
-static fsystem_data_t 			prvFSYSTEM_DATA;
-static fsystem_bd_chunk_info_t 	prvFSYSTEM_LAST_BD_CHUNK;
+/*!< File system service internal data */
+static fsystem_data_t prvFSYSTEM_DATA;
+
+/*!< Last block device chunk information */
+static fsystem_bd_chunk_info_t prvFSYSTEM_LAST_BD_CHUNK;
+
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
+
+/*!< Default configuration file content */
 const char* configString =
 "MAC_ADDRESS:00:11:22:33:44:55\r\n"
 "IP_ADDRESS:192.168.1.112\r\n"
@@ -139,6 +147,7 @@ const char* configString =
 "PROTECTIONS_UVOLTAGE_VALUE:" STR(CONF_DPCONTROL_UV_VALUE) "\r\n"
 "PROTECTIONS_OVOLTAGE_VALUE:" STR(CONF_DPCONTROL_OV_VALUE) "\r\n"
 "PROTECTIONS_OCURRENT_VALUE:" STR(CONF_DPCONTROL_OC_VALUE) "\r\n";
+
 /**
  * @}
  */
@@ -148,16 +157,25 @@ const char* configString =
  * @{
  */
 
+/**
+ * @brief	Get next file system command identifier
+ * @retval	Next command identifier
+ */
 static uint32_t prvFSYSTEM_GetNextCommandId(void)
 {
     return ++prvFSYSTEM_DATA.commandIdCounter;
 }
 
+/**
+ * @brief	Create test file system content
+ * @param	lfs: Pointer to LittleFS instance
+ * @retval	void
+ */
 static void prvFSYSTEM_CreateTestContent(lfs_t *lfs)
 {
     int err;
 
-    // 1. Kreiraj direktorijume
+    /* Create test directories. */
     err = lfs_mkdir(lfs, "/config");
     if (err < 0 && err != LFS_ERR_EXIST)
     {
@@ -170,18 +188,16 @@ static void prvFSYSTEM_CreateTestContent(lfs_t *lfs)
         LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR, "mkdir /logs failed\r\n");
     }
 
-    // 2. Kreiraj fajl
+    /* Create configuration test file. */
     lfs_file_t file;
-    err = lfs_file_open(lfs, &file, "/config/device.cfg",
-                        LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
-
+    err = lfs_file_open(lfs, &file, "/config/device.cfg", LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
     if (err < 0)
     {
         LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR, "file open failed\r\n");
         return;
     }
 
-    // 3. Upiši sadržaj (KEY:VALUE format - tvoj standard)
+    /* Write configuration test content. */
     const char *content =
         "DEVICE_NAME:OpenEPT\r\n"
         "IP_ADDRESS:192.168.1.100\r\n"
@@ -190,14 +206,12 @@ static void prvFSYSTEM_CreateTestContent(lfs_t *lfs)
     lfs_file_write(lfs, &file, content, strlen(content));
     lfs_file_close(lfs, &file);
 
-
-    // 4. Još jedan fajl (binary test)
-    err = lfs_file_open(lfs, &file, "/logs/raw.bin",
-                        LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
-
+    /* Create binary test file. */
+    err = lfs_file_open(lfs, &file, "/logs/raw.bin", LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
     if (err >= 0)
     {
         uint8_t raw_data[16];
+
         for (int i = 0; i < 16; i++)
             raw_data[i] = i;
 
@@ -208,9 +222,10 @@ static void prvFSYSTEM_CreateTestContent(lfs_t *lfs)
     LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "Test FS content created\r\n");
 }
 
-
 /**
- * @brief FSYSTEM main task
+ * @brief	File system service main task
+ * @param	pvParameters: FreeRTOS task parameters
+ * @retval	void
  */
 static void prvFSYSTEM_Task(void *pvParameters)
 {
@@ -225,84 +240,88 @@ static void prvFSYSTEM_Task(void *pvParameters)
             uint8_t tx[8] = {1,2,3,4,5,6,7,8};
             uint8_t rx[8] = {0};
 
+            /* Initialize EEPROM driver. */
             if(M24C32_Init() != M24C32_STATUS_OK)
             {
-    			LOGGING_Write("File system", LOGGING_MSG_TYPE_ERROR, "Unable to initialize EEPROM\r\n");
-    			prvFSYSTEM_DATA.state = FSYSTEM_STATE_ERROR;
-    			break;
+                LOGGING_Write("File system", LOGGING_MSG_TYPE_ERROR, "Unable to initialize EEPROM\r\n");
+                prvFSYSTEM_DATA.state = FSYSTEM_STATE_ERROR;
+                break;
             }
-			LOGGING_Write("File system", LOGGING_MSG_TYPE_INFO, "EEPROM Succesfully initialized\r\n");
 
+            LOGGING_Write("File system", LOGGING_MSG_TYPE_INFO, "EEPROM Succesfully initialized\r\n");
+
+            /* Check communication with EEPROM. */
             if(M24C32_Ping(1000) != M24C32_STATUS_OK)
             {
-    			LOGGING_Write("File system", LOGGING_MSG_TYPE_ERROR, "Unable to establish communication with EEPROM\r\n");
-    			prvFSYSTEM_DATA.state = FSYSTEM_STATE_ERROR;
-    			break;
+                LOGGING_Write("File system", LOGGING_MSG_TYPE_ERROR, "Unable to establish communication with EEPROM\r\n");
+                prvFSYSTEM_DATA.state = FSYSTEM_STATE_ERROR;
+                break;
             }
-			LOGGING_Write("File system", LOGGING_MSG_TYPE_INFO, "Communication with EEPROM Successfully established\r\n");
 
-			if(prvFSYSTEM_DATA.fsPresent == 0)
-			{
+            LOGGING_Write("File system", LOGGING_MSG_TYPE_INFO, "Communication with EEPROM Successfully established\r\n");
 
-				/* LFS CONFIG */
-				prvFSYSTEM_DATA.cfg.read  = bd_driver_flash_read;
-				prvFSYSTEM_DATA.cfg.prog  = bd_driver_flash_prog;
-				prvFSYSTEM_DATA.cfg.erase = bd_driver_flash_erase;
-				prvFSYSTEM_DATA.cfg.sync  = bd_driver_flash_sync;
+            /* Initialize LittleFS if it is not already mounted. */
+            if(prvFSYSTEM_DATA.fsPresent == 0)
+            {
+                /* Configure LittleFS. */
+                prvFSYSTEM_DATA.cfg.read  = bd_driver_flash_read;
+                prvFSYSTEM_DATA.cfg.prog  = bd_driver_flash_prog;
+                prvFSYSTEM_DATA.cfg.erase = bd_driver_flash_erase;
+                prvFSYSTEM_DATA.cfg.sync  = bd_driver_flash_sync;
+                prvFSYSTEM_DATA.cfg.context = NULL;
+                prvFSYSTEM_DATA.cfg.read_size = 1;
+                prvFSYSTEM_DATA.cfg.prog_size = FSYSTEM_BLOCK_SIZE;
+                prvFSYSTEM_DATA.cfg.block_size = FSYSTEM_BLOCK_SIZE;
+                prvFSYSTEM_DATA.cfg.block_count = FSYSTEM_BLOCK_COUNT;
+                prvFSYSTEM_DATA.cfg.cache_size = FSYSTEM_BLOCK_SIZE;
+                prvFSYSTEM_DATA.cfg.lookahead_size = FSYSTEM_BLOCK_SIZE;
+                prvFSYSTEM_DATA.cfg.block_cycles = FSYSTEM_BLOCK_SIZE;
+                prvFSYSTEM_DATA.cfg.read_buffer = prvFSYSTEM_DATA.readBuffer;
+                prvFSYSTEM_DATA.cfg.prog_buffer = prvFSYSTEM_DATA.progBuffer;
+                prvFSYSTEM_DATA.cfg.lookahead_buffer = prvFSYSTEM_DATA.lookaheadBuffer;
 
-				prvFSYSTEM_DATA.cfg.context = NULL;
+                /* Mount LittleFS. */
+                int err = lfs_mount(&prvFSYSTEM_DATA.lfs, &prvFSYSTEM_DATA.cfg);
 
-				prvFSYSTEM_DATA.cfg.read_size = 1;
-				prvFSYSTEM_DATA.cfg.prog_size = FSYSTEM_BLOCK_SIZE;
-
-				prvFSYSTEM_DATA.cfg.block_size = FSYSTEM_BLOCK_SIZE;
-				prvFSYSTEM_DATA.cfg.block_count = FSYSTEM_BLOCK_COUNT;
-
-				prvFSYSTEM_DATA.cfg.cache_size = FSYSTEM_BLOCK_SIZE;
-				prvFSYSTEM_DATA.cfg.lookahead_size = FSYSTEM_BLOCK_SIZE;
-				prvFSYSTEM_DATA.cfg.block_cycles = FSYSTEM_BLOCK_SIZE;
-
-				prvFSYSTEM_DATA.cfg.read_buffer = prvFSYSTEM_DATA.readBuffer;
-				prvFSYSTEM_DATA.cfg.prog_buffer = prvFSYSTEM_DATA.progBuffer;
-				prvFSYSTEM_DATA.cfg.lookahead_buffer = prvFSYSTEM_DATA.lookaheadBuffer;
-
-				int err = lfs_mount(&prvFSYSTEM_DATA.lfs, &prvFSYSTEM_DATA.cfg);
-
-				if (err == LFS_ERR_OK)
-				{
-					prvFSYSTEM_DATA.fsPresent = 1;
-		            LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "File system present\r\n");
-				}
-			}
+                if (err == LFS_ERR_OK)
+                {
+                    prvFSYSTEM_DATA.fsPresent = 1;
+                    LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "File system present\r\n");
+                }
+            }
 
             LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "FSYSTEM initialized\r\n");
 
+            /* Switch to the service state. */
             prvFSYSTEM_DATA.state = FSYSTEM_STATE_SERVICE;
+
+            /* Signal that initialization is complete. */
             xSemaphoreGive(prvFSYSTEM_DATA.initSig);
         }
         break;
 
         case FSYSTEM_STATE_SERVICE:
 
-            /* TODO: Add main service logic */
-        	fsystem_command_request_t req;
-        	fsystem_command_response_t res;
+            fsystem_command_request_t req;
+            fsystem_command_response_t res;
 
-        	if(xQueueReceive(prvFSYSTEM_DATA.commandRequestQueue, &req, portMAX_DELAY) == pdPASS)
-        	{
-        	    fsystem_command_response_t res;
-        	    fsystem_bd_chunk_info_t* chunk = (fsystem_bd_chunk_info_t*)req.data;
+            /* Wait for a file system command. */
+            if(xQueueReceive(prvFSYSTEM_DATA.commandRequestQueue, &req, portMAX_DELAY) == pdPASS)
+            {
+                fsystem_command_response_t res;
+                fsystem_bd_chunk_info_t* chunk = (fsystem_bd_chunk_info_t*)req.data;
 
-        	    memset(&res, 0, sizeof(res));
-
-        	    res.type = FSYSTEM_COMMAND_TYPE_RES;
-        	    res.command = req.command;
-        	    res.commandId = req.commandId;
-        	    res.data = req.data;
-        	    res.status = FSYSTEM_STATUS_ERROR;
+                /* Prepare command response. */
+                memset(&res, 0, sizeof(res));
+                res.type = FSYSTEM_COMMAND_TYPE_RES;
+                res.command = req.command;
+                res.commandId = req.commandId;
+                res.data = req.data;
+                res.status = FSYSTEM_STATUS_ERROR;
 
         	    switch(req.command)
         	    {
+        	    	/* Read data from block device. */
         	        case FSYSTEM_COMMAND_READ_BD_CHUNK:
         	        {
         	            if(chunk != NULL && M24C32_Read(chunk->offset, chunk->buffer, chunk->size, 1000) == M24C32_STATUS_OK)
@@ -311,13 +330,14 @@ static void prvFSYSTEM_Task(void *pvParameters)
         	            }
         	        }
         	        break;
+
+        	        /* Write data to block device. */
         	        case FSYSTEM_COMMAND_WRITE_BD_CHUNK:
         	        {
         	            if(chunk != NULL)
         	            {
         	                uint8_t allowWrite = 1U;
 
-        	                /* ===== CHECK SYSTEM REGION PROTECTION ===== */
         	                if(chunk->offset < FSYSTEM_OFFSET)
         	                {
         	                    uint32_t magic = 0;
@@ -326,19 +346,16 @@ static void prvFSYSTEM_Task(void *pvParameters)
         	                    {
         	                        if(magic == 0xA5A6A7A8)
         	                        {
-        	                            /*  BLOCK WRITE */
         	                            allowWrite = 0U;
 
         	                            LOGGING_Write("FSYSTEM",
-        	                                          LOGGING_MSG_TYPE_WARNING,
-        	                                          "BD write blocked (protected system region) offset=%lu size=%lu\r\n",
+        	                                          LOGGING_MSG_TYPE_WARNING, "BD write blocked (protected system region) offset=%lu size=%lu\r\n",
         	                                          chunk->offset,
         	                                          chunk->size);
         	                        }
         	                    }
         	                }
 
-        	                /* ===== EXECUTE WRITE ===== */
         	                if(allowWrite == 1U)
         	                {
         	                    if(M24C32_Write(chunk->offset, chunk->buffer, chunk->size, 1000) == M24C32_STATUS_OK)
@@ -352,48 +369,42 @@ static void prvFSYSTEM_Task(void *pvParameters)
         	                }
         	                else
         	                {
-        	                    /* ✔ Silent success */
         	                    res.status = FSYSTEM_STATUS_OK;
         	                }
         	            }
         	        }
         	        break;
+
+        	        /* Write and verify block device data. */
         	        case FSYSTEM_COMMAND_WRITE_VERIFY_BD_CHUNK:
         	        {
         	        	if(chunk != NULL)
 						{
 							uint8_t verifyBuffer[FSYSTEM_BD_CHUNK_SIZE];
 
-							/* ===== WRITE ===== */
 							if(M24C32_Write(chunk->offset, chunk->buffer, chunk->size, 1000) != M24C32_STATUS_OK)
 							{
 								res.status = FSYSTEM_STATUS_ERROR;
 								break;
 							}
 
-							/* ===== READ BACK ===== */
 							if(M24C32_Read(chunk->offset, verifyBuffer, chunk->size, 1000) != M24C32_STATUS_OK)
 							{
 								res.status = FSYSTEM_STATUS_ERROR;
 								break;
 							}
 
-							/* ===== COMPARE ===== */
 							if(memcmp(chunk->buffer, verifyBuffer, chunk->size) == 0)
 							{
 								res.status = FSYSTEM_STATUS_OK;
 
-								LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO,
-											  "FSYSTEM: WRITE VERIFY OK (offset=%lu, size=%lu)\r\n",
-											  chunk->offset, chunk->size);
+								LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "FSYSTEM: WRITE VERIFY OK (offset=%lu, size=%lu)\r\n", chunk->offset, chunk->size);
 							}
 							else
 							{
 								res.status = FSYSTEM_STATUS_ERROR;
 
-								LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR,
-											  "FSYSTEM: WRITE VERIFY FAILED (offset=%lu, size=%lu)\r\n",
-											  chunk->offset, chunk->size);
+								LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_ERROR, "FSYSTEM: WRITE VERIFY FAILED (offset=%lu, size=%lu)\r\n", chunk->offset, chunk->size);
 							}
 						}
         	        }
@@ -927,7 +938,6 @@ fsystem_status_t FSYSTEM_TestBD()
     uint32_t readSize = 0;
     uint8_t error = 0;
 
-    /* ================= READ (INITIAL) ================= */
     memset(fsTestRx, 0, FSYSTEM_BD_CHUNK_SIZE);
 
     if(FSYSTEM_ReadBDChunk(0x0000, (char*)fsTestRx, FSYSTEM_BD_CHUNK_SIZE, &readSize, 2000) != FSYSTEM_STATUS_OK)
@@ -939,13 +949,11 @@ fsystem_status_t FSYSTEM_TestBD()
         LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "FS TEST: Initial Read OK\r\n");
     }
 
-    /* ================= GENERATE BASE PATTERN ================= */
     for(uint32_t i = 0; i < FSYSTEM_BD_CHUNK_SIZE; i++)
     {
         fsTestTx[i] = (uint8_t)(i % 256);
     }
 
-    /* ================= FORMAT ================= */
     if(FSYSTEM_FormatBD(20000) != FSYSTEM_STATUS_OK)
     {
         LOGGING_Write("System", LOGGING_MSG_TYPE_ERROR, "FS TEST: Format FAILED\r\n");
@@ -956,7 +964,6 @@ fsystem_status_t FSYSTEM_TestBD()
         LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "FS TEST: Format OK\r\n");
     }
 
-    /* ================= VERIFY FORMAT (EXPECT 0x00) ================= */
     memset(fsTestRx, 0, FSYSTEM_BD_CHUNK_SIZE);
     readSize = 0;
     error = 0;
@@ -982,7 +989,6 @@ fsystem_status_t FSYSTEM_TestBD()
         LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "FS TEST: Format VERIFY OK\r\n");
     }
 
-    /* ================= WRITE BASE PATTERN ================= */
     uint32_t size = FSYSTEM_BD_CHUNK_SIZE;
 
     if(FSYSTEM_WriteBDChunk(0x0000, (char*)fsTestTx, &size, 0, 2000) != FSYSTEM_STATUS_OK)
@@ -995,7 +1001,6 @@ fsystem_status_t FSYSTEM_TestBD()
         LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "FS TEST: Write OK\r\n");
     }
 
-    /* ================= VERIFY WRITE ================= */
     memset(fsTestRx, 0, FSYSTEM_BD_CHUNK_SIZE);
     readSize = 0;
     error = 0;
@@ -1021,13 +1026,11 @@ fsystem_status_t FSYSTEM_TestBD()
         LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "FS TEST: Write VERIFY OK\r\n");
     }
 
-    /* ================= UPDATE PATTERN (+10 mod 256) ================= */
     for(uint32_t i = 0; i < FSYSTEM_BD_CHUNK_SIZE; i++)
     {
         fsTestTx[i] = (uint8_t)((fsTestTx[i] + 10) % 256);
     }
 
-    /* ================= WRITE UPDATED PATTERN ================= */
     size = FSYSTEM_BD_CHUNK_SIZE;
 
     if(FSYSTEM_WriteBDChunk(0x0000, (char*)fsTestTx, &size, 0,  2000) != FSYSTEM_STATUS_OK)
@@ -1040,7 +1043,6 @@ fsystem_status_t FSYSTEM_TestBD()
         LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "FS TEST: Write Updated OK\r\n");
     }
 
-    /* ================= VERIFY UPDATED ================= */
     memset(fsTestRx, 0, FSYSTEM_BD_CHUNK_SIZE);
     readSize = 0;
     error = 0;
@@ -1066,7 +1068,6 @@ fsystem_status_t FSYSTEM_TestBD()
         LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "FS TEST: Updated VERIFY OK\r\n");
     }
 
-    /* ================= VARIABLE BLOCK WRITE TEST ================= */
     LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "FS TEST: Variable block WRITE START\r\n");
 
     uint32_t offset = 0;
@@ -1075,7 +1076,6 @@ fsystem_status_t FSYSTEM_TestBD()
     uint32_t chunkCount = sizeof(chunkSizes) / sizeof(chunkSizes[0]);
     uint32_t idx = 0;
 
-    /* regenerate base pattern */
     for(uint32_t i = 0; i < totalSize; i++)
     {
         fsTestTx[i] = (uint8_t)(i % 256);
@@ -1099,14 +1099,12 @@ fsystem_status_t FSYSTEM_TestBD()
     	    return;
     	}
 
-    	/* offset ide po originalnom request size */
     	offset += writeSize;
     	idx++;
     }
 
     LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "FS TEST: Variable block WRITE OK\r\n");
 
-    /* ================= VARIABLE BLOCK VERIFY ================= */
     memset(fsTestRx, 0, FSYSTEM_BD_CHUNK_SIZE);
     readSize = 0;
     error = 0;

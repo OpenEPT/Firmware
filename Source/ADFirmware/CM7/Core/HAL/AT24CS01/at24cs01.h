@@ -15,8 +15,8 @@
  ******************************************************************************
  */
 
-#ifndef CORE_HAL_M24C32_M24C32_H_
-#define CORE_HAL_M24C32_M24C32_H_
+#ifndef CORE_HAL_AT24CS01_AT24CS01_H_
+#define CORE_HAL_AT24CS01_AT24CS01_H_
 
 #include <stdint.h>
 #include "globalConfig.h"
@@ -38,7 +38,7 @@
 
 #define AT24CS01_MEMORY_SIZE_BYTES       128U    /*!< Total EEPROM size in bytes */
 #define AT24CS01_PAGE_SIZE_BYTES         8U      /*!< EEPROM page size in bytes */
-#define AT24CS01_WRITE_CYCLE_TIME_MS     5U      /*!< Maximum EEPROM internal write cycle time */
+#define AT24CS01_WRITE_CYCLE_TIME_MS     50U      /*!< Maximum EEPROM internal write cycle time */
 #define AT24CS01_DEV_ADDR                0x50U   /*!< 7-bit I2C address for EEPROM array, A2:A0 = 000 */
 #define AT24CS01_SERIAL_DEV_ADDR         0x58U   /*!< 7-bit I2C address for serial number area, A2:A0 = 000 */
 #define AT24CS01_SERIAL_START_ADDR       0x80U   /*!< Serial number block start word address */

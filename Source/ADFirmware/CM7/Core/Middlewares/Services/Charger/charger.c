@@ -25,6 +25,8 @@
 #include "at24cs01.h"
 #include "drv_gpio.h"
 
+#include "configuration.h"
+
 /**
  * @defgroup SERVICES Service
  * @{
@@ -45,6 +47,7 @@
 #define CHARGER_TASK_SET_VOLTAGE_TERMINATION_VALUE    0x00000008 /**< Task flag: Set termination voltage */
 #define CHARGER_TASK_REG_READ                         0x00000010 /**< Task flag: Read a register */
 #define CHARGER_TASK_PROCESS_INT                      0x00000020 /**< Task flag: Process interrupt */
+#define CHARGER_TASK_SET_MAX_CURRENT_VALUE            0x00000040 /**< Task flag: Set maximum charging current */
 
 #define CHARGER_DEFAULT_CURRENT_TERMINATION_VALUE     5      /**< Default termination current (%) */
 #define CHARGER_DEFAULT_VOLTAGE_TERMINATION_VALUE     4.12   /**< Default termination voltage (V) */
@@ -81,6 +84,8 @@ typedef struct
     bq25180_ilim_value_t currentLimit;        /**< Input current limit setting */
     bq25180_charge_status chargingStatus;     /**< Charging enable/disable status */
     bq25180_wdg_status wdStatus;              /**< Watchdog timer enable/disable status */
+    char hwSerial[CONF_CONFIGURATION_MAX_PARAM_VALUESIZE];
+    char fwVersion[CONF_CONFIGURATION_MAX_PARAM_VALUESIZE];
 } charger_charging_info_t;
 
 /**
@@ -94,10 +99,11 @@ typedef struct
     TaskHandle_t taskHandle;                  /**< FreeRTOS task handle */
     charger_charging_info_t chargingInfo;     /**< Current charging configuration */
     charger_reg_content_t regContent;         /**< Register read request */
-    uint16_t chargerIntStatus;                /**< Latest charger interrupt flags */
+    uint8_t chargerIntStatus;                /**< Latest charger interrupt flags */
     uint8_t adcIntStatus;                     /**< Latest ADC interrupt flags */
     uint8_t timerIntStatus;                   /**< Latest timer interrupt flags */
     charger_con_status_t connectionStatus;
+    uint8_t intCounter;
 } charger_data_t;
 /**
  * @}
@@ -130,10 +136,44 @@ static charger_data_t prvCHARGER_DATA;
  */
 static void prvCHARGER_CB()
 {
-	//TODO is it *p or just x
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return;
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	xTaskNotifyFromISR(prvCHARGER_DATA.taskHandle, CHARGER_TASK_PROCESS_INT, eSetBits, &xHigherPriorityTaskWoken);
 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+/**
+ * @brief Update charger connection status
+ * @retval void
+ */
+static void prvCHARGER_UpdateConnectionStatus(void)
+{
+	charger_con_status_t previousConnectionStatus = prvCHARGER_DATA.connectionStatus;
+
+	if(DRV_GPIO_Pin_ReadState(CHARGER_CONNECTION_PORT, CHARGER_CONNECTION_PIN) == DRV_GPIO_PIN_STATE_SET)
+	{
+		prvCHARGER_DATA.connectionStatus = CHARGER_CON_STATUS_DISCONNECTED;
+		prvCHARGER_DATA.intCounter = 0;
+	}
+	else
+	{
+		prvCHARGER_DATA.connectionStatus = CHARGER_CON_STATUS_CONNECTED;
+	}
+
+	if(previousConnectionStatus != prvCHARGER_DATA.connectionStatus)
+	{
+		if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_CONNECTED)
+		{
+			LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO, "Charger connected\r\n");
+			CONTROL_StatusLinkSendMessage("charger connection connected\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+			vTaskDelay(pdMS_TO_TICKS(500));
+		}
+		else
+		{
+			LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNING, "Charger disconnected\r\n");
+			CONTROL_StatusLinkSendMessage("charger connection disconnected\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+		}
+	}
 }
 
 
@@ -161,6 +201,11 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 {
 	uint32_t notifyValue = 0;
 	uint16_t intMask = 0xFFFF;
+	uint8_t eepromPreset = 0;
+	uint8_t defaultFlag = 0;
+	int32_t intValue;
+	int32_t retryCounter = 0;
+	int errorCode = 0;
 
 	drv_gpio_pin_init_conf_t protectionPinConfig;
 	charger_con_status_t previousConnectionStatus;
@@ -180,60 +225,61 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 		switch(prvCHARGER_DATA.state)
 		{
 		case CHARGER_STATE_INIT:
-			previousConnectionStatus = prvCHARGER_DATA.connectionStatus;
-
-			if(DRV_GPIO_Pin_ReadState(CHARGER_CONNECTION_PORT, CHARGER_CONNECTION_PIN) == DRV_GPIO_PIN_STATE_SET)
-			{
-				prvCHARGER_DATA.connectionStatus = CHARGER_CON_STATUS_DISCONNECTED;
-			}
-			else
-			{
-				prvCHARGER_DATA.connectionStatus = CHARGER_CON_STATUS_CONNECTED;
-			}
-
-			if(previousConnectionStatus != prvCHARGER_DATA.connectionStatus)
-			{
-				if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_CONNECTED)
-				{
-					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO, "Charger connected\r\n");
-					CONTROL_StatusLinkSendMessage("charger connection connected\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
-				}
-				else
-				{
-					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNING, "Charger disconnected\r\n");
-					CONTROL_StatusLinkSendMessage("charger connection disconnected\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
-				}
-			}
-
+			prvCHARGER_UpdateConnectionStatus();
 
 			if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)
 			{
-
 				xSemaphoreGive(prvCHARGER_DATA.initSig);
 				continue;
 			}
 
-			/*If it is connected, continue from here*/
 
+			/*If it is connected, continue from here*/
 			if(BQ25180_Init() != BQ25180_STATUS_OK)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to initialize BQ25180\r\n");
+				errorCode = 1;
 				break;
-			}
-
-			if(AT24CS01_Ping(1000) != AT24CS01_STATUS_OK)
-			{
-				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
-				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to Communicate with charger EEPROM\r\n");
 			}
 
 			if(BQ25180_Ping(1000) != BQ25180_STATUS_OK)
 			{
-				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
-				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to establish connection with charger\r\n");
-				break;
+				retryCounter +=1;
+				if(retryCounter == 3)
+				{
+					retryCounter = 0;
+					prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
+					errorCode = 2;
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to establish connection with charger\r\n");
+					break;
+
+				}
+				continue;
 			}
+
+			if(CONFIGURATION_CHARGER_TestBD(&eepromPreset, 1000) != CONFIGURATION_STATUS_OK)
+			{
+				retryCounter +=1;
+				if(retryCounter == 3)
+				{
+					retryCounter = 0;
+					prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to Communicate with charger EEPROM\r\n");
+					errorCode = 3;
+					break;
+				}
+				continue;
+			}
+
+			if(CONFIGURATION_CHARGER_UpdateFromBD(1000) != CONFIGURATION_STATUS_OK)
+			{
+				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNING,  "Unable to update charger parameters from charger's EEPROM\r\n");
+			}
+
+			CONFIGURATION_CHARGER_GetParameter_String("HW_SER", prvCHARGER_DATA.chargingInfo.hwSerial, CONF_CONFIGURATION_MAX_PARAM_VALUESIZE, &defaultFlag);
+			CONFIGURATION_CHARGER_GetParameter_String("FW_VER", prvCHARGER_DATA.chargingInfo.fwVersion, CONF_CONFIGURATION_MAX_PARAM_VALUESIZE, &defaultFlag);
 
 
 			BQ25180_GetChargerIntFlags(&prvCHARGER_DATA.chargerIntStatus, 1000);
@@ -244,6 +290,7 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable all charger interrupts \r\n");
+				errorCode = 4;
 				break;
 			}
 
@@ -252,6 +299,7 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to register CB\r\n");
+				errorCode = 5;
 				break;
 			}
 
@@ -260,6 +308,7 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to register CB\r\n");
+				errorCode = 6;
 				break;
 			}
 
@@ -267,13 +316,19 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable charger \r\n");
+				errorCode = 7;
 				break;
 			}
+
+
+			CONFIGURATION_CHARGER_GetParameter_Int("MAX_CUR", &intValue, &defaultFlag);
+			prvCHARGER_DATA.chargingInfo.currentLimit = intValue;
 
 			if(BQ25180_ILim_Set(prvCHARGER_DATA.chargingInfo.currentLimit, 1000) != BQ25180_STATUS_OK)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set charger input current limit\r\n");
+				errorCode = 8;
 				break;
 			}
 
@@ -281,35 +336,43 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable WD\r\n");
+				errorCode = 9;
 				break;
 			}
+
+			CONFIGURATION_CHARGER_GetParameter_Float("TERM_VOLT", &prvCHARGER_DATA.chargingInfo.terminationVoltage, &defaultFlag);
 
 			if(BQ25180_Charge_RegVoltage_Set(prvCHARGER_DATA.chargingInfo.terminationVoltage, 1000) != BQ25180_STATUS_OK)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set Termination voltage\r\n");
+				errorCode = 10;
 				break;
 			}
+
+			CONFIGURATION_CHARGER_GetParameter_Int("TERM_CUR", &intValue, &defaultFlag);
+			prvCHARGER_DATA.chargingInfo.terminationCurrent = intValue;
 
 			if(BQ25180_Charge_TermCurrent_Set(prvCHARGER_DATA.chargingInfo.terminationCurrent, 1000) != BQ25180_STATUS_OK)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set Termination current\r\n");
+				errorCode = 11;
 				break;
 			}
+
+			CONFIGURATION_CHARGER_GetParameter_Int("CH_CUR", &intValue, &defaultFlag);
+			prvCHARGER_DATA.chargingInfo.chargingCurrent = (uint16_t)intValue;
+
+
 			if(BQ25180_Charge_Current_Set(prvCHARGER_DATA.chargingInfo.chargingCurrent, 1000) != BQ25180_STATUS_OK)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set charging current \r\n");
+				errorCode = 12;
 				break;
 			}
 
-//			if(BQ25180_Charge_ChargeStatus_Set(BQ25180_CHARGE_STATUS_ENABLE, 1000) != BQ25180_STATUS_OK)
-//			{
-//				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
-//				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to enable charger \r\n");
-//				break;
-//			}
 
 			LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Charger successfully initialized \r\n");
 
@@ -319,38 +382,18 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 		case CHARGER_STATE_SERVICE:
 			notifyValue = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1000));
 
-			previousConnectionStatus = prvCHARGER_DATA.connectionStatus;
+			prvCHARGER_UpdateConnectionStatus();
 
-			if(DRV_GPIO_Pin_ReadState(CHARGER_CONNECTION_PORT, CHARGER_CONNECTION_PIN) == DRV_GPIO_PIN_STATE_SET)
-			{
-				prvCHARGER_DATA.connectionStatus = CHARGER_CON_STATUS_DISCONNECTED;
-			}
-			else
-			{
-				prvCHARGER_DATA.connectionStatus = CHARGER_CON_STATUS_CONNECTED;
-			}
-
-			if(previousConnectionStatus != prvCHARGER_DATA.connectionStatus)
-			{
-				if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_CONNECTED)
-				{
-					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO, "Charger connected\r\n");
-					CONTROL_StatusLinkSendMessage("charger connection connected\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
-				}
-				else
-				{
-					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNING, "Charger disconnected\r\n");
-					CONTROL_StatusLinkSendMessage("charger connection disconnected\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
-				}
-			}
-
+			/* Return to initialization state when charger is disconnected. */
 			if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)
 			{
+				prvCHARGER_DATA.state = CHARGER_STATE_INIT;
+				retryCounter = 0;
 				continue;
 			}
 
-		    /**/
-		    if(notifyValue == 0 ) continue;
+			if(notifyValue == 0) continue;
+
 
 			if(notifyValue & CHARGER_TASK_SET_CHARGING_STATUS)
 			{
@@ -373,6 +416,8 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				else
 				{
 					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Charging current set\r\n");
+					CONFIGURATION_CHARGER_SetParameter_Int("CH_CUR", prvCHARGER_DATA.chargingInfo.chargingCurrent, 1000);
+
 				}
 				xSemaphoreGive(prvCHARGER_DATA.initSig);
 			}
@@ -385,6 +430,8 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				else
 				{
 					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Charging termination current set\r\n");
+					CONFIGURATION_CHARGER_SetParameter_Int("TERM_CUR", prvCHARGER_DATA.chargingInfo.terminationCurrent, 1000);
+
 				}
 				xSemaphoreGive(prvCHARGER_DATA.initSig);
 			}
@@ -397,6 +444,7 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				else
 				{
 					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Charging termination voltage set\r\n");
+					CONFIGURATION_CHARGER_SetParameter_Float("TERM_VOLT", prvCHARGER_DATA.chargingInfo.terminationVoltage, 1000);
 				}
 				xSemaphoreGive(prvCHARGER_DATA.initSig);
 			}
@@ -414,6 +462,12 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			}
 			if(notifyValue & CHARGER_TASK_PROCESS_INT)
 			{
+				//First int is not real interrupt
+				if(prvCHARGER_DATA.intCounter == 0)
+				{
+					prvCHARGER_DATA.intCounter += 1;
+					continue;
+				}
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Interrupt detected \r\n");
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Read interrupt status \r\n");
 				BQ25180_GetChargerIntFlags(&prvCHARGER_DATA.chargerIntStatus, 1000);
@@ -433,11 +487,27 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Timer Int:    0x%02X \r\n", prvCHARGER_DATA.timerIntStatus);
 
 			}
+			if(notifyValue & CHARGER_TASK_SET_MAX_CURRENT_VALUE)
+			{
+				if(BQ25180_ILim_Set(prvCHARGER_DATA.chargingInfo.currentLimit, 1000) != BQ25180_STATUS_OK)
+				{
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR, "Unable to set maximum charging current\r\n");
+				}
+				else
+				{
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO, "Maximum charging current set\r\n");
+					CONFIGURATION_CHARGER_SetParameter_Int("MAX_CUR", prvCHARGER_DATA.chargingInfo.currentLimit, 1000);
+
+				}
+
+				xSemaphoreGive(prvCHARGER_DATA.initSig);
+			}
 			break;
 		case CHARGER_STATE_UNDEF:
 		case CHARGER_STATE_ERROR:
 			SYSTEM_ReportError(SYSTEM_ERROR_LEVEL_LOW);
-			vTaskDelay(portMAX_DELAY);
+			vTaskDelay(pdMS_TO_TICKS(1000));
+			prvCHARGER_DATA.state	= CHARGER_STATE_INIT;
 			break;
 		}
 	}
@@ -464,7 +534,7 @@ charger_status_t 	CHARGER_Init(uint32_t initTimeout)
 	prvCHARGER_DATA.chargingInfo.chargingCurrent 	= CHARGER_DEFAULT_CURRENT_CHARGING_VALUE;
 	prvCHARGER_DATA.chargingInfo.terminationCurrent = BQ25180_TCURRENT_VALUE_20;
 	prvCHARGER_DATA.chargingInfo.terminationVoltage = CHARGER_DEFAULT_VOLTAGE_TERMINATION_VALUE;
-	prvCHARGER_DATA.chargingInfo.currentLimit 		= BQ25180_ILIM_VALUE_300;
+	prvCHARGER_DATA.chargingInfo.currentLimit 		= BQ25180_ILIM_VALUE_500;
 	prvCHARGER_DATA.chargingInfo.chargingStatus 	= CHARGER_DEFAULT_CHARGING_STATE;
 	prvCHARGER_DATA.chargingInfo.wdStatus 			= CHARGER_DEFAULT_WD_STATE;
 
@@ -501,9 +571,7 @@ charger_status_t	CHARGER_SetChargingState(charger_charging_state_t state, uint32
 
 charger_status_t	CHARGER_GetChargingState(charger_charging_state_t* state, uint32_t initTimeout)
 {
-#if CONF_CHARGER_ENABLE==0
-	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
-#endif
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return CHARGER_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
@@ -546,9 +614,8 @@ charger_status_t	CHARGER_SetChargingCurrent(uint16_t current, uint32_t initTimeo
 
 charger_status_t	CHARGER_GetChargingCurrent(uint16_t* current, uint32_t initTimeout)
 {
-#if CONF_CHARGER_ENABLE==0
-	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
-#endif
+
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return CHARGER_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
@@ -590,9 +657,8 @@ charger_status_t	CHARGER_SetChargingTermCurrent(uint16_t current, uint32_t initT
 }
 charger_status_t	CHARGER_GetChargingTermCurrent(uint16_t* current, uint32_t initTimeout)
 {
-#if CONF_CHARGER_ENABLE==0
-	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
-#endif
+
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return CHARGER_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
@@ -610,9 +676,8 @@ charger_status_t	CHARGER_GetChargingTermCurrent(uint16_t* current, uint32_t init
 }
 charger_status_t	CHARGER_SetChargingTermVoltage(float voltage, uint32_t initTimeout)
 {
-#if CONF_CHARGER_ENABLE==0
-	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
-#endif
+
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return CHARGER_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
@@ -637,9 +702,8 @@ charger_status_t	CHARGER_SetChargingTermVoltage(float voltage, uint32_t initTime
 }
 charger_status_t	CHARGER_GetChargingTermVoltage(float* voltage, uint32_t initTimeout)
 {
-#if CONF_CHARGER_ENABLE==0
-	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
-#endif
+
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return CHARGER_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
@@ -658,9 +722,8 @@ charger_status_t	CHARGER_GetChargingTermVoltage(float* voltage, uint32_t initTim
 
 charger_status_t CHARGER_GetConnectionStatus(charger_con_status_t* status, uint32_t initTimeout)
 {
-#if CONF_CHARGER_ENABLE==0
-	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
-#endif
+
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return CHARGER_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
@@ -673,9 +736,8 @@ charger_status_t CHARGER_GetConnectionStatus(charger_con_status_t* status, uint3
 }
 charger_status_t	CHARGER_GetRegContent(uint8_t regAddr, uint8_t* regData, uint32_t initTimeout)
 {
-#if CONF_CHARGER_ENABLE==0
-	if(prvCHARGER_DATA.state == CHARGER_STATE_UNDEF) return CHARGER_STATUS_ERROR;
-#endif
+
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return CHARGER_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
 
@@ -698,6 +760,93 @@ charger_status_t	CHARGER_GetRegContent(uint8_t regAddr, uint8_t* regData, uint32
 	if(xSemaphoreTake(prvCHARGER_DATA.initSig, pdMS_TO_TICKS(initTimeout)) != pdPASS) return CHARGER_STATUS_ERROR;
 
 	*regData = prvCHARGER_DATA.regContent.data;
+
+	return CHARGER_STATUS_OK;
+}
+
+charger_status_t CHARGER_GetSerial(char* serial, uint16_t size, uint32_t initTimeout)
+{
+
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return CHARGER_STATUS_ERROR;
+
+	if(serial == NULL || size == 0U) return CHARGER_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)
+	{
+		xSemaphoreGive(prvCHARGER_DATA.guard);
+		return CHARGER_STATUS_ERROR;
+	}
+
+	strncpy(serial, prvCHARGER_DATA.chargingInfo.hwSerial, size - 1U);
+	serial[size - 1U] = '\0';
+
+	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	return CHARGER_STATUS_OK;
+}
+
+charger_status_t CHARGER_GetFwVersion(char* version, uint16_t size, uint32_t initTimeout)
+{
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return CHARGER_STATUS_ERROR;
+
+	if(version == NULL || size == 0U) return CHARGER_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)
+	{
+		xSemaphoreGive(prvCHARGER_DATA.guard);
+		return CHARGER_STATUS_ERROR;
+	}
+
+	strncpy(version, prvCHARGER_DATA.chargingInfo.fwVersion, size - 1U);
+	version[size - 1U] = '\0';
+
+	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	return CHARGER_STATUS_OK;
+}
+charger_status_t CHARGER_SetChargingMaxCurrent(charger_max_charging_current_t current, uint32_t initTimeout)
+{
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return CHARGER_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)
+	{
+		xSemaphoreGive(prvCHARGER_DATA.guard);
+		return CHARGER_STATUS_ERROR;
+	}
+
+	prvCHARGER_DATA.chargingInfo.currentLimit = current;
+
+	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	if(xTaskNotify(prvCHARGER_DATA.taskHandle, CHARGER_TASK_SET_MAX_CURRENT_VALUE, eSetBits) != pdPASS) return CHARGER_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvCHARGER_DATA.initSig, pdMS_TO_TICKS(initTimeout)) != pdPASS) return CHARGER_STATUS_ERROR;
+
+	return CHARGER_STATUS_OK;
+}
+charger_status_t CHARGER_GetChargingMaxCurrent(charger_max_charging_current_t* current, uint32_t initTimeout)
+{
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED) return CHARGER_STATUS_ERROR;
+
+	if(current == NULL) return CHARGER_STATUS_ERROR;
+
+	if(xSemaphoreTake(prvCHARGER_DATA.guard, pdMS_TO_TICKS(initTimeout)) != pdTRUE) return CHARGER_STATUS_ERROR;
+
+	if(prvCHARGER_DATA.connectionStatus == CHARGER_CON_STATUS_DISCONNECTED)
+	{
+		xSemaphoreGive(prvCHARGER_DATA.guard);
+		return CHARGER_STATUS_ERROR;
+	}
+
+	*current = prvCHARGER_DATA.chargingInfo.currentLimit;
+
+	if(xSemaphoreGive(prvCHARGER_DATA.guard) != pdTRUE) return CHARGER_STATUS_ERROR;
 
 	return CHARGER_STATUS_OK;
 }
