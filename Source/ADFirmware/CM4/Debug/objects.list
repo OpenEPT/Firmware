@@ -1,0 +1,7 @@
+"./Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.o"
+"./Core/Application/Src/main.o"
+"./Core/Application/Src/stm32h7xx_hal_msp.o"
+"./Core/Application/Src/stm32h7xx_it.o"
+"./Core/Application/Src/syscalls.o"
+"./Core/Application/Src/sysmem.o"
+"./Core/Startup/startup_stm32h755zitx.o"

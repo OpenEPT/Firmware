@@ -11,9 +11,10 @@
 #include "cmparse_util.h"
 #include "stdint.h"
 
-#define CMPARSE_MAX_COMMANDS_NO		70
+#define CMPARSE_MAX_COMMANDS_NO		90
 #define CMPARSE_MAX_VALUE_SIZE		100
-#define CMPARSE_MAX_ARG_BUFFER_SIZE	100
+#define CMPARSE_MAX_VALUE_SIZE_BIG	512
+#define CMPARSE_MAX_ARG_BUFFER_SIZE	512
 
 typedef enum{
 	CMPARSE_STATUS_OK,
@@ -26,11 +27,26 @@ typedef struct
 	uint32_t	size;
 }cmparse_value_t;
 
+typedef struct
+{
+	char	value[CMPARSE_MAX_VALUE_SIZE_BIG];
+	uint32_t	size;
+}cmparse_value_bin_t;
+
+typedef enum
+{
+	CMPARSE_COMMAND_TYPE_BIN,
+	CMPARSE_COMMAND_TYPE_ASCII,
+	CMPARSE_COMMAND_TYPE_UKNOWN
+}cmparse_command_type_t;
+
 
 cmparse_status_t		CMPARSE_Init();
 cmparse_status_t		CMPARSE_AddCommand(const char* command, CommandCallBack callback);
 cmparse_status_t 		CMPARSE_Execute(const char* command, char* response, uint16_t* responseSize);
 char*					CMPARSE_GetArgParameters(char* argBuffer, uint32_t* argBufferSize, cmparse_value_t* key, cmparse_value_t* value);
+char*					CMPARSE_GetArgParametersBin(char* argBuffer, uint32_t* argBufferSize, cmparse_value_t* key, cmparse_value_t* value, uint16_t argSize, uint8_t** argValue);
 cmparse_status_t		CMPARSE_GetArgValue(const char* argBuffer, uint32_t argBufferSize, const char* key, cmparse_value_t* value);
+cmparse_status_t		CMPARSE_GetArgValueBin(const char* argBuffer, uint32_t argBufferSize, const char* key, cmparse_value_bin_t* value, uint32_t size);
 
 #endif /* CORE_MIDDLEWARES_SERVICES_CONTROL_CMPARSE_CMPARSE_H_ */

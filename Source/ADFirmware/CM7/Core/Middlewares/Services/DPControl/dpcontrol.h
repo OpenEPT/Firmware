@@ -48,8 +48,11 @@
 #define DPCONTROL_LATCH_PORT            CONF_DPCONTROL_LATCH_PORT        /*!< Latch trigger port */
 #define DPCONTROL_LATCH_PIN             CONF_DPCONTROL_LATCH_PIN         /*!< Latch trigger pin */
 
+#define DPCONTROL_SHUNT_VALUE			CONF_DPCONTROL_SHUNT_VALUE
+#define DPCONTROL_INA_GAIN				CONF_DPCONTROL_INA_GAIN
+
 #define DPCONTROL_WAVE_CHUNK_MSG_SIZE			50
-#define DPCONTROL_WAVE_CHUNK_MSG_FIELDS			5	//base, baseDev, duration, durationdev
+#define DPCONTROL_WAVE_CHUNK_MSG_FIELDS			6	//base, baseDev, duration, durationdev
 #define DPCONTROL_WAVE_CHUNK_MSG_QUEUE_LENGTH	10
 #define DPCONTROL_WAVE_CHUNK_MAX_NO				10
 #define DPCONTROL_WAVE_CHUNK_PBS				200
@@ -288,6 +291,17 @@ dpcontrol_status_t DPCONTROL_AddWaveChunk(char* waveDesc, uint16_t waveDescSize,
 
 dpcontrol_status_t DPCONTROL_SetWaveState(dpcontrol_wave_state_t state, uint32_t timeout);
 
+dpcontrol_status_t DPCONTROL_SetWaveCounter(int counter, uint32_t timeout);
+
 dpcontrol_status_t DPCONTROL_ClearWave(uint32_t timeout);
+
+dpcontrol_status_t DPCONTROL_SetOVValue(float value, uint32_t timeout);
+dpcontrol_status_t DPCONTROL_SetUVValue(float value, uint32_t timeout);
+dpcontrol_status_t DPCONTROL_SetOCValue(int32_t value, uint32_t timeout);
+dpcontrol_status_t DPCONTROL_GetOVValue(float* value, uint32_t timeout);
+dpcontrol_status_t DPCONTROL_GetUVValue(float* value, uint32_t timeout);
+dpcontrol_status_t DPCONTROL_GetOCValue(int32_t* value, uint32_t timeout);
+
+
 
 #endif

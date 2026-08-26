@@ -147,8 +147,8 @@ typedef enum
 typedef enum
 {
 	DRV_GPIO_PIN_PULL_NOPULL 	= 0,	/*!< No pull-up or pull-down */
-	DRV_GPIO_PIN_PULL_DOWN		= 1,	/*!< Pull-down resistor enabled */
-	DRV_GPIO_PIN_PULL_UP		= 2		/*!< Pull-up resistor enabled */
+	DRV_GPIO_PIN_PULL_UP		= 1,	/*!< Pull-down resistor enabled */
+	DRV_GPIO_PIN_PULL_DOWN		= 2		/*!< Pull-up resistor enabled */
 }drv_gpio_pin_pull_t;
 
 /**

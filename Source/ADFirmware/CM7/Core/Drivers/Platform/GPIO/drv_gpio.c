@@ -244,7 +244,7 @@ drv_gpio_pin_state_t 	DRV_GPIO_Pin_ReadState(drv_gpio_port_t port, drv_gpio_pin 
 	return state;
 }
 
-drv_gpio_status_t DRV_GPIO_Pin_ToogleFromISR(drv_gpio_port_t port, drv_gpio_pin pin)
+drv_gpio_status_t DRV_GPIO_Pin_ToggleFromISR(drv_gpio_port_t port, drv_gpio_pin pin)
 {
 	BaseType_t * pxHigherPriorityTaskWoken = pdFALSE;
 	if(prvDRV_GPIO_PORTS[port].initState != DRV_GPIO_PORT_INIT_STATUS_INITIALIZED || prvDRV_GPIO_PORTS[port].lock == NULL) return DRV_GPIO_STATUS_ERROR;
@@ -268,12 +268,6 @@ drv_gpio_status_t DRV_GPIO_Pin_EnableInt(drv_gpio_port_t port, drv_gpio_pin pin,
 	if(pin > DRV_GPIO_PIN_MAX_NUMBER || pin > DRV_GPIO_INTERRUPTS_MAX_NUMBER) return DRV_GPIO_STATUS_ERROR;
 
 	if(xSemaphoreTake(prvDRV_GPIO_PORTS[port].lock, portMAX_DELAY) == pdFALSE ) return DRV_GPIO_STATUS_ERROR;
-
-//	/*Configure GPIO pin : PC13 */
-//	GPIO_InitStruct.Pin  = 1 << pin;
-//	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-//	GPIO_InitStruct.Pull = GPIO_NOPULL;
-//	HAL_GPIO_Init((GPIO_TypeDef*)prvDRV_GPIO_PORTS[port].portInstance, &GPIO_InitStruct);
 
 	prvDRV_GPIO_PINS_INTERRUPTS[pin] = callback;
 

@@ -34,6 +34,15 @@
  */
 
 /**
+ * @defgroup I2C_PUBLIC_DEFINES I2C driver public defines
+ * @{
+ */
+#define DRV_I2C_INSTANCES_MAX_NUMBER	(4U)	/*!< Maximum number of I2C instances supported */
+/**
+ * @}
+ */
+
+/**
  * @defgroup I2C_PUBLIC_TYPES I2C driver public data types
  * @{
  */
@@ -45,7 +54,7 @@ typedef enum
 {
 	DRV_I2C_INITIALIZATION_STATUS_NOINIT	= 0,	/*!< I2C driver is not initialized */
 	DRV_I2C_INITIALIZATION_STATUS_INIT		= 1		/*!< I2C driver is initialized */
-}drv_i2c_initialization_status_t;
+} drv_i2c_initialization_status_t;
 
 /**
  * @brief I2C driver return status
@@ -54,23 +63,28 @@ typedef enum
 {
 	DRV_I2C_STATUS_OK,				/*!< I2C operation successful */
 	DRV_I2C_STATUS_ERROR			/*!< I2C operation failed */
-}drv_i2c_status_t;
+} drv_i2c_status_t;
 
 /**
  * @brief Available I2C peripheral instances
+ * @note  Mapping in this implementation:
+ *        - DRV_I2C_INSTANCE_1 -> I2C1
+ *        - DRV_I2C_INSTANCE_2 -> I2C4
  */
 typedef enum
 {
-	DRV_I2C_INSTANCE_1 = 0			/*!< I2C peripheral instance 1 */
-}drv_i2c_instance_t;
+	DRV_I2C_INSTANCE_1 = 0,			/*!< I2C peripheral instance 1 */
+	DRV_I2C_INSTANCE_2 = 1,			/*!< I2C peripheral instance 1 */
+	DRV_I2C_INSTANCE_4 = 3			/*!< I2C peripheral instance 2 */
+} drv_i2c_instance_t;
 
 /**
  * @brief I2C configuration structure
  */
 typedef struct
 {
-	uint32_t clkFreq;				/*!< I2C clock frequency in Hz */
-}drv_i2c_config_t;
+	uint32_t clkFreq;				/*!< Reserved for future use */
+} drv_i2c_config_t;
 
 /**
  * @}
@@ -96,9 +110,16 @@ drv_i2c_status_t	DRV_I2C_Init(void);
 drv_i2c_status_t	DRV_I2C_Instance_Init(drv_i2c_instance_t instance, drv_i2c_config_t* config);
 
 /**
+ * @brief	Deinitialize specific I2C peripheral instance
+ * @param	instance: I2C peripheral instance to deinitialize. See ::drv_i2c_instance_t
+ * @retval	::drv_i2c_status_t
+ */
+drv_i2c_status_t	DRV_I2C_Instance_DeInit(drv_i2c_instance_t instance);
+
+/**
  * @brief	Transmit data to I2C slave device
  * @param	instance: I2C peripheral instance to use. See ::drv_i2c_instance_t
- * @param	addr: I2C slave device address (7-bit or 8-bit format)
+ * @param	addr: I2C slave device address (7-bit address shifted left by 1 for HAL API)
  * @param	data: Pointer to data buffer to transmit
  * @param	size: Number of bytes to transmit
  * @param	timeout: Transmission timeout in milliseconds
@@ -109,7 +130,7 @@ drv_i2c_status_t	DRV_I2C_Transmit(drv_i2c_instance_t instance, uint8_t addr, uin
 /**
  * @brief	Receive data from I2C slave device
  * @param	instance: I2C peripheral instance to use. See ::drv_i2c_instance_t
- * @param	addr: I2C slave device address (7-bit or 8-bit format)
+ * @param	addr: I2C slave device address (7-bit address shifted left by 1 for HAL API)
  * @param	data: Pointer to data buffer to store received data
  * @param	size: Number of bytes to receive
  * @param	timeout: Reception timeout in milliseconds

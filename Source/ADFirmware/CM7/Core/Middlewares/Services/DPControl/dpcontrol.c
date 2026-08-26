@@ -29,6 +29,7 @@
 #include "control.h"
 #include "drv_aout.h"
 #include "drv_gpio.h"
+#include "configuration.h"
 
 /**
  * @defgroup SERVICES Services
@@ -57,6 +58,9 @@
 #define DPCONTROL_MASK_WAVE_START    	  		0x00000400 /**< Start wave */
 #define DPCONTROL_MASK_WAVE_STOP    	  		0x00000800 /**< Stop wave */
 #define DPCONTROL_MASK_WAVE_CLEAR    	  		0x00001000 /**< Stop wave */
+#define DPCONTROL_MASK_SET_OV_VALUE    	  		0x00002000 /**< Set Over Voltage Protection On value */
+#define DPCONTROL_MASK_SET_UV_VALUE    	  		0x00004000 /**< Set Under Voltage Protection On value */
+#define DPCONTROL_MASK_SET_OC_VALUE    	  		0x00008000 /**< Set Over Current Protection On value */
 /**
  * @}
  */
@@ -89,7 +93,10 @@ typedef struct dpcontrol_wave_chunk_t
 	uint32_t		bsDev; //%
 	uint32_t    duration; //ms
 	uint32_t    	dDev;	//%
-	int			repetitionCnt;
+	int			leftRepetitionCnt;
+	int			maxRepetitionCnt;
+	uint32_t	lastInGroup;
+	struct dpcontrol_wave_chunk_t* nextGroup;
 	uint8_t		usedFlag;
 	struct dpcontrol_wave_chunk_t* next;
 	struct dpcontrol_wave_chunk_t* prev;
@@ -100,11 +107,14 @@ typedef struct
 	dpcontrol_wave_chunk_t		chunks[DPCONTROL_WAVE_CHUNK_MAX_NO];
 	uint32_t					waveChunksCounter;
 	dpcontrol_wave_chunk_t*		first;
+	dpcontrol_wave_chunk_t*		firstInChain;
 	dpcontrol_wave_chunk_t*		last;
 	dpcontrol_wave_chunk_t*		current;
 	dpcontrol_wave_state_t		state;
 	uint32_t					ticks;
 	uint32_t					nextEvent;
+	uint8_t						chainEndReached;
+	int 						repetitionCounter;
 }dpcontrol_wave_data_t;
 
 
@@ -127,6 +137,11 @@ typedef struct
     dpcontrol_protection_state_t underVoltage;    /**< Under-voltage protection flag */
     dpcontrol_protection_state_t overVoltage;     /**< Over-voltage protection flag */
     dpcontrol_protection_state_t overCurrent;     /**< Over-current protection flag */
+    float    ovValue;
+    float    uvValue;
+    int32_t  ocValue;
+    float    shuntValue;
+    float    gainValue;
     dpcontrol_wave_chunk_msg_t		lastWaveChunkMsg;
     char	printBuffer[DPCONTROL_WAVE_CHUNK_PBS];
 } dpcontrol_data_t;
@@ -155,6 +170,20 @@ TIM_HandleTypeDef 				DPCONTROL_TIM;
  */
 static dpcontrol_status_t prvDPCONTROL_ExecuteWaveChunk();
 
+/**
+ * @brief Convert load current to DAC control voltage
+ *
+ * @param current Current [mA]
+ *
+ * @return Corresponding DAC voltage [V]
+ */
+static float prvDPCONTROL_CurrentToVoltage(uint32_t current)
+{
+    return ((float)current / 1000.0f) *
+           8.8 *
+           0.075;
+}
+
 static dpcontrol_status_t prvDPCONTROL_SetLoadState(dpcontrol_load_state_t loadState)
 {
 	if(loadState == DPCONTROL_LOAD_STATE_ENABLE)
@@ -180,14 +209,39 @@ static dpcontrol_status_t prvDPCONTROL_SetLoadState(dpcontrol_load_state_t loadS
   */
 void TIM7_IRQHandler(void)
 {
+	BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
 	//HAL_TIM_IRQHandler(&DPCONTROL_TIM);
 	if(DPCONTROL_TIM.Instance->SR & TIM_SR_UIF)
 	{
 		prvDPCONTROL_WAVE_DATA.ticks += 1;
+
 		if(prvDPCONTROL_WAVE_DATA.ticks == prvDPCONTROL_WAVE_DATA.nextEvent)
 		{
 			prvDPCONTROL_WAVE_DATA.ticks = 0;
-			prvDPCONTROL_ExecuteWaveChunk();
+			if(prvDPCONTROL_WAVE_DATA.chainEndReached == 1)
+			{
+				if(prvDPCONTROL_WAVE_DATA.repetitionCounter == 0)
+				{
+					/*End is reached, stop wave*/
+					xTaskNotifyFromISR(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_WAVE_STOP, eSetBits, &pxHigherPriorityTaskWoken);
+
+					portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
+				}
+				else
+				{
+					/*End is not reached, restart wave*/
+					if(prvDPCONTROL_WAVE_DATA.repetitionCounter != -1) prvDPCONTROL_WAVE_DATA.repetitionCounter-= 1;
+
+					xTaskNotifyFromISR(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_WAVE_START, eSetBits, &pxHigherPriorityTaskWoken);
+
+					portYIELD_FROM_ISR( pxHigherPriorityTaskWoken );
+
+				}
+			}
+			else
+			{
+				prvDPCONTROL_ExecuteWaveChunk();
+			}
 		}
 
 		DPCONTROL_TIM.Instance->SR &= ~TIM_SR_UIF;  // Clear the update interrupt flag (by writing 0)
@@ -266,53 +320,101 @@ static void prvDPCONTROL_OverCurrentCB(drv_gpio_pin pin)
 static dpcontrol_status_t prvDPCONTROL_ExecuteWaveChunk()
 {
 
-	if(prvDPCONTROL_WAVE_DATA.current->repetitionCnt == 0) 	return DPCONTROL_STATUS_ERROR;
-
-	//calculate values
-
-	//Set output
-	if(prvDPCONTROL_WAVE_DATA.current->baseValue > 0)
+	if(prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt > 0)
 	{
-		DRV_AOUT_SetValue(prvDPCONTROL_WAVE_DATA.current->baseValue);
-		prvDPCONTROL_DATA.aoutData.data = prvDPCONTROL_WAVE_DATA.current->baseValue;
-		if(prvDPCONTROL_DATA.loadState == DPCONTROL_LOAD_STATE_DISABLE)
+		//calculate values
+
+		//Set output
+		if(prvDPCONTROL_WAVE_DATA.current->baseValue > 0)
 		{
-			DRV_AOUT_SetEnable(DRV_AOUT_ACTIVE_STATUS_ENABLED);
-			prvDPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_ENABLE);
-			prvDPCONTROL_DATA.loadState = DPCONTROL_LOAD_STATE_ENABLE;
-			prvDPCONTROL_DATA.aoutData.active = DPCONTROL_DAC_STATUS_ENABLE;
-			//Add notification to be sent to main task to information about out state changed
+			DRV_AOUT_SetVoltage(
+			    prvDPCONTROL_CurrentToVoltage(prvDPCONTROL_WAVE_DATA.current->baseValue),
+			    DRV_AOUT_CHANNEL_D);
+			prvDPCONTROL_DATA.aoutData.data = prvDPCONTROL_WAVE_DATA.current->baseValue;
+			if(prvDPCONTROL_DATA.loadState == DPCONTROL_LOAD_STATE_DISABLE)
+			{
+				DRV_AOUT_SetEnable(DRV_AOUT_ACTIVE_STATUS_ENABLED);
+				prvDPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_ENABLE);
+				prvDPCONTROL_DATA.loadState = DPCONTROL_LOAD_STATE_ENABLE;
+				prvDPCONTROL_DATA.aoutData.active = DPCONTROL_DAC_STATUS_ENABLE;
+				//Add notification to be sent to main task to information about out state changed
+			}
 		}
+		else
+		{
+			if(prvDPCONTROL_DATA.loadState == DPCONTROL_LOAD_STATE_ENABLE)
+			{
+				prvDPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_DISABLE);
+				DRV_AOUT_SetEnable(DRV_AOUT_ACTIVE_STATUS_DISABLED);
+				prvDPCONTROL_DATA.loadState = DPCONTROL_LOAD_STATE_DISABLE;
+				prvDPCONTROL_DATA.aoutData.active = DPCONTROL_DAC_STATUS_DISABLE;
+				//Add notification to be sent to main task to information about out state changed
+			}
+			DRV_AOUT_SetValue(0, DRV_AOUT_CHANNEL_D);
+			prvDPCONTROL_DATA.aoutData.data = 0;
+		}
+		prvDPCONTROL_WAVE_DATA.nextEvent = prvDPCONTROL_WAVE_DATA.current->duration;
+
+		if(prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt != -1)
+		{
+			prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt =
+					prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt == 0 ? 0 : prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt - 1;
+
+			//If last in a group is detected and repetition counter is reached
+			if(
+					(prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt == 0) &&
+					(prvDPCONTROL_WAVE_DATA.current->nextGroup != 0) &&
+					(prvDPCONTROL_WAVE_DATA.current->next == 0) )
+			{
+				prvDPCONTROL_WAVE_DATA.first = prvDPCONTROL_WAVE_DATA.current->nextGroup;
+			}
+
+		}
+
+	}
+
+	//check if last in chain
+	if(
+			(prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt == 0) &&
+			(prvDPCONTROL_WAVE_DATA.current->nextGroup == 0) &&
+			(prvDPCONTROL_WAVE_DATA.current->next == 0) )
+	{
+		prvDPCONTROL_WAVE_DATA.chainEndReached = 1;
+		prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt = prvDPCONTROL_WAVE_DATA.current->maxRepetitionCnt;
+
+
 	}
 	else
 	{
-		if(prvDPCONTROL_DATA.loadState == DPCONTROL_LOAD_STATE_ENABLE)
+		if(prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt == 0)
 		{
-			prvDPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_DISABLE);
-			DRV_AOUT_SetEnable(DRV_AOUT_ACTIVE_STATUS_DISABLED);
-			prvDPCONTROL_DATA.loadState = DPCONTROL_LOAD_STATE_DISABLE;
-			prvDPCONTROL_DATA.aoutData.active = DPCONTROL_DAC_STATUS_DISABLE;
-			//Add notification to be sent to main task to information about out state changed
+			prvDPCONTROL_WAVE_DATA.current->leftRepetitionCnt = prvDPCONTROL_WAVE_DATA.current->maxRepetitionCnt;
 		}
-		DRV_AOUT_SetValue(0);
-		prvDPCONTROL_DATA.aoutData.data = 0;
-	}
-	prvDPCONTROL_WAVE_DATA.nextEvent = prvDPCONTROL_WAVE_DATA.current->duration;
-
-	//Prepare next
-	if(prvDPCONTROL_WAVE_DATA.current->next == 0)
-	{
-		prvDPCONTROL_WAVE_DATA.current = prvDPCONTROL_WAVE_DATA.first;
-	}
-	else
-	{
-		prvDPCONTROL_WAVE_DATA.current = prvDPCONTROL_WAVE_DATA.current->next;
+		//Prepare next
+		if(prvDPCONTROL_WAVE_DATA.current->next == 0)
+		{
+			prvDPCONTROL_WAVE_DATA.current = prvDPCONTROL_WAVE_DATA.first;
+		}
+		else
+		{
+			prvDPCONTROL_WAVE_DATA.current = prvDPCONTROL_WAVE_DATA.current->next;
+		}
 	}
 
 
 	return DPCONTROL_STATUS_OK;
 }
-
+static dpcontrol_status_t prvDPCONTROL_WaveReinit()
+{
+	if(prvDPCONTROL_WAVE_DATA.chainEndReached == 1)
+	{
+		//Return to the beginning;
+		prvDPCONTROL_WAVE_DATA.first = prvDPCONTROL_WAVE_DATA.firstInChain;
+		prvDPCONTROL_WAVE_DATA.current = prvDPCONTROL_WAVE_DATA.first;
+		prvDPCONTROL_WAVE_DATA.chainEndReached = 0;
+	}
+	return DPCONTROL_STATUS_OK;
+}
 static dpcontrol_status_t prvDPCONTROL_ExtractWaveDataFromMsg(dpcontrol_wave_chunk_t* chunk, dpcontrol_wave_chunk_msg_t* msg)
 {
 	uint32_t index = 0;
@@ -335,12 +437,13 @@ static dpcontrol_status_t prvDPCONTROL_ExtractWaveDataFromMsg(dpcontrol_wave_chu
 	/*Check that there is detected DPCONTROL_WAVE_CHUNK_MSG_FIELDS of field*/
 	if(fieldsNo != (DPCONTROL_WAVE_CHUNK_MSG_FIELDS)) return DPCONTROL_STATUS_ERROR;
 
-    int ret = sscanf(msgToProcess, "%" SCNu32 ",%" SCNu32 ",%" SCNu32 ",%" SCNu32 ",%d;",
+    int ret = sscanf(msgToProcess, "%" SCNu32 ",%" SCNu32 ",%" SCNu32 ",%" SCNu32 ",%d" ",%" SCNu32 ";",
                      &chunk->baseValue,
                      &chunk->bsDev,
                      &chunk->duration,
                      &chunk->dDev,
-                     &chunk->repetitionCnt);
+                     &chunk->maxRepetitionCnt,
+					 &chunk->lastInGroup);
 
     if(ret != fieldsNo)return DPCONTROL_STATUS_ERROR;
 
@@ -366,7 +469,9 @@ static dpcontrol_status_t prvDPCONTROL_AddWaveData(dpcontrol_wave_chunk_t* chunk
 		/*Add first data*/
 		prvDPCONTROL_WAVE_DATA.current = &prvDPCONTROL_WAVE_DATA.chunks[0];
 		prvDPCONTROL_WAVE_DATA.first = &prvDPCONTROL_WAVE_DATA.chunks[0];
+		prvDPCONTROL_WAVE_DATA.firstInChain = &prvDPCONTROL_WAVE_DATA.chunks[0];
 		prvDPCONTROL_WAVE_DATA.last = &prvDPCONTROL_WAVE_DATA.chunks[0];
+		prvDPCONTROL_WAVE_DATA.chunks[0].leftRepetitionCnt = prvDPCONTROL_WAVE_DATA.chunks[0].maxRepetitionCnt;
 		prvDPCONTROL_WAVE_DATA.waveChunksCounter += 1;
 		prvDPCONTROL_WAVE_DATA.nextEvent = prvDPCONTROL_WAVE_DATA.current->duration;
 	}
@@ -374,10 +479,21 @@ static dpcontrol_status_t prvDPCONTROL_AddWaveData(dpcontrol_wave_chunk_t* chunk
 	{
 		/*Set ID*/
 		prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter].id = prvDPCONTROL_WAVE_DATA.waveChunksCounter;
-		prvDPCONTROL_WAVE_DATA.last->next = &prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter];
+		if(prvDPCONTROL_WAVE_DATA.last->lastInGroup == 1)
+		{
+			prvDPCONTROL_WAVE_DATA.last->nextGroup = &prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter];
+			prvDPCONTROL_WAVE_DATA.last->next = 0;
+		}
+		else
+		{
+			prvDPCONTROL_WAVE_DATA.last->next = &prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter];
+		}
 		prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter].prev = prvDPCONTROL_WAVE_DATA.last;
 		prvDPCONTROL_WAVE_DATA.last = &prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter];
+		prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter].leftRepetitionCnt =
+				prvDPCONTROL_WAVE_DATA.chunks[prvDPCONTROL_WAVE_DATA.waveChunksCounter].maxRepetitionCnt;
 		prvDPCONTROL_WAVE_DATA.waveChunksCounter += 1;
+
 	}
 
 	chunk->id = prvDPCONTROL_WAVE_DATA.waveChunksCounter - 1;
@@ -405,7 +521,7 @@ static dpcontrol_status_t prvDPCONTROL_PrintChunk(dpcontrol_wave_chunk_t* chunk,
 			chunk->dDev,
 			chunk->baseValue,
 			chunk->bsDev,
-			chunk->repetitionCnt);
+			chunk->leftRepetitionCnt);
 
 	return DPCONTROL_STATUS_OK;
 }
@@ -444,193 +560,145 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 		switch(prvDPCONTROL_DATA.state)
 		{
 		case DPCONTROL_STATE_INIT:
-			controlPinConfig.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
-			controlPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
 
-			/*Initialize Load Disable pin*/
-			if(DRV_GPIO_Port_Init(DPCONTROL_LOAD_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize load control port\r\n");
-			}
-			if(DRV_GPIO_Pin_Init(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize load control pin\r\n");
-			}
+		    /**********************************************************************
+		     * GPIO CONTROL OUTPUT INITIALIZATION (LOAD / BAT / PPATH)
+		     **********************************************************************/
+		    controlPinConfig.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
+		    controlPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
 
-			switch(prvDPCONTROL_DATA.loadState)
-			{
-			case DPCONTROL_LOAD_STATE_DISABLE:
-				if(DRV_GPIO_Pin_SetState(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to disable load\r\n");
-				}
-				else
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Load successfully disabled\r\n");
-				}
-				break;
-			case DPCONTROL_LOAD_STATE_ENABLE:
-				if(DRV_GPIO_Pin_SetState(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to enable load\r\n");
-				}
-				else
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Load successfully enabled\r\n");
-				}
-				break;
-			}
+		    /* --- LOAD CONTROL --- */
+		    if(DRV_GPIO_Port_Init(DPCONTROL_LOAD_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
+		        LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING, "Unable to initialize load control port\r\n");
 
+		    if(DRV_GPIO_Pin_Init(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
+		        LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING, "Unable to initialize load control pin\r\n");
 
-			/*Initialize Bat Disable pin*/
-			if(DRV_GPIO_Port_Init(DPCONTROL_BAT_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize battery control port\r\n");
-			}
-			if(DRV_GPIO_Pin_Init(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize battery control pin\r\n");
-			}
-			switch(prvDPCONTROL_DATA.batState)
-			{
-			case DPCONTROL_LOAD_STATE_DISABLE:
-				if(DRV_GPIO_Pin_SetState(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to disable Battery\r\n");
-				}
-				else
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Battery successfully disabled\r\n");
-				}
-				break;
-			case DPCONTROL_LOAD_STATE_ENABLE:
-				if(DRV_GPIO_Pin_SetState(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to enable Battery\r\n");
-				}
-				else
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Battery successfully enabled\r\n");
-				}
-				break;
-			}
+		    /* Apply initial load state */
+		    switch(prvDPCONTROL_DATA.loadState)
+		    {
+		    case DPCONTROL_LOAD_STATE_DISABLE:
+		        DRV_GPIO_Pin_SetState(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET);
+		        break;
+		    case DPCONTROL_LOAD_STATE_ENABLE:
+		        DRV_GPIO_Pin_SetState(DPCONTROL_LOAD_DISABLE_PORT, DPCONTROL_LOAD_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET);
+		        break;
+		    }
 
-			/*Initialize PPath Disable pin*/
-			if(DRV_GPIO_Port_Init(DPCONTROL_GPIO_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize ppath control port\r\n");
-			}
-			if(DRV_GPIO_Pin_Init(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize ppath control pin\r\n");
-			}
-			switch(prvDPCONTROL_DATA.pathState)
-			{
-			case DPCONTROL_PPATH_STATE_DISABLE:
-				if(DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET) != DRV_GPIO_STATUS_OK)
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to disable Power Path\r\n");
-				}
-				else
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Power Path successfully disabled\r\n");
-				}
-				break;
-			case DPCONTROL_PPATH_STATE_ENABLE:
-				if(DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET) != DRV_GPIO_STATUS_OK)
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to enable Power Path\r\n");
-				}
-				else
-				{
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Power Path successfully enabled\r\n");
-				}
-				break;
-			}
+		    /* --- BATTERY CONTROL --- */
+		    if(DRV_GPIO_Port_Init(DPCONTROL_BAT_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
+		        LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING, "Unable to initialize battery control port\r\n");
 
-			latchPinConfig.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
-			latchPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+		    if(DRV_GPIO_Pin_Init(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
+		        LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING, "Unable to initialize battery control pin\r\n");
 
-			if(DRV_GPIO_Port_Init(DPCONTROL_LATCH_PORT) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize latch port\r\n");
-			}
-			if(DRV_GPIO_Pin_Init(DPCONTROL_LATCH_PORT, DPCONTROL_LATCH_PIN, &latchPinConfig) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize latch pin\r\n");
-			}
+		    switch(prvDPCONTROL_DATA.batState)
+		    {
+		    case DPCONTROL_BAT_STATE_DISABLE:
+		        DRV_GPIO_Pin_SetState(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET);
+		        break;
+		    case DPCONTROL_BAT_STATE_ENABLE:
+		        DRV_GPIO_Pin_SetState(DPCONTROL_BAT_DISABLE_PORT, DPCONTROL_BAT_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET);
+		        break;
+		    }
 
-			/* Initialize Under voltage protection interrupt pin*/
-			protectionPinConfig.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
-			protectionPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
-			if (DRV_GPIO_Pin_Init(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, &protectionPinConfig) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Under Voltage GPIO\r\n");
-			}
+		    /* --- POWER PATH CONTROL --- */
+		    if(DRV_GPIO_Port_Init(DPCONTROL_GPIO_DISABLE_PORT) != DRV_GPIO_STATUS_OK)
+		        LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING, "Unable to initialize ppath control port\r\n");
 
-			if (DRV_GPIO_RegisterCallback(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, prvDPCONTROL_UnderVoltageCB, CONF_DPCONTROL_UV_ISR_PRIO) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Under Voltage callback\r\n");
-			}
-			drv_gpio_pin_state_t pinState = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN);
-			prvDPCONTROL_DATA.underVoltage = pinState;
-			if(prvDPCONTROL_DATA.underVoltage == DPCONTROL_PROTECTION_STATE_ENABLE)
-			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNING,  "Under voltage protection is active\r\n");
-			}
+		    if(DRV_GPIO_Pin_Init(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, &controlPinConfig) != DRV_GPIO_STATUS_OK)
+		        LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING, "Unable to initialize ppath control pin\r\n");
 
-			/* Initialize Over voltage protection interrupt pin*/
-			protectionPinConfig.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
-			protectionPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
-			if (DRV_GPIO_Pin_Init(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN, &protectionPinConfig) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Over Voltage GPIO\r\n");
-			}
+		    switch(prvDPCONTROL_DATA.pathState)
+		    {
+		    case DPCONTROL_PPATH_STATE_DISABLE:
+		        DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_SET);
+		        break;
+		    case DPCONTROL_PPATH_STATE_ENABLE:
+		        DRV_GPIO_Pin_SetState(DPCONTROL_GPIO_DISABLE_PORT, DPCONTROL_GPIO_DISABLE_PIN, DRV_GPIO_PIN_STATE_RESET);
+		        break;
+		    }
 
-			if (DRV_GPIO_RegisterCallback(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN, prvDPCONTROL_OverVoltageCB, CONF_DPCONTROL_OV_ISR_PRIO) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Over Voltage callback\r\n");
-			}
-			pinState = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN);
-			prvDPCONTROL_DATA.overVoltage = pinState;
-			if(prvDPCONTROL_DATA.overVoltage == DPCONTROL_PROTECTION_STATE_ENABLE)
-			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNING,  "Over voltage protection is active\r\n");
-			}
+		    /**********************************************************************
+		     * LATCH CONTROL INITIALIZATION
+		     **********************************************************************/
+		    latchPinConfig.mode = DRV_GPIO_PIN_MODE_OUTPUT_PP;
+		    latchPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
 
-			/* Initialize Over Current protection interrupt pin*/
-			protectionPinConfig.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
-			protectionPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
-			if (DRV_GPIO_Pin_Init(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN, &protectionPinConfig) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Over Voltage GPIO\r\n");
-			}
+		    DRV_GPIO_Port_Init(DPCONTROL_LATCH_PORT);
+		    DRV_GPIO_Pin_Init(DPCONTROL_LATCH_PORT, DPCONTROL_LATCH_PIN, &latchPinConfig);
 
-			if (DRV_GPIO_RegisterCallback(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN, prvDPCONTROL_OverCurrentCB, CONF_DPCONTROL_OC_ISR_PRIO) != DRV_GPIO_STATUS_OK)
-			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_ERROR,  "Unable to register Over Voltage callback\r\n");
-			}
-			pinState = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN);
-			prvDPCONTROL_DATA.overCurrent = pinState;
-			if(prvDPCONTROL_DATA.overCurrent == DPCONTROL_PROTECTION_STATE_ENABLE)
-			{
-				LOGGING_Write("DPControl",LOGGING_MSG_TYPE_WARNING,  "Over Current protection is active\r\n");
-			}
+		    /**********************************************************************
+		     * PROTECTION INPUTS (UV / OV / OC) INITIALIZATION
+		     **********************************************************************/
+		    protectionPinConfig.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
+		    protectionPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
 
-			if(DRV_AOUT_SetValue(prvDPCONTROL_DATA.aoutData.data) != DRV_AOUT_STATUS_OK)
-			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to set DAC value\r\n");
-			}
+		    /* --- UNDER VOLTAGE --- */
+		    DRV_GPIO_Port_Init(CONF_DPCONTROL_UV_PORT);
+		    DRV_GPIO_RegisterCallback(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, prvDPCONTROL_UnderVoltageCB, CONF_DPCONTROL_UV_ISR_PRIO);
+		    DRV_GPIO_Pin_Init(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN, &protectionPinConfig);
+		    prvDPCONTROL_DATA.underVoltage = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_UV_PORT, CONF_DPCONTROL_UV_PIN);
 
-			if(prvDPCONTROL_TIM_Init() != DPCONTROL_STATUS_OK)
-			{
-				LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to initialize wave timer\r\n");
-			}
+		    /* --- OVER VOLTAGE --- */
+		    DRV_GPIO_Port_Init(CONF_DPCONTROL_OV_PORT);
+		    DRV_GPIO_RegisterCallback(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN, prvDPCONTROL_OverVoltageCB, CONF_DPCONTROL_OV_ISR_PRIO);
+		    DRV_GPIO_Pin_Init(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN, &protectionPinConfig);
+		    prvDPCONTROL_DATA.overVoltage = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_OV_PORT, CONF_DPCONTROL_OV_PIN);
 
-			LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Discharge Profile Control service successfully initialized\r\n");
-			prvDPCONTROL_DATA.state	= DPCONTROL_STATE_SERVICE;
-			xSemaphoreGive(prvDPCONTROL_DATA.initSig);
-			break;
+		    /* --- OVER CURRENT --- */
+		    DRV_GPIO_Port_Init(CONF_DPCONTROL_OC_PORT);
+		    DRV_GPIO_RegisterCallback(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN, prvDPCONTROL_OverCurrentCB, CONF_DPCONTROL_OC_ISR_PRIO);
+		    DRV_GPIO_Pin_Init(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN, &protectionPinConfig);
+		    prvDPCONTROL_DATA.overCurrent = DRV_GPIO_Pin_ReadState(CONF_DPCONTROL_OC_PORT, CONF_DPCONTROL_OC_PIN);
+
+		    /**********************************************************************
+		     * PROTECTION THRESHOLD INITIALIZATION (UV / OV / OC VALUES)
+		     **********************************************************************/
+
+		    uint8_t def;
+
+		    CONFIGURATION_GetParameter_Float("PROTECTIONS_OVOLTAGE_VALUE", &prvDPCONTROL_DATA.ovValue, &def);
+		    CONFIGURATION_GetParameter_Float("PROTECTIONS_UVOLTAGE_VALUE", &prvDPCONTROL_DATA.uvValue, &def);
+		    CONFIGURATION_GetParameter_Int("PROTECTIONS_OCURRENT_VALUE", &prvDPCONTROL_DATA.ocValue, &def);
+
+		    CONFIGURATION_GetParameter_Float("SENS_SHUNT", &prvDPCONTROL_DATA.shuntValue, &def);
+		    CONFIGURATION_GetParameter_Float("SENS_GAIN", &prvDPCONTROL_DATA.gainValue, &def);
+
+		    /* Apply thresholds to DAC */
+		    DRV_AOUT_SetVoltage(prvDPCONTROL_DATA.ovValue, DRV_AOUT_CHANNEL_C);
+		    DRV_AOUT_SetVoltage(prvDPCONTROL_DATA.uvValue, DRV_AOUT_CHANNEL_B);
+
+		    float ocVoltage = 1.625 + (prvDPCONTROL_DATA.shuntValue * prvDPCONTROL_DATA.gainValue * (float)(prvDPCONTROL_DATA.ocValue) / 1000.0f);
+
+		    DRV_AOUT_SetVoltage(ocVoltage, DRV_AOUT_CHANNEL_A);
+
+		    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,
+		                  "Init: OV=%.2fV UV=%.2fV OC=%dmA | SHUNT=%.4f GAIN=%.2f\r\n",
+		                  prvDPCONTROL_DATA.ovValue,
+		                  prvDPCONTROL_DATA.uvValue,
+		                  prvDPCONTROL_DATA.ocValue,
+		                  prvDPCONTROL_DATA.shuntValue,
+		                  prvDPCONTROL_DATA.gainValue);
+
+		    /**********************************************************************
+		     * DAC INITIAL VALUE
+		     **********************************************************************/
+		    DRV_AOUT_SetVoltage(
+		        prvDPCONTROL_CurrentToVoltage(prvDPCONTROL_DATA.aoutData.data),
+		        DRV_AOUT_CHANNEL_D);
+
+		    /**********************************************************************
+		     * TIMER INITIALIZATION
+		     **********************************************************************/
+		    if(prvDPCONTROL_TIM_Init() != DPCONTROL_STATUS_OK)
+		        LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING, "Unable to initialize wave timer\r\n");
+
+		    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO, "DPControl service initialized\r\n");
+
+		    prvDPCONTROL_DATA.state = DPCONTROL_STATE_SERVICE;
+		    xSemaphoreGive(prvDPCONTROL_DATA.initSig);
+		    break;
 		case DPCONTROL_STATE_SERVICE:
 			xTaskNotifyWait(0x0, 0xFFFFFFFF, &value, portMAX_DELAY);
 			if(value & DPCONTROL_MASK_SET_VALUE)
@@ -650,7 +718,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 					prvDPCONTROL_DATA.state = DPCONTROL_STATE_ERROR;
 					break;
 				}
-				if(DRV_AOUT_SetValue(aoutValue) != DRV_AOUT_STATUS_OK)
+				if(DRV_AOUT_SetVoltage(prvDPCONTROL_CurrentToVoltage(aoutValue), DRV_AOUT_CHANNEL_D) != DRV_AOUT_STATUS_OK)
 				{
 					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_WARNING,  "Unable to set DAC value\r\n");
 				}
@@ -831,7 +899,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 						LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,  "Latch successfully reset\r\n");
 					}
 				}
-				//xSemaphoreGive(prvDPCONTROL_DATA.initSig);
+				xSemaphoreGive(prvDPCONTROL_DATA.initSig);
 			}
 
 			if(value & DPCONTROL_MASK_SET_UV_DETECTED)
@@ -912,8 +980,13 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 				}
 				else
 				{
+					if(prvDPCONTROL_WAVE_DATA.chainEndReached == 1)
+					{
+						prvDPCONTROL_WaveReinit();
+					}
+					prvDPCONTROL_ExecuteWaveChunk();
 					HAL_TIM_Base_Start_IT(&DPCONTROL_TIM);
-					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO, "Wave started\r\n");
+					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO, "Wave started- Iteration %d\r\n", prvDPCONTROL_WAVE_DATA.repetitionCounter);
 					prvDPCONTROL_WAVE_DATA.state = DPCONTROL_WAVE_STATE_ACTIVE;
 					xSemaphoreGive(prvDPCONTROL_DATA.initSig);
 				}
@@ -924,7 +997,7 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 
 				prvDPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_DISABLE);
 				DRV_AOUT_SetEnable(DRV_AOUT_ACTIVE_STATUS_DISABLED);
-				DRV_AOUT_SetValue(0);
+				DRV_AOUT_SetValue(0, DRV_AOUT_CHANNEL_D);
 				prvDPCONTROL_DATA.loadState = DPCONTROL_LOAD_STATE_DISABLE;
 				prvDPCONTROL_DATA.aoutData.active = DPCONTROL_DAC_STATUS_DISABLE;
 				prvDPCONTROL_DATA.aoutData.data = 0;
@@ -944,6 +1017,92 @@ static void prvDPCONTROL_TaskFunc(void* pvParameters){
 					xSemaphoreGive(prvDPCONTROL_DATA.initSig);
 					LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO, "Wave successfully cleared\r\n");
 				}
+			}
+			if(value & DPCONTROL_MASK_SET_OV_VALUE)
+			{
+			    float ov;
+
+			    if(xSemaphoreTake(prvDPCONTROL_DATA.guard, portMAX_DELAY) != pdTRUE)
+			    {
+			        prvDPCONTROL_DATA.state = DPCONTROL_STATE_ERROR;
+			        break;
+			    }
+
+			    ov = prvDPCONTROL_DATA.ovValue;
+
+			    xSemaphoreGive(prvDPCONTROL_DATA.guard);
+
+			    if(DRV_AOUT_SetVoltage(ov, DRV_AOUT_CHANNEL_C) != DRV_AOUT_STATUS_OK)
+			    {
+				    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_ERROR,"Unable to set Over Voltage \r\n", ov);
+			    }
+			    else
+			    {
+			    	CONFIGURATION_SetParameter_Float("PROTECTIONS_OVOLTAGE_VALUE", ov, 1000);
+					xSemaphoreGive(prvDPCONTROL_DATA.initSig);
+				    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,"OV threshold set to %.3f V\r\n", ov);
+			    }
+
+
+			}
+
+			if(value & DPCONTROL_MASK_SET_UV_VALUE)
+			{
+			    float uv;
+
+			    if(xSemaphoreTake(prvDPCONTROL_DATA.guard, portMAX_DELAY) != pdTRUE)
+			    {
+			        prvDPCONTROL_DATA.state = DPCONTROL_STATE_ERROR;
+			        break;
+			    }
+
+			    uv = prvDPCONTROL_DATA.uvValue;
+
+			    xSemaphoreGive(prvDPCONTROL_DATA.guard);
+
+			    if(DRV_AOUT_SetVoltage(uv, DRV_AOUT_CHANNEL_B) != DRV_AOUT_STATUS_OK)
+			    {
+				    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_ERROR,"Unable to set Under Voltage \r\n");
+			    }
+			    else
+			    {
+
+			        CONFIGURATION_SetParameter_Float("PROTECTIONS_UVOLTAGE_VALUE", uv, 1000);
+					xSemaphoreGive(prvDPCONTROL_DATA.initSig);
+				    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,"Under Voltage threshold set to %.3f V\r\n", uv);
+			    }
+			}
+
+			if(value & DPCONTROL_MASK_SET_OC_VALUE)
+			{
+			    int32_t oc;
+			    float voltageValue;
+
+			    if(xSemaphoreTake(prvDPCONTROL_DATA.guard, portMAX_DELAY) != pdTRUE)
+			    {
+			        prvDPCONTROL_DATA.state = DPCONTROL_STATE_ERROR;
+			        break;
+			    }
+
+			    oc = prvDPCONTROL_DATA.ocValue;
+
+			    xSemaphoreGive(prvDPCONTROL_DATA.guard);
+			    //1.625 is because of offset
+			    voltageValue = 1.625 + (CONF_DPCONTROL_SHUNT_VALUE*CONF_DPCONTROL_INA_GAIN*(float)(oc)/1000.0f);
+
+			    if(DRV_AOUT_SetVoltage(voltageValue, DRV_AOUT_CHANNEL_A) != DRV_AOUT_STATUS_OK)
+			    {
+				    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_ERROR,"Unable to set Over Current threshold \r\n");
+			    }
+			    else
+			    {
+
+			        CONFIGURATION_SetParameter_Int("PROTECTIONS_OCURRENT_VALUE", oc, 1000);
+					xSemaphoreGive(prvDPCONTROL_DATA.initSig);
+				    LOGGING_Write("DPControl", LOGGING_MSG_TYPE_INFO,"Over Current threshold set to %d mA V\r\n", oc);
+			    }
+
+			    // TODO: HW konfiguracija
 			}
 			break;
 		case DPCONTROL_STATE_ERROR:
@@ -1198,6 +1357,16 @@ dpcontrol_status_t DPCONTROL_SetWaveState(dpcontrol_wave_state_t state, uint32_t
 	return DPCONTROL_STATUS_OK;
 }
 
+dpcontrol_status_t DPCONTROL_SetWaveCounter(int counter, uint32_t timeout)
+{
+	if(prvDPCONTROL_WAVE_DATA.state == DPCONTROL_WAVE_STATE_ACTIVE) return DPCONTROL_STATUS_OK;
+	if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return DPCONTROL_STATUS_OK;
+
+	prvDPCONTROL_WAVE_DATA.repetitionCounter = counter;
+
+	if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE) return DPCONTROL_STATUS_OK;
+	return DPCONTROL_STATUS_OK;
+}
 dpcontrol_status_t DPCONTROL_ClearWave(uint32_t timeout)
 {
 	if(xTaskNotify(prvDPCONTROL_DATA.taskHandle, DPCONTROL_MASK_WAVE_CLEAR, eSetBits) != pdTRUE) return DPCONTROL_STATUS_ERROR;
@@ -1206,7 +1375,97 @@ dpcontrol_status_t DPCONTROL_ClearWave(uint32_t timeout)
 
 	return DPCONTROL_STATUS_OK;
 }
+dpcontrol_status_t DPCONTROL_SetOVValue(float value, uint32_t timeout)
+{
+    if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
 
+    prvDPCONTROL_DATA.ovValue = value;
+
+    if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    if(xTaskNotify(prvDPCONTROL_DATA.taskHandle,
+                   DPCONTROL_MASK_SET_OV_VALUE,
+                   eSetBits) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    return DPCONTROL_STATUS_OK;
+}
+
+dpcontrol_status_t DPCONTROL_SetUVValue(float value, uint32_t timeout)
+{
+    if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    prvDPCONTROL_DATA.uvValue = value;
+
+    if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    if(xTaskNotify(prvDPCONTROL_DATA.taskHandle,
+                   DPCONTROL_MASK_SET_UV_VALUE,
+                   eSetBits) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    return DPCONTROL_STATUS_OK;
+}
+
+dpcontrol_status_t DPCONTROL_SetOCValue(int32_t value, uint32_t timeout)
+{
+    if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    prvDPCONTROL_DATA.ocValue = value;
+
+    if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    if(xTaskNotify(prvDPCONTROL_DATA.taskHandle,
+                   DPCONTROL_MASK_SET_OC_VALUE,
+                   eSetBits) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    return DPCONTROL_STATUS_OK;
+}
+dpcontrol_status_t DPCONTROL_GetOVValue(float* value, uint32_t timeout)
+{
+    if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    *value = prvDPCONTROL_DATA.ovValue;
+
+    if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    return DPCONTROL_STATUS_OK;
+}
+
+dpcontrol_status_t DPCONTROL_GetUVValue(float* value, uint32_t timeout)
+{
+    if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    *value = prvDPCONTROL_DATA.uvValue;
+
+    if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    return DPCONTROL_STATUS_OK;
+}
+
+dpcontrol_status_t DPCONTROL_GetOCValue(int32_t* value, uint32_t timeout)
+{
+    if(xSemaphoreTake(prvDPCONTROL_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    *value = prvDPCONTROL_DATA.ocValue;
+
+    if(xSemaphoreGive(prvDPCONTROL_DATA.guard) != pdTRUE)
+        return DPCONTROL_STATUS_ERROR;
+
+    return DPCONTROL_STATUS_OK;
+}
 /**
  * @}
  */
