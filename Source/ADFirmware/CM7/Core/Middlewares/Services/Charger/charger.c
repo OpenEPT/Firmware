@@ -205,13 +205,11 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 	uint8_t defaultFlag = 0;
 	int32_t intValue;
 	int32_t retryCounter = 0;
-	int errorCode = 0;
 
 	drv_gpio_pin_init_conf_t protectionPinConfig;
-	charger_con_status_t previousConnectionStatus;
 
 	protectionPinConfig.mode = DRV_GPIO_PIN_MODE_INPUT;
-	protectionPinConfig.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+	protectionPinConfig.pullState = DRV_GPIO_PIN_PULL_UP;
 
 	prvCHARGER_DATA.connectionStatus = CHARGER_CON_STATUS_DISCONNECTED;
 
@@ -233,13 +231,11 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				continue;
 			}
 
-
 			/*If it is connected, continue from here*/
 			if(BQ25180_Init() != BQ25180_STATUS_OK)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to initialize BQ25180\r\n");
-				errorCode = 1;
 				break;
 			}
 
@@ -250,7 +246,6 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				{
 					retryCounter = 0;
 					prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
-					errorCode = 2;
 					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to establish connection with charger\r\n");
 					break;
 
@@ -266,7 +261,6 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 					retryCounter = 0;
 					prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to Communicate with charger EEPROM\r\n");
-					errorCode = 3;
 					break;
 				}
 				continue;
@@ -290,7 +284,6 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable all charger interrupts \r\n");
-				errorCode = 4;
 				break;
 			}
 
@@ -299,7 +292,6 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to register CB\r\n");
-				errorCode = 5;
 				break;
 			}
 
@@ -308,7 +300,6 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to register CB\r\n");
-				errorCode = 6;
 				break;
 			}
 
@@ -316,7 +307,6 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable charger \r\n");
-				errorCode = 7;
 				break;
 			}
 
@@ -328,7 +318,6 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set charger input current limit\r\n");
-				errorCode = 8;
 				break;
 			}
 
@@ -336,7 +325,6 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable WD\r\n");
-				errorCode = 9;
 				break;
 			}
 
@@ -346,7 +334,6 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set Termination voltage\r\n");
-				errorCode = 10;
 				break;
 			}
 
@@ -357,7 +344,6 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set Termination current\r\n");
-				errorCode = 11;
 				break;
 			}
 
@@ -369,7 +355,6 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to set charging current \r\n");
-				errorCode = 12;
 				break;
 			}
 
@@ -480,6 +465,18 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				{
 					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNING,  "Charging done \r\n");
 					CONTROL_StatusLinkSendMessage("charger charging done\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+				}
+				if(cStatus == BQ25180_CHARGING_STATUS_CC)
+				{
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNING,  "Charging CC \r\n");
+					CONTROL_StatusLinkSendMessage("charger charging cc\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+
+				}
+				if(cStatus == BQ25180_CHARGING_STATUS_CV)
+				{
+					LOGGING_Write("Charger service", LOGGING_MSG_TYPE_WARNING,  "Charging CV \r\n");
+					CONTROL_StatusLinkSendMessage("charger charging cv\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 1000);
+
 				}
 
 				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_INFO,  "Charger Int:  0x%02X \r\n", prvCHARGER_DATA.chargerIntStatus);
