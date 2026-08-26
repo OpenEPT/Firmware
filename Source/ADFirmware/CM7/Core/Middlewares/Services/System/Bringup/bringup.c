@@ -34,6 +34,7 @@
 #include "lwipopts.h"
 #include "m24c32.h"
 #include "drv_ain.h"
+#include "drv_aout.h"
 
 /**
  * @defgroup SERVICES Services
@@ -416,6 +417,146 @@ static uint8_t prvBRINGUP_LAN9252_Test(void)
 }
 
 /**
+ * @brief Perform analog output validation test
+ *
+ * This function initializes the analog output subsystem and
+ * validates communication with the external DAC by writing
+ * predefined output values to all used DAC channels.
+ *
+ * @retval 0 if successful, 1 otherwise
+ */
+static uint8_t prvBRINGUP_AOUT_Test(void)
+{
+    static const drv_aout_channel_t channels[] =
+    {
+        DRV_AOUT_CHANNEL_A,
+        DRV_AOUT_CHANNEL_B,
+        DRV_AOUT_CHANNEL_C,
+        DRV_AOUT_CHANNEL_D
+    };
+
+    static const char* channelNames[] =
+    {
+        "A - Overcurrent",
+        "B - Undervoltage",
+        "C - Overvoltage",
+        "D - Current Sink"
+    };
+
+    if(DRV_AOUT_Init() != DRV_AOUT_STATUS_OK)
+    {
+        LOGGING_Write("BringUp", LOGGING_MSG_TYPE_ERROR, "AOUT initialization failed\r\n");
+        return 1;
+    }
+
+    LOGGING_Write("BringUp", LOGGING_MSG_TYPE_INFO, "AOUT initialized\r\n");
+
+    /*
+     * Set all used external DAC channels to 1 V.
+     */
+    for(uint8_t i = 0; i < (sizeof(channels) / sizeof(channels[0])); i++)
+    {
+        LOGGING_Write("BringUp", LOGGING_MSG_TYPE_INFO, "Testing DAC channel %s ...\r\n", channelNames[i]);
+
+        if(DRV_AOUT_SetVoltage(1.0f, channels[i]) != DRV_AOUT_STATUS_OK)
+        {
+            LOGGING_Write("BringUp", LOGGING_MSG_TYPE_ERROR, "DAC channel %s write failed\r\n", channelNames[i]);
+            return 1;
+        }
+
+        LOGGING_Write("BringUp", LOGGING_MSG_TYPE_INFO, "DAC channel %s set to 1.0 V\r\n", channelNames[i]);
+
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
+
+
+    /*
+     * Return all DAC outputs to 0 V.
+     */
+    for(uint8_t i = 0; i < (sizeof(channels) / sizeof(channels[0])); i++)
+    {
+        if(DRV_AOUT_SetVoltage(0.0f, channels[i]) != DRV_AOUT_STATUS_OK)
+        {
+            LOGGING_Write("BringUp", LOGGING_MSG_TYPE_ERROR, "DAC channel reset failed\r\n");
+            return 1;
+        }
+    }
+
+    LOGGING_Write("BringUp", LOGGING_MSG_TYPE_INFO, "DAC communication validated\r\n");
+
+    return 0;
+}
+
+/**
+ * @brief Perform protection circuitry validation test
+ *
+ * This function validates programmable protection reference signals
+ * by setting predefined DAC output voltages for each protection channel.
+ *
+ * @retval 0 if successful, 1 otherwise
+ */
+static uint8_t prvBRINGUP_Protections_Test(void)
+{
+    static const drv_aout_channel_t channels[] =
+    {
+        DRV_AOUT_CHANNEL_A,
+        DRV_AOUT_CHANNEL_B,
+        DRV_AOUT_CHANNEL_C,
+        DRV_AOUT_CHANNEL_D
+    };
+
+    static const float voltages[] =
+    {
+        2.65f,
+        3.0f,
+        4.2f,
+        0.3f
+    };
+
+    static const char* messages[] =
+    {
+        "Testing Overcurrent protection - DAC channel A -> 2.65 V\r\n",
+        "Testing Undervoltage protection - DAC channel B -> 3.0 V\r\n",
+        "Testing Overvoltage protection - DAC channel C -> 4.2 V\r\n",
+        "Testing Current Sink control - DAC channel D -> 0.3 V\r\n"
+    };
+
+    drv_gpio_pin_init_conf_t gpioConf;
+
+    gpioConf.mode = DRV_GPIO_PIN_MODE_INPUT;
+    gpioConf.pullState = DRV_GPIO_PIN_PULL_NOPULL;
+
+    if(DRV_GPIO_Port_Init(DRV_GPIO_PORT_D) != DRV_GPIO_STATUS_OK)
+    {
+        LOGGING_Write("BringUp", LOGGING_MSG_TYPE_ERROR, "RESET_LATCH GPIO port initialization failed\r\n");
+        return 1;
+    }
+
+    if(DRV_GPIO_Pin_Init(DRV_GPIO_PORT_D, 0, &gpioConf) != DRV_GPIO_STATUS_OK)
+    {
+        LOGGING_Write("BringUp", LOGGING_MSG_TYPE_ERROR, "RESET_LATCH GPIO initialization failed\r\n");
+        return 1;
+    }
+
+    LOGGING_Write("BringUp", LOGGING_MSG_TYPE_INFO, "RESET_LATCH released - manual button control enabled\r\n");
+
+    for(uint8_t i = 0; i < (sizeof(channels) / sizeof(channels[0])); i++)
+    {
+        LOGGING_Write("BringUp", LOGGING_MSG_TYPE_INFO, messages[i]);
+
+        if(DRV_AOUT_SetVoltage(voltages[i], channels[i]) != DRV_AOUT_STATUS_OK)
+        {
+            LOGGING_Write("BringUp", LOGGING_MSG_TYPE_ERROR, "Protection DAC channel write failed\r\n");
+            return 1;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(3000));
+    }
+
+    return 0;
+}
+
+/**
  * @brief Perform EEPROM communication validation test
  *
  * This function initializes EEPROM driver and
@@ -610,21 +751,37 @@ static void prvBRINGUP_Task(void* args)
     LOGGING_Write("BringUp", LOGGING_MSG_TYPE_INFO, "ADC test successfully done\r\n");
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    /**
-     * ---------------------------------------------------------
-     * DAC communication validation
-     * ---------------------------------------------------------
-     */
+    /** DAC communication validation */
 
-    /* TODO: DAC validation */
+    LOGGING_Write("BringUp", LOGGING_MSG_TYPE_INFO, "DAC test started ...\r\n");
+    prvBRINGUP_RGB_Set(0, 0, 0);
 
-    /**
-     * ---------------------------------------------------------
-     * Protection circuitry validation
-     * ---------------------------------------------------------
-     */
+    if(prvBRINGUP_AOUT_Test() != 0)
+    {
+        prvBRINGUP_RGB_Set(255, 0, 0);
+        LOGGING_Write("BringUp", LOGGING_MSG_TYPE_ERROR, "DAC test failed\r\n");
+        vTaskDelete(NULL);
+    }
 
-    /* TODO: Protection validation */
+    prvBRINGUP_RGB_Set(0, 255, 0);
+    LOGGING_Write("BringUp", LOGGING_MSG_TYPE_INFO, "DAC test successfully done\r\n");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    /** Protection circuitry validation */
+
+    LOGGING_Write("BringUp", LOGGING_MSG_TYPE_INFO, "Protection test started ...\r\n");
+    prvBRINGUP_RGB_Set(0, 0, 0);
+
+    if(prvBRINGUP_Protections_Test() != 0)
+    {
+        prvBRINGUP_RGB_Set(255, 0, 0);
+        LOGGING_Write("BringUp", LOGGING_MSG_TYPE_ERROR, "Protection test failed\r\n");
+        vTaskDelete(NULL);
+    }
+
+    prvBRINGUP_RGB_Set(0, 255, 0);
+    LOGGING_Write("BringUp", LOGGING_MSG_TYPE_INFO, "Protection test successfully done\r\n");
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
 
 
