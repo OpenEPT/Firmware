@@ -41,25 +41,42 @@ The main connectors, controls, indicators, and test interfaces available on the 
 
 ![OpenEPT Energy Profiler Probe](Documentation/img/FrontSide_Info_NoBg.png)
 
-| Label | Interface / Function | Description |
-|:-----:|----------------------|-------------|
-| **C1** | Output connector | Output connection toward the Device Under Test (DUT). |
-| **C2** | Input connector | Main input connection to the Energy Profiler power path. |
-| **C3** | Charger connector | Power connection for the external charger board. |
-| **C4** | Charger interface | Communication and control interface for the external charger board. |
-| **C5** | Reset latch | Manual reset control for clearing latched hardware protection events. |
-| **C6** | 5 V power input | External 5 V supply input for the Energy Profiler electronics. |
-| **C7** | Ethernet | RJ45 Ethernet connection used for communication with the host application. |
-| **C8** | UART | UART interface used for debugging, logging, and hardware bring-up. |
-| **C9** | Reset MCU | Manual reset button for the main MCU. |
-| **C10** | Power indicators | Visual indication of the main power rails available on the board. |
-| **C11** | Status indicators | LEDs indicating acquisition, protection, load-control, and other board states. |
-| **C12** | System identification | RGB/status indication used to show the current system state. |
-| **C13** | ADC input selection | Selects the signal connected to the ADC measurement input. |
-| **C14** | Overvoltage selection | Selects the reference used by the overvoltage protection circuit. |
-| **C15** | Current-sink configuration | Current-sink compensation and analog adjustment section. |
-| **C16** | DAC test points | Test points for the DAC I2C interface and related DAC signals. |
-| **C17** | Protection test points | Test points for programmable overcurrent, undervoltage, and overvoltage reference signals. |
+### Connectors
+
+The main external connections of the Energy Profiler Probe are listed below.
+
+| PCB Label | Interface | Description |
+|------------|-----------|-------------|
+| **CHARGER** | Charger power and interface | Connection to the external charger board, including the charger power path and communication/control interface. |
+| **INPUT** | Battery input | XT30 connector used to connect the battery to the Energy Profiler Probe. |
+| **OUTPUT** | DUT output | XT30 connector used to connect the Device Under Test (DUT) whose energy consumption is being measured. |
+| **5V POWER** | System power supply | Barrel connector providing the 5 V supply required to power the Energy Profiler Probe electronics. |
+| **RJ45** | Ethernet | Ethernet connection used for communication between the Energy Profiler Probe and the host computer. |
+| **J9** | DUT profiling interface | Interface used for profiling the energy consumption of the Device Under Test. |
+
+### Status Indicators
+
+Several on-board LEDs provide direct visual feedback about the operating state of the Energy Profiler Probe and its protection circuitry.
+
+| PCB Label | Indicator | Description |
+|------------|-----------|-------------|
+| **BAT DISABLE** | Battery disabled | Indicates that the battery is disconnected from the corresponding power path. |
+| **SINK DISABLE** | Current sink disabled | Indicates that the programmable current sink is not active. |
+| **ACQUISITION** | Acquisition status | Blinks while measurement acquisition is running. |
+| **OVERVOLTAGE** | Overvoltage protection | Indicates that the overvoltage protection has been triggered. |
+| **UNDERVOLTAGE** | Undervoltage protection | Indicates that the undervoltage protection has been triggered. |
+| **OVERCURRENT** | Overcurrent protection | Indicates that the overcurrent protection has been triggered. |
+| **SYSTEM IDENTIFICATION** | System status RGB LED | RGB LED used to indicate the current operating state of the Energy Profiler Probe. |
+
+### Jumper Selection
+
+The board provides several hardware-selection jumpers that are useful during normal operation, calibration, and testing. The default position for each jumper is indicated below.
+
+| PCB Label | Selection | Options | Description |
+|------------|-----------|---------|-------------|
+| **J11** | Overvoltage Selection | **DAC (default)** / 12 V | Selects the reference used by the overvoltage protection circuit. In the default configuration, the programmable DAC output defines the overvoltage threshold. The alternative position selects the fixed 12 V reference. |
+| **J12** | Voltage Input Selection | **Battery (default)** / Voltage Reference | Selects the voltage source connected to the voltage measurement path. Battery voltage is used during normal operation, while the voltage-reference input is intended primarily for calibration. |
+| **J10** | Current Sink Voltage Selection | **Non-compensated (default)** / Compensated | Selects whether the current-sink control uses the DAC output directly or the offset-compensated signal. Since a zero DAC code does not result in exactly 0 A sink current, the compensated path can be selected to correct this offset using the on-board potentiometer. |
 
 
 ---
