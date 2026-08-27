@@ -39,7 +39,7 @@ Main features include:
 
 The main connectors, controls, indicators, and test interfaces available on the Energy Profiler Probe are shown below.
 
-![OpenEPT Energy Profiler Probe](Documentation/img/FrontSide_Info_NoB.png)
+![OpenEPT Energy Profiler Probe](Documentation/img/FrontSide_Info_NoBg.png)
 
 | Label | Interface / Function | Description |
 |:-----:|----------------------|-------------|
