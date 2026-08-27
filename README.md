@@ -16,22 +16,50 @@ Official [youtube](https://www.youtube.com/playlist?list=PLTG-EoxvlLos_3Sex3R0yf
 
 ---
 # Features
-- Real-time Voltage and Current streaming
-- High-speed data acquisition up to 1 MSPS
-- Programmable load generation and custom waveform creation
-- [Graphical User Interface](https://github.com/OpenEPT/GUI) for data visualization and control
-- Open source hardware
 
-![Board](Documentation/img/Board.png)
-| **Label** | **Description**                 | **Label** | **Description**                         |
-|------------|---------------------------------|-----------|-----------------------------------------|
-| C1         | 5V Power Supply                | C2        | Battery connectors                      |
-| C3         | Load connector                 | C4        | Charger connector                       |
-| C5         | Energy Debugging Interface     | C6        | Nucleo USB Connector (visible from bottom side) |
-| C7         | RJ45 Connector                 | C8        | Load and Charger Ground                 |
-| T1         | ADC Test Points                |           |                                         |
-| J2         | ADC Selector: Int or Ext (default) | J1    | Power supply selector: 5V (default) or 12V |
-| S2         | Power supply indicators        | S1        | Protection and switches status          |
+The OpenEPT Energy Profiler Probe (EPP) combines high-speed energy measurement, programmable load control, hardware protection, and device configuration in a single open-source platform.
+
+Main features include:
+
+- Real-time voltage, current, and energy-consumption streaming
+- High-speed data acquisition up to **1 MSPS**
+- Programmable sampling period
+- Programmable load generation and custom current waveform creation
+- Programmable **overcurrent, undervoltage, and overvoltage protection thresholds**
+- Hardware-based protection detection and latching
+- Programmable current-sink control
+- On-board non-volatile memory for persistent device configuration
+- Dedicated interface for an external battery charger board
+- Ethernet interface for measurement streaming and device control
+- USB/UART interface for debugging and hardware bring-up
+- Dedicated test points for analog and digital signal verification
+- Visual indication of power rails, protection events, acquisition state, and system status
+- [Graphical User Interface](https://github.com/OpenEPT/GUI) for acquisition, visualization, statistics, calibration, and device configuration
+- Fully open-source hardware and firmware
+
+The main connectors, controls, indicators, and test interfaces available on the Energy Profiler Probe are shown below.
+
+![OpenEPT Energy Profiler Probe](Documentation/img/FrontSide_Info_NoB.png)
+
+| Label | Interface / Function | Description |
+|:-----:|----------------------|-------------|
+| **C1** | Output connector | Output connection toward the Device Under Test (DUT). |
+| **C2** | Input connector | Main input connection to the Energy Profiler power path. |
+| **C3** | Charger connector | Power connection for the external charger board. |
+| **C4** | Charger interface | Communication and control interface for the external charger board. |
+| **C5** | Reset latch | Manual reset control for clearing latched hardware protection events. |
+| **C6** | 5 V power input | External 5 V supply input for the Energy Profiler electronics. |
+| **C7** | Ethernet | RJ45 Ethernet connection used for communication with the host application. |
+| **C8** | UART | UART interface used for debugging, logging, and hardware bring-up. |
+| **C9** | Reset MCU | Manual reset button for the main MCU. |
+| **C10** | Power indicators | Visual indication of the main power rails available on the board. |
+| **C11** | Status indicators | LEDs indicating acquisition, protection, load-control, and other board states. |
+| **C12** | System identification | RGB/status indication used to show the current system state. |
+| **C13** | ADC input selection | Selects the signal connected to the ADC measurement input. |
+| **C14** | Overvoltage selection | Selects the reference used by the overvoltage protection circuit. |
+| **C15** | Current-sink configuration | Current-sink compensation and analog adjustment section. |
+| **C16** | DAC test points | Test points for the DAC I2C interface and related DAC signals. |
+| **C17** | Protection test points | Test points for programmable overcurrent, undervoltage, and overvoltage reference signals. |
 
 
 ---
