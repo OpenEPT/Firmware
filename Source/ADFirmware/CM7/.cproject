@@ -82,6 +82,7 @@
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Middlewares/Services/FSystem/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Middlewares/Services/Control/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Middlewares/Services/DPControl/&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Middlewares/Services/Load/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Middlewares/Services/SamplesStream/&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Middlewares/Services/ED&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_PATH}/CM7/Core/Drivers/Platform/Timer&quot;"/>

@@ -36,6 +36,7 @@
 #include "fsystem.h"
 #include "configuration.h"
 #include "network.h"
+#include "load.h"
 
 /**
  * @defgroup SERVICES Service
@@ -536,7 +537,7 @@ static void prvCONTROL_SetDACActiveStatus(const char* arguments, uint16_t argume
 	sscanf(value.value, "%lu", &enableStatus);
 
 
-	if(DPCONTROL_SetDACStatus(enableStatus, 1000) == DPCONTROL_STATUS_OK)
+	if(LOAD_SetDACStatus(enableStatus, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Active status successfully set\r\n");
@@ -559,11 +560,11 @@ static void prvCONTROL_SetDACActiveStatus(const char* arguments, uint16_t argume
  */
 static void prvCONTROL_GetDACActiveStatus(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
-	dpcontrol_dac_status_t	activeState = 0;
+	load_dac_status_t	activeState = 0;
 	char						activeStateString[10];
 	uint32_t					activeStateStringLength = 0;
 
-	if(DPCONTROL_GetDACStatus(&activeState, 1000) != DPCONTROL_STATUS_OK)
+	if(LOAD_GetDACStatus(&activeState, 1000) != DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get DAC status\r\n");
@@ -1447,7 +1448,7 @@ static void prvCONTROL_GetMAC(const char* arguments, uint16_t argumentsLength, c
  */
 static void prvCONTROL_SetLoadEnable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
-	if(DPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_ENABLE, 1000) == DPCONTROL_STATUS_OK)
+	if(LOAD_SetState(LOAD_STATE_ENABLE, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Load status successfully set\r\n");
@@ -1469,7 +1470,7 @@ static void prvCONTROL_SetLoadEnable(const char* arguments, uint16_t argumentsLe
  */
 static void prvCONTROL_SetLoadDisable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
-	if(DPCONTROL_SetLoadState(DPCONTROL_LOAD_STATE_DISABLE, 1000) == DPCONTROL_STATUS_OK)
+	if(LOAD_SetState(LOAD_STATE_DISABLE, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Load status successfully set\r\n");
@@ -1491,11 +1492,11 @@ static void prvCONTROL_SetLoadDisable(const char* arguments, uint16_t argumentsL
  */
 static void prvCONTROL_GetLoad(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
-	dpcontrol_load_state_t		loadState = 0;
+	load_state_t				loadState = 0;
 	char						loadStateString[10];
 	uint32_t					loadStateStringLength = 0;
 
-	if(DPCONTROL_GetLoadState(&loadState, 1000) != DPCONTROL_STATUS_OK)
+	if(LOAD_GetState(&loadState, 1000) != DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get load status\r\n");
@@ -1519,7 +1520,7 @@ static void prvCONTROL_GetLoad(const char* arguments, uint16_t argumentsLength, 
  */
 static void prvCONTROL_SetBatEnable(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
-	if(DPCONTROL_SetBatState(DPCONTROL_LOAD_STATE_ENABLE, 1000) == DPCONTROL_STATUS_OK)
+	if(DPCONTROL_SetBatState(DPCONTROL_BAT_STATE_ENABLE, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Load status successfully set\r\n");
@@ -1937,7 +1938,7 @@ static void prvCONTROL_AddWaveChunk(const char* arguments, uint16_t argumentsLen
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain enable value\r\n");
 		return;
 	}
-	if(DPCONTROL_AddWaveChunk(value.value, value.size, 1000) == DPCONTROL_STATUS_OK)
+	if(LOAD_AddWaveChunk(value.value, value.size, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wave chunk successfully added\r\n");
@@ -1963,7 +1964,7 @@ static void prvCONTROL_WaveCounterSet(const char* arguments, uint16_t argumentsL
 	}
 	sscanf(value.value, "%d", &counter);
 
-	if(DPCONTROL_SetWaveCounter(counter, 1000) == DPCONTROL_STATUS_OK)
+	if(LOAD_SetWaveCounter(counter, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wave counter %d set\r\n", counter);
@@ -1998,7 +1999,7 @@ static void prvCONTROL_WaveChunkSet(const char* arguments, uint16_t argumentsLen
 	}
 	sscanf(value.value, "%lu", &enableStatus);
 
-	if(DPCONTROL_SetWaveState(enableStatus, 1000) == DPCONTROL_STATUS_OK)
+	if(LOAD_SetWaveState(enableStatus, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wave state set\r\n");
@@ -2022,7 +2023,7 @@ static void prvCONTROL_WaveChunkSet(const char* arguments, uint16_t argumentsLen
  */
 static void prvCONTROL_WaveClear(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
-	if(DPCONTROL_ClearWave(1000) == DPCONTROL_STATUS_OK)
+	if(LOAD_ClearWave(1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wave cleared\r\n");
@@ -2056,7 +2057,7 @@ static void prvCONTROL_SetDACValue(const char* arguments, uint16_t argumentsLeng
 	}
 	sscanf(value.value, "%lu", &dacValue);
 
-	if(DPCONTROL_SetValue(dacValue, 1000) == DPCONTROL_STATUS_OK)
+	if(LOAD_SetDACValue(dacValue, 1000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "DAC value %d set\r\n", dacValue);
@@ -2082,7 +2083,7 @@ static void prvCONTROL_GetDACValue(const char* arguments, uint16_t argumentsLeng
 	char							valueString[10];
 	uint32_t						valueStringLength = 0;
 
-	if(DPCONTROL_GetValue(&value, 1000) != DPCONTROL_STATUS_OK)
+	if(LOAD_GetDACValue(&value, 1000) != DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get DAC value\r\n");

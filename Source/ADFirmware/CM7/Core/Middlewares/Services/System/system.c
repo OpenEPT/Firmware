@@ -45,6 +45,7 @@
 #include "fsystem.h"
 #include "configuration.h"
 #include "Bringup/bringup.h"
+#include "load.h"
 
 
 /**
@@ -342,12 +343,21 @@ static void prvSYSTEM_Task()
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Discharge Profile Control service successfully initialized\r\n");
 
+			if(LOAD_Init(2000) != LOAD_STATUS_OK)
+			{
+				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
+				break;
+			}
+			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Load service successfully initialized\r\n");
+
 //			if(EEZ_DIB_Init(2000) != EEZ_DIB_STATUS_OK)
 //			{
 //				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
 //				break;
 //			}
 //			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "EEZ DIB service successfully initialized\r\n");
+
+
 
 			xSemaphoreGive(prvSYSTEM_DATA.initSig);
 			prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
