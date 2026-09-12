@@ -61,7 +61,7 @@
  * @defgroup SYSTEM_DEFINES System task defines and default values
  * @{
  */
-#define  SYSTEM_MASK_RGB_SET_COLOR	0x00000001  /**< Task notification flag for setting RGB LED color */
+#define  SYSTEM_MASK_SET_DIODE_STATE	0x00000001  /**< Task notification flag for setting RGB LED color */
 /**
  * @}
  */
@@ -356,7 +356,7 @@ static void prvSYSTEM_Task()
 		case SYSTEM_STATE_SERVICE:
 			/*Main application logic goes here*/
 			xTaskNotifyWait(0x0, 0xffffffff, &notifyValue, portMAX_DELAY);
-			if((notifyValue & SYSTEM_MASK_RGB_SET_COLOR) != 0)
+			if((notifyValue & SYSTEM_MASK_SET_DIODE_STATE) != 0)
 			{
 				prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
 			}
@@ -573,7 +573,7 @@ system_status_t SYSTEM_SetRGB(system_rgb_value_t value)
 
 	if(xSemaphoreGive(prvSYSTEM_DATA.guard) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
-	if(xTaskNotify(prvSYSTEM_TASK_HANDLE, SYSTEM_MASK_RGB_SET_COLOR, eSetBits) != pdTRUE) return SYSTEM_STATUS_ERROR;
+	if(xTaskNotify(prvSYSTEM_TASK_HANDLE, SYSTEM_MASK_SET_DIODE_STATE, eSetBits) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
 	return SYSTEM_STATUS_OK;
 }
