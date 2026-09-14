@@ -62,7 +62,8 @@ typedef enum
 typedef enum
 {
 	DRV_I2C_STATUS_OK,				/*!< I2C operation successful */
-	DRV_I2C_STATUS_ERROR			/*!< I2C operation failed */
+	DRV_I2C_STATUS_ERROR,			/*!< I2C operation failed */
+	DRV_I2C_STATUS_BUSY				/*!< I2C peripheral or bus is busy */
 } drv_i2c_status_t;
 
 /**
@@ -137,6 +138,51 @@ drv_i2c_status_t	DRV_I2C_Transmit(drv_i2c_instance_t instance, uint8_t addr, uin
  * @retval	::drv_i2c_status_t
  */
 drv_i2c_status_t	DRV_I2C_Receive(drv_i2c_instance_t instance, uint8_t addr, uint8_t* data, uint32_t size, uint32_t timeout);
+
+
+/**
+ * @brief	Transmit data to I2C slave device using DMA
+ * @param	instance: I2C peripheral instance to use. See ::drv_i2c_instance_t
+ * @param	addr: I2C slave device address (7-bit address shifted left by 1 for HAL API)
+ * @param	data: Pointer to data buffer to transmit
+ * @param	size: Number of bytes to transmit
+ * @retval	::drv_i2c_status_t
+ */
+drv_i2c_status_t 	DRV_I2C_TransmitDMA(drv_i2c_instance_t instance, uint8_t addr, uint8_t* data, uint32_t size);
+
+
+/**
+ * @brief   Prepare continuous TX DMA and timer-triggered I2C transactions
+ * @param   instance: I2C peripheral instance
+ * @param   addr: I2C slave address shifted left by one
+ * @param   data: Complete serialized TX buffer
+ * @param   size: Total number of bytes in TX buffer
+ * @param   transferSize: Number of bytes transmitted per timer trigger
+ * @retval  ::drv_i2c_status_t
+ */
+drv_i2c_status_t DRV_I2C_TransmitTriggeredDMA(drv_i2c_instance_t instance, uint8_t addr, uint8_t* data, uint32_t size, uint8_t transferSize);
+
+drv_i2c_status_t DRV_I2C_IsTriggeredDMAComplete(drv_i2c_instance_t instance, uint8_t* complete);
+
+/**
+ * @brief	Abort active I2C DMA transmission
+ * @param	instance: I2C peripheral instance to use. See ::drv_i2c_instance_t
+ * @retval	::drv_i2c_status_t
+ */
+/**
+ * @brief	Wait until I2C peripheral and bus become idle
+ * @param	instance: I2C peripheral instance to use. See ::drv_i2c_instance_t
+ * @param	timeout: Maximum time to wait in milliseconds
+ * @retval	::DRV_I2C_STATUS_OK if idle, ::DRV_I2C_STATUS_BUSY on timeout
+ */
+drv_i2c_status_t 	DRV_I2C_WaitIdle(drv_i2c_instance_t instance, uint32_t timeout);
+
+drv_i2c_status_t 	DRV_I2C_AbortDMA(drv_i2c_instance_t instance);
+
+typedef void (*drv_i2c_tx_dma_complete_callback_t)(void);
+
+drv_i2c_status_t DRV_I2C_RegisterTxDMACompleteCallback(drv_i2c_instance_t instance, drv_i2c_tx_dma_complete_callback_t callback);
+
 
 /**
  * @}

@@ -158,6 +158,11 @@ typedef enum
     DAC6578_CHANNEL_ENABLED        /*!< Channel operating normally */
 } dac6578_channel_state_t;
 
+typedef struct
+{
+    uint8_t data[3];
+} dac6578_frame_t;
+
 /**
  * @}
  */
@@ -254,6 +259,27 @@ dac6578_status_t DAC6578_SetChannelState(dac6578_channel_t channel,
  * @retval DAC6578_STATUS_ERROR  Communication error
  */
 dac6578_status_t DAC6578_Reset(uint32_t timeout);
+
+dac6578_status_t DAC6578_SerializeSetAndUpdate(dac6578_channel_t channel, uint16_t value, dac6578_frame_t* frame);
+
+dac6578_status_t DAC6578_TransmitFrameDMA(dac6578_frame_t* frame);
+
+dac6578_status_t DAC6578_TransmitFramesTriggeredDMA(dac6578_frame_t* frames, uint32_t frameCount);
+
+dac6578_status_t DAC6578_IsTriggeredDMAComplete(uint8_t* complete);
+
+/**
+ * @brief Wait until DAC I2C interface is idle
+ * @param timeout: Maximum time to wait in milliseconds
+ * @retval ::dac6578_status_t
+ */
+dac6578_status_t DAC6578_WaitIdle(uint32_t timeout);
+
+/**
+ * @brief Abort active DAC DMA transmission
+ * @retval ::dac6578_status_t
+ */
+dac6578_status_t DAC6578_AbortDMA(void);
 
 /**
  * @}

@@ -40,7 +40,7 @@
 #define LOAD_WAVE_CHUNK_MSG_SIZE               50
 #define LOAD_WAVE_CHUNK_MSG_FIELDS             6
 #define LOAD_WAVE_CHUNK_MSG_QUEUE_LENGTH       10
-#define LOAD_WAVE_CHUNK_MAX_NO                 10
+#define LOAD_WAVE_CHUNK_MAX_NO                 200
 #define LOAD_WAVE_CHUNK_PBS                    200
 
 /**
@@ -83,6 +83,12 @@ typedef enum
 /**
  * @brief DAC active status
  */
+/**
+ * @brief Wave complete callback type.
+ * @note  Called from ISR context when wave finishes all repetitions.
+ */
+typedef void (*load_wave_complete_callback_t)(void);
+
 typedef enum {
     LOAD_DAC_STATUS_INACTIVE = 0, /*!< DAC inactive */
     LOAD_DAC_STATUS_ACTIVE        /*!< DAC active */
@@ -167,6 +173,13 @@ load_status_t LOAD_SetWaveCounter(int counter, uint32_t timeout);
  * @retval ::LOAD_STATUS_OK or ::LOAD_STATUS_ERROR
  */
 load_status_t LOAD_ClearWave(uint32_t timeout);
+
+/**
+ * @brief Register callback invoked when wave completes (ISR context).
+ * @param callback Function to call, NULL to unregister.
+ * @retval ::LOAD_STATUS_OK or ::LOAD_STATUS_ERROR
+ */
+load_status_t LOAD_RegisterWaveCompleteCallback(load_wave_complete_callback_t callback);
 
 /**
  * @brief	Set the status of the DAC (Digital-to-Analog Converter).

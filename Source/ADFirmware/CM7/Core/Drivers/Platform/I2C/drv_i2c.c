@@ -41,6 +41,11 @@ typedef struct drv_i2c_handle_t
 	drv_i2c_config_t					config;			/**< Configuration parameters for the I2C instance */
 	SemaphoreHandle_t					lock;			/**< Mutex for thread-safe access to the I2C instance */
 	I2C_HandleTypeDef 					deviceHandler;	/**< HAL I2C handle */
+    DMA_HandleTypeDef                  	txDMAHandler;
+    DMA_HandleTypeDef                   triggerDMAHandler;
+    uint8_t                            	txDMAAddress;
+    uint32_t                            triggerCR2;
+    drv_i2c_tx_dma_complete_callback_t 	txDMACompleteCallback;
 } drv_i2c_handle_t;
 
 /**
@@ -54,6 +59,7 @@ typedef struct drv_i2c_handle_t
 
 /** @brief Array of I2C driver handles, one for each supported I2C instance */
 static drv_i2c_handle_t prvDRV_I2C_INSTANCES[DRV_I2C_INSTANCES_MAX_NUMBER];
+
 
 /**
  * @}
@@ -159,6 +165,9 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
 
 		/* Peripheral clock enable */
 		__HAL_RCC_I2C2_CLK_ENABLE();
+
+		HAL_NVIC_SetPriority(I2C2_EV_IRQn, 5U, 0U);
+		HAL_NVIC_EnableIRQ(I2C2_EV_IRQn);
 	}
 	else if(hi2c->Instance == I2C4)
 	{
@@ -202,6 +211,15 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
 		*/
 		HAL_GPIO_DeInit(GPIOB, GPIO_PIN_6 | GPIO_PIN_7);
 	}
+	else if(hi2c->Instance == I2C2)
+	{
+	    __HAL_RCC_I2C2_CLK_DISABLE();
+
+	    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_10 | GPIO_PIN_11);
+
+	    HAL_NVIC_DisableIRQ(I2C2_EV_IRQn);
+	    HAL_NVIC_DisableIRQ(DMA2_Stream2_IRQn);
+	}
 	else if(hi2c->Instance == I2C4)
 	{
 		__HAL_RCC_I2C4_CLK_DISABLE();
@@ -216,6 +234,116 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
 	{
 		/* Unsupported instance */
 	}
+
+}
+
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c)
+{
+    uint32_t i;
+
+    for(i = 0U; i < DRV_I2C_INSTANCES_MAX_NUMBER; i++)
+    {
+        if(hi2c == &prvDRV_I2C_INSTANCES[i].deviceHandler)
+        {
+            if(prvDRV_I2C_INSTANCES[i].txDMACompleteCallback != NULL)
+            {
+                prvDRV_I2C_INSTANCES[i].txDMACompleteCallback();
+            }
+
+            break;
+        }
+    }
+}
+
+
+/**
+ * @brief Initialize DMA used for I2C transmission
+ * @param handle: Pointer to I2C driver handle
+ * @retval ::drv_i2c_status_t
+ */
+static drv_i2c_status_t prvDRV_I2C_DMAInit(drv_i2c_handle_t* handle)
+{
+    if(handle == NULL)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    if(handle->instance != DRV_I2C_INSTANCE_2)
+    {
+        return DRV_I2C_STATUS_OK;
+    }
+
+    __HAL_RCC_DMA2_CLK_ENABLE();
+
+    handle->txDMAHandler.Instance = DMA2_Stream2;
+    handle->txDMAHandler.Init.Request = DMA_REQUEST_I2C2_TX;
+    handle->txDMAHandler.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    handle->txDMAHandler.Init.PeriphInc = DMA_PINC_DISABLE;
+    handle->txDMAHandler.Init.MemInc = DMA_MINC_ENABLE;
+    handle->txDMAHandler.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    handle->txDMAHandler.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    handle->txDMAHandler.Init.Mode = DMA_NORMAL;
+    handle->txDMAHandler.Init.Priority = DMA_PRIORITY_HIGH;
+    handle->txDMAHandler.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+
+    if(HAL_DMA_Init(&handle->txDMAHandler) != HAL_OK)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    handle->triggerDMAHandler.Instance = DMA2_Stream3;
+    handle->triggerDMAHandler.Init.Request = DMA_REQUEST_TIM7_UP;
+    handle->triggerDMAHandler.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    handle->triggerDMAHandler.Init.PeriphInc = DMA_PINC_DISABLE;
+    handle->triggerDMAHandler.Init.MemInc = DMA_MINC_DISABLE;
+    handle->triggerDMAHandler.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    handle->triggerDMAHandler.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+    handle->triggerDMAHandler.Init.Mode = DMA_CIRCULAR;
+    handle->triggerDMAHandler.Init.Priority = DMA_PRIORITY_VERY_HIGH;
+    handle->triggerDMAHandler.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+
+    if(HAL_DMA_Init(&handle->triggerDMAHandler) != HAL_OK)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    __HAL_LINKDMA(&handle->deviceHandler, hdmatx, handle->txDMAHandler);
+
+    HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5U, 0U);
+    HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+
+    return DRV_I2C_STATUS_OK;
+}
+
+
+__weak void DRV_I2C_TriggeredDMACompleteCallback(drv_i2c_instance_t instance)
+{
+    (void)instance;
+}
+
+static void prvDRV_I2C_TriggeredTXComplete(DMA_HandleTypeDef* hdma)
+{
+    drv_i2c_handle_t* handle = &prvDRV_I2C_INSTANCES[DRV_I2C_INSTANCE_2];
+
+    if(hdma != &handle->txDMAHandler)
+    {
+        return;
+    }
+
+    CLEAR_BIT(handle->deviceHandler.Instance->CR1, I2C_CR1_TXDMAEN);
+    (void)HAL_DMA_Abort(&handle->triggerDMAHandler);
+
+    DRV_I2C_TriggeredDMACompleteCallback(DRV_I2C_INSTANCE_2);
+}
+
+void DMA2_Stream2_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&prvDRV_I2C_INSTANCES[DRV_I2C_INSTANCE_2].txDMAHandler);
+}
+
+void I2C2_EV_IRQHandler(void)
+{
+    HAL_I2C_EV_IRQHandler(&prvDRV_I2C_INSTANCES[DRV_I2C_INSTANCE_2].deviceHandler);
 }
 
 drv_i2c_status_t DRV_I2C_Init(void)
@@ -289,6 +417,12 @@ drv_i2c_status_t DRV_I2C_Instance_Init(drv_i2c_instance_t instance, drv_i2c_conf
 	{
 		(void)HAL_I2C_DeInit(&handle->deviceHandler);
 		return DRV_I2C_STATUS_ERROR;
+	}
+
+	if(prvDRV_I2C_DMAInit(handle) != DRV_I2C_STATUS_OK)
+	{
+	    (void)HAL_I2C_DeInit(&handle->deviceHandler);
+	    return DRV_I2C_STATUS_ERROR;
 	}
 
 	handle->initState = DRV_I2C_INITIALIZATION_STATUS_INIT;
@@ -405,6 +539,10 @@ drv_i2c_status_t DRV_I2C_Transmit(drv_i2c_instance_t instance,
 
     return status;
 }
+__weak void DRV_I2C_TransmitDMACompleteCallback(drv_i2c_instance_t instance)
+{
+
+}
 
 drv_i2c_status_t DRV_I2C_Receive(drv_i2c_instance_t instance, uint8_t addr, uint8_t* data, uint32_t size, uint32_t timeout)
 {
@@ -440,7 +578,191 @@ drv_i2c_status_t DRV_I2C_Receive(drv_i2c_instance_t instance, uint8_t addr, uint
 
 	return status;
 }
+drv_i2c_status_t DRV_I2C_TransmitDMA(drv_i2c_instance_t instance, uint8_t addr, uint8_t* data, uint32_t size)
+{
+    drv_i2c_handle_t* handle = NULL;
 
+    if((prvDRV_I2C_IsValidInstance(instance) == 0U) || (data == NULL) || (size == 0U) || (size > UINT16_MAX))
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    if(instance != DRV_I2C_INSTANCE_2)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    handle = &prvDRV_I2C_INSTANCES[instance];
+
+    if(handle->initState != DRV_I2C_INITIALIZATION_STATUS_INIT)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    if(HAL_I2C_GetState(&handle->deviceHandler) != HAL_I2C_STATE_READY)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+    handle->txDMAAddress = addr;
+
+    if(HAL_I2C_Master_Transmit_DMA(&handle->deviceHandler, addr, data, (uint16_t)size) != HAL_OK)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    return DRV_I2C_STATUS_OK;
+}
+
+
+
+drv_i2c_status_t DRV_I2C_TransmitTriggeredDMA(drv_i2c_instance_t instance, uint8_t addr, uint8_t* data, uint32_t size, uint8_t transferSize)
+{
+    drv_i2c_handle_t* handle = NULL;
+
+    if((prvDRV_I2C_IsValidInstance(instance) == 0U) || (data == NULL) || (size == 0U) || (transferSize == 0U) || ((size % transferSize) != 0U))
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    if(instance != DRV_I2C_INSTANCE_2)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    handle = &prvDRV_I2C_INSTANCES[instance];
+
+    if(handle->initState != DRV_I2C_INITIALIZATION_STATUS_INIT)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    if((handle->txDMAHandler.State != HAL_DMA_STATE_READY) || (handle->triggerDMAHandler.State != HAL_DMA_STATE_READY))
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    if((handle->deviceHandler.Instance->ISR & I2C_ISR_BUSY) != 0U)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    handle->txDMAAddress = addr;
+
+    handle->triggerCR2 = ((uint32_t)addr & I2C_CR2_SADD) |
+                         ((uint32_t)transferSize << I2C_CR2_NBYTES_Pos) |
+                         I2C_CR2_AUTOEND |
+                         I2C_CR2_START;
+
+    CLEAR_BIT(handle->deviceHandler.Instance->CR1, I2C_CR1_TXDMAEN);
+    WRITE_REG(handle->deviceHandler.Instance->ICR, I2C_ICR_STOPCF | I2C_ICR_NACKCF | I2C_ICR_BERRCF | I2C_ICR_ARLOCF | I2C_ICR_OVRCF);
+    MODIFY_REG(handle->deviceHandler.Instance->CR2,
+               I2C_CR2_SADD | I2C_CR2_NBYTES | I2C_CR2_RELOAD | I2C_CR2_AUTOEND | I2C_CR2_RD_WRN | I2C_CR2_START | I2C_CR2_STOP,
+               0U);
+
+    handle->txDMAHandler.XferCpltCallback = prvDRV_I2C_TriggeredTXComplete;
+
+    if(HAL_DMA_Start_IT(&handle->txDMAHandler, (uint32_t)data, (uint32_t)&handle->deviceHandler.Instance->TXDR, size) != HAL_OK)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    SET_BIT(handle->deviceHandler.Instance->CR1, I2C_CR1_TXDMAEN);
+
+    if(HAL_DMA_Start(&handle->triggerDMAHandler, (uint32_t)&handle->triggerCR2, (uint32_t)&handle->deviceHandler.Instance->CR2, 1U) != HAL_OK)
+    {
+        CLEAR_BIT(handle->deviceHandler.Instance->CR1, I2C_CR1_TXDMAEN);
+        (void)HAL_DMA_Abort(&handle->txDMAHandler);
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    return DRV_I2C_STATUS_OK;
+}
+
+drv_i2c_status_t DRV_I2C_WaitIdle(drv_i2c_instance_t instance, uint32_t timeout)
+{
+    drv_i2c_handle_t* handle = NULL;
+    uint32_t tickStart;
+
+    if(prvDRV_I2C_IsValidInstance(instance) == 0U)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    handle = &prvDRV_I2C_INSTANCES[instance];
+
+    if(handle->initState != DRV_I2C_INITIALIZATION_STATUS_INIT)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    tickStart = HAL_GetTick();
+
+    while((HAL_I2C_GetState(&handle->deviceHandler) != HAL_I2C_STATE_READY) ||
+          ((handle->deviceHandler.Instance->ISR & I2C_ISR_BUSY) != 0U))
+    {
+        if((HAL_GetTick() - tickStart) >= timeout)
+        {
+            return DRV_I2C_STATUS_BUSY;
+        }
+    }
+
+    return DRV_I2C_STATUS_OK;
+}
+
+drv_i2c_status_t DRV_I2C_AbortDMA(drv_i2c_instance_t instance)
+{
+    drv_i2c_handle_t* handle = NULL;
+
+    if(prvDRV_I2C_IsValidInstance(instance) == 0U)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    if(instance != DRV_I2C_INSTANCE_2)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    handle = &prvDRV_I2C_INSTANCES[instance];
+
+    if(handle->initState != DRV_I2C_INITIALIZATION_STATUS_INIT)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    CLEAR_BIT(handle->deviceHandler.Instance->CR1, I2C_CR1_TXDMAEN);
+
+    if(handle->triggerDMAHandler.State != HAL_DMA_STATE_READY)
+    {
+        (void)HAL_DMA_Abort(&handle->triggerDMAHandler);
+    }
+
+    if(handle->txDMAHandler.State != HAL_DMA_STATE_READY)
+    {
+        (void)HAL_DMA_Abort(&handle->txDMAHandler);
+    }
+
+    if((handle->deviceHandler.Instance->ISR & I2C_ISR_BUSY) != 0U)
+    {
+        SET_BIT(handle->deviceHandler.Instance->CR2, I2C_CR2_STOP);
+    }
+
+    WRITE_REG(handle->deviceHandler.Instance->ICR, I2C_ICR_STOPCF | I2C_ICR_NACKCF | I2C_ICR_BERRCF | I2C_ICR_ARLOCF | I2C_ICR_OVRCF);
+
+    return DRV_I2C_STATUS_OK;
+}
+
+drv_i2c_status_t DRV_I2C_RegisterTxDMACompleteCallback(drv_i2c_instance_t instance, drv_i2c_tx_dma_complete_callback_t callback)
+{
+    if(prvDRV_I2C_IsValidInstance(instance) == 0U)
+    {
+        return DRV_I2C_STATUS_ERROR;
+    }
+
+    prvDRV_I2C_INSTANCES[instance].txDMACompleteCallback = callback;
+
+    return DRV_I2C_STATUS_OK;
+}
 /**
  * @}
  */

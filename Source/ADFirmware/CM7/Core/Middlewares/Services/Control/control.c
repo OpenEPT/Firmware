@@ -1490,6 +1490,52 @@ static void prvCONTROL_SetLoadDisable(const char* arguments, uint16_t argumentsL
  * @param	responseSize: length of response message
  * @retval	void
  */
+static void prvCONTROL_SetLoadCurrent(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	cmparse_value_t				value;
+	uint32_t					current;
+
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain load current value\r\n");
+		return;
+	}
+	sscanf(value.value, "%lu", &current);
+
+	if(LOAD_SetCurrent(current, 1000) == LOAD_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Load current %lu mA set\r\n", (unsigned long)current);
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set load current\r\n");
+		return;
+	}
+}
+
+static void prvCONTROL_GetLoadCurrent(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	uint32_t					current = 0;
+	char						currentString[12];
+	uint32_t					currentStringLength = 0;
+
+	if(LOAD_GetCurrent(&current, 1000) != LOAD_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to get load current\r\n");
+	}
+	else
+	{
+		memset(currentString, 0, 12);
+		currentStringLength = sprintf(currentString, "%lu", (unsigned long)current);
+		prvCONTROL_PrepareOkResponse(response, responseSize, currentString, currentStringLength);
+	}
+}
+
 static void prvCONTROL_GetLoad(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	load_state_t				loadState = 0;
@@ -1999,7 +2045,7 @@ static void prvCONTROL_WaveChunkSet(const char* arguments, uint16_t argumentsLen
 	}
 	sscanf(value.value, "%lu", &enableStatus);
 
-	if(LOAD_SetWaveState(enableStatus, 1000) == DPCONTROL_STATUS_OK)
+	if(LOAD_SetWaveState(enableStatus, 3000) == DPCONTROL_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wave state set\r\n");
@@ -3268,6 +3314,8 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 	CMPARSE_AddCommand("device load enable", 			prvCONTROL_SetLoadEnable);
 	CMPARSE_AddCommand("device load disable", 			prvCONTROL_SetLoadDisable);
 	CMPARSE_AddCommand("device load get", 				prvCONTROL_GetLoad);
+	CMPARSE_AddCommand("device load current set", 		prvCONTROL_SetLoadCurrent);
+	CMPARSE_AddCommand("device load current get", 		prvCONTROL_GetLoadCurrent);
 
 	CMPARSE_AddCommand("device bat enable", 			prvCONTROL_SetBatEnable);
 	CMPARSE_AddCommand("device bat disable", 			prvCONTROL_SetBatDisable);
@@ -3411,6 +3459,11 @@ control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, contol_stat
 	messageData.type = type;
 	if(xQueueSend(prvCONTROL_STATUS_LINK_DATA[0].messageQueue,&messageData,timeout) != pdPASS) return CONTROL_STATUS_ERROR;
 	return CONTROL_STATUS_OK;
+}
+
+control_status_t 	CONTROL_LoadWaveStoppedNotifyFromISR(void)
+{
+	return CONTROL_StatusLinkSendMessageFromISR("load wave stopped\r\n", CONTROL_STATUS_MESSAGE_TYPE_ACTION, 0);
 }
 
 control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, contol_status_message_type_t type, uint32_t timeout)

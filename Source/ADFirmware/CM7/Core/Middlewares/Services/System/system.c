@@ -142,6 +142,11 @@ static void prvSYSTEM_AcquisitionStateChanged(uint32_t id, sstream_acquisition_s
 
 }
 
+static void prvSYSTEM_LoadWaveCompleted(void)
+{
+	CONTROL_LoadWaveStoppedNotifyFromISR();
+}
+
 /**
  * @brief Initialize PWM timer used for RGB LED control
  *
@@ -349,6 +354,11 @@ static void prvSYSTEM_Task()
 				break;
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Load service successfully initialized\r\n");
+
+			if(LOAD_RegisterWaveCompleteCallback(prvSYSTEM_LoadWaveCompleted) != LOAD_STATUS_OK)
+			{
+				LOGGING_Write("System", LOGGING_MSG_TYPE_ERROR, "Unable to register load wave complete callback\r\n");
+			}
 
 //			if(EEZ_DIB_Init(2000) != EEZ_DIB_STATUS_OK)
 //			{
