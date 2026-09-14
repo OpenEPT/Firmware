@@ -38,6 +38,11 @@
 #define LOAD_DISABLE_PIN                       CONF_LOAD_DISABLE_PIN
 
 #define LOAD_WAVE_CHUNK_MSG_SIZE               50
+#define LOAD_WAVE_MARKER_NAME_SIZE             32
+#define LOAD_WAVE_MARKER_POS_NONE              0
+#define LOAD_WAVE_MARKER_POS_START             's'
+#define LOAD_WAVE_MARKER_POS_END               'e'
+#define LOAD_WAVE_MARKER_POS_BOTH              'b'
 #define LOAD_WAVE_CHUNK_MSG_FIELDS             6
 #define LOAD_WAVE_CHUNK_MSG_QUEUE_LENGTH       10
 #define LOAD_WAVE_CHUNK_MAX_NO                 200
@@ -150,6 +155,19 @@ load_status_t LOAD_GetState(load_state_t* state, uint32_t timeout);
  * @retval ::LOAD_STATUS_OK or ::LOAD_STATUS_ERROR
  */
 load_status_t LOAD_AddWaveChunk(char* waveDesc, uint16_t waveDescSize, uint32_t timeout);
+
+/**
+ * @brief Add waveform chunk with optional energy debugger marker.
+ * @param waveDesc Wave chunk textual description.
+ * @param waveDescSize Wave chunk description size.
+ * @param markerName Marker name (NULL when chunk has no marker).
+ * @param markerNameSize Marker name size.
+ * @param markerPos ::LOAD_WAVE_MARKER_POS_START, ::LOAD_WAVE_MARKER_POS_END or ::LOAD_WAVE_MARKER_POS_BOTH
+ *        (for BOTH, markerName holds "start name, end name").
+ * @param timeout Timeout in milliseconds.
+ * @retval ::LOAD_STATUS_OK or ::LOAD_STATUS_ERROR
+ */
+load_status_t LOAD_AddWaveChunkWithMarker(char* waveDesc, uint16_t waveDescSize, const char* markerName, uint8_t markerNameSize, char markerPos, uint32_t timeout);
 
 /**
  * @brief Start or stop waveform generation.

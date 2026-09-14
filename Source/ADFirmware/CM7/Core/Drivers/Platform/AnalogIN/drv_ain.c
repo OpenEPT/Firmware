@@ -59,6 +59,7 @@ static uint8_t							prvDRV_AIN_CAPTURE_EVENT;        /**< Flag for capture even
 static uint8_t							prvDRV_AIN_CAPTURE_SINGLE_BUFFER; /**< Flag for single buffer capture mode */
 
 static uint8_t							prvDRV_AIN_SAMPLES_NO;           /**< Number of samples per acquisition */
+static drv_ain_adc_t					prvDRV_AIN_ACTIVE_ADC;           /**< ADC used by the running acquisition */
 
 
 /**
@@ -429,6 +430,8 @@ drv_ain_status 						DRV_AIN_Init(drv_ain_adc_t adc, drv_ain_adc_config_t* confi
 drv_ain_status 						DRV_AIN_Start(drv_ain_adc_t adc)
 {
 	if(prvDRV_AIN_ACQUISITION_STATUS == DRV_AIN_ADC_ACQUISITION_STATUS_ACTIVE) return DRV_AIN_STATUS_ERROR;
+
+	prvDRV_AIN_ACTIVE_ADC = adc;
 
 	memset((void*)prvDRV_AIN_ADC_DATA_SAMPLES, 0, 2*(CONF_AIN_MAX_BUFFER_NO*(DRV_AIN_ADC_BUFFER_MAX_SIZE + DRV_AIN_ADC_BUFFER_OFFSET)));
 	memset((void*)prvDRV_AIN_ADC_DATA_SAMPLES_ADS9224R, 0, 2*(CONF_AIN_MAX_BUFFER_NO*(DRV_AIN_ADC_BUFFER_MAX_SIZE + DRV_AIN_ADC_BUFFER_OFFSET)));
@@ -811,12 +814,28 @@ drv_ain_status 						DRV_AIN_Stream_SubmitAddr(drv_ain_adc_t adc, uint32_t addr,
 	return DRV_AIN_STATUS_OK;
 }
 
-drv_ain_status 						DRV_AIN_Stream_SetCapture(uint32_t* packetCounter)
+drv_ain_status 						DRV_AIN_Stream_SetCapture(uint32_t* packetCounter, uint32_t* sampleCounter)
 {
 	//TODO: Should be protected
 	prvDRV_AIN_CAPTURE_EVENT = 1;
 
 	*packetCounter = prvDRV_AIN_ADC_BUFFER_COUNTER;
+
+	if(sampleCounter != NULL)
+	{
+		uint32_t remaining = 0U;
+
+		if(prvDRV_AIN_ACTIVE_ADC == DRV_AIN_ADC_ADS9224R)
+		{
+			ADS9224R_GetRemainingTransfers(&remaining);
+		}
+		else
+		{
+			remaining = __HAL_DMA_GET_COUNTER(&prvDRV_AIN_DEVICE_DMA_HANDLER);
+		}
+		remaining /= 2U;
+		*sampleCounter = (remaining < prvDRV_AIN_SAMPLES_NO) ? (prvDRV_AIN_SAMPLES_NO - remaining) : 0U;
+	}
 
 	return DRV_AIN_STATUS_OK;
 }

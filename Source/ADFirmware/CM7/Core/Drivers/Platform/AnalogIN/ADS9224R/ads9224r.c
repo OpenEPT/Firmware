@@ -931,6 +931,22 @@ ads9224r_status_t	ADS9224R_SetPatternState(ads9224r_fpattern_state_t state, uint
 
 	return ADS9224R_STATUS_OK;
 }
+ads9224r_status_t   ADS9224R_GetRemainingTransfers(uint32_t* remaining)
+{
+	if(remaining == NULL) return ADS9224R_STATUS_ERROR;
+
+	if(prvADS9224R_DATA.trigger == ADS9224R_SDO_B)
+	{
+		*remaining = __HAL_DMA_GET_COUNTER(&prvADS9224R_SPI_S_DMA_SDOB_HANDLER);
+	}
+	else
+	{
+		*remaining = __HAL_DMA_GET_COUNTER(&prvADS9224R_SPI_S_DMA_SDOA_HANDLER);
+	}
+
+	return ADS9224R_STATUS_OK;
+}
+
 ads9224r_status_t   ADS9224R_StartAcquisiton(uint8_t* sdoaBuffer0, uint8_t* sdoaBuffer1, uint8_t* sdobBuffer0, uint8_t* sdobBuffer1, uint32_t size)
 {
 	/* Check if:

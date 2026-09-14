@@ -147,7 +147,14 @@ typedef struct
 {
     uint16_t value;                         /**< DAC digital value */
     uint32_t duration;                      /**< Point duration in microseconds */
+    uint32_t startTag;                      /**< Tag reported through point callback when point starts (0 = none) */
+    uint32_t endTag;                        /**< Tag reported through point callback when point ends (0 = none) */
 } drv_aout_wave_point_t;
+
+/**
+ * @brief Wave point tag callback type, called from ISR context
+ */
+typedef void (*drv_aout_wave_point_callback_t)(uint32_t tag);
 
 /**
  * @brief Configure waveform for selected analog output channel
@@ -176,6 +183,13 @@ drv_aout_status_t DRV_AOUT_WaveStop(void);
  * @retval ::drv_aout_status_t
  */
 drv_aout_status_t DRV_AOUT_WaveGetStopAbortCounter(uint32_t* counter);
+
+/**
+ * @brief Register callback invoked with point tags (start/end) while wave is running
+ * @param callback: Function to call from timer ISR, NULL to unregister
+ * @retval ::drv_aout_status_t
+ */
+drv_aout_status_t DRV_AOUT_WaveRegisterPointCallback(drv_aout_wave_point_callback_t callback);
 
 /**
  * @brief Register waveform complete callback

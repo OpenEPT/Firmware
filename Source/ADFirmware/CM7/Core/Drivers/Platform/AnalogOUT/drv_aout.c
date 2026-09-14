@@ -77,6 +77,16 @@ static volatile uint32_t prvDRV_AOUT_WAVE_STOP_ABORT_COUNTER = 0U;
 
 static volatile uint32_t prvDRV_AOUT_WAVE_REMAINING_TICKS = 0U;
 
+static drv_aout_wave_point_callback_t prvDRV_AOUT_WAVE_POINT_CALLBACK = NULL;
+
+static void prvDRV_AOUT_WaveReportTag(uint32_t tag)
+{
+    if((tag != 0U) && (prvDRV_AOUT_WAVE_POINT_CALLBACK != NULL))
+    {
+        prvDRV_AOUT_WAVE_POINT_CALLBACK(tag);
+    }
+}
+
 
 
 
@@ -425,6 +435,8 @@ drv_aout_status_t DRV_AOUT_WaveStart(void)
 
     prvDRV_AOUT_WAVE_RUNNING = 1U;
 
+    prvDRV_AOUT_WaveReportTag(prvDRV_AOUT_WAVE_POINTS[0].startTag);
+
     if(HAL_TIM_Base_Start(&prvDRV_AOUT_WAVE_TIMER) != HAL_OK)
     {
         __HAL_TIM_DISABLE_IT(&prvDRV_AOUT_WAVE_TIMER, TIM_IT_UPDATE);
@@ -453,6 +465,8 @@ void TIM7_IRQHandler(void)
             return;
         }
 
+        prvDRV_AOUT_WaveReportTag(prvDRV_AOUT_WAVE_POINTS[prvDRV_AOUT_WAVE_INDEX].endTag);
+
         prvDRV_AOUT_WAVE_INDEX++;
 
         if(prvDRV_AOUT_WAVE_INDEX < prvDRV_AOUT_WAVE_LENGTH)
@@ -461,6 +475,7 @@ void TIM7_IRQHandler(void)
         	{
         	    prvDRV_AOUT_DMA_ERROR_COUNTER++;
         	}
+            prvDRV_AOUT_WaveReportTag(prvDRV_AOUT_WAVE_POINTS[prvDRV_AOUT_WAVE_INDEX].startTag);
             (void)prvDRV_AOUT_WaveSetDuration(prvDRV_AOUT_WAVE_POINTS[prvDRV_AOUT_WAVE_INDEX].duration);
         }
         else
@@ -475,6 +490,7 @@ void TIM7_IRQHandler(void)
                 {
                     prvDRV_AOUT_DMA_ERROR_COUNTER++;
                 }
+                prvDRV_AOUT_WaveReportTag(prvDRV_AOUT_WAVE_POINTS[0].startTag);
                 (void)prvDRV_AOUT_WaveSetDuration(prvDRV_AOUT_WAVE_POINTS[0].duration);
             }
             else
@@ -527,6 +543,12 @@ drv_aout_status_t DRV_AOUT_WaveStop(void)
     __HAL_TIM_SET_COUNTER(&prvDRV_AOUT_WAVE_TIMER, 0U);
 
     return status;
+}
+
+drv_aout_status_t DRV_AOUT_WaveRegisterPointCallback(drv_aout_wave_point_callback_t callback)
+{
+    prvDRV_AOUT_WAVE_POINT_CALLBACK = callback;
+    return DRV_AOUT_STATUS_OK;
 }
 
 drv_aout_status_t DRV_AOUT_WaveGetStopAbortCounter(uint32_t* counter)

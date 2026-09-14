@@ -1975,16 +1975,49 @@ static void prvCONTROL_SetBatteryState(const char* arguments, uint16_t arguments
 static void prvCONTROL_AddWaveChunk(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	cmparse_value_t				value;
-	uint32_t					enableStatus;
+	cmparse_value_t				marker;
+	cmparse_value_t				pos;
+	const char*					markerName = NULL;
+	uint8_t						markerNameSize = 0U;
+	char						markerPos = LOAD_WAVE_MARKER_POS_NONE;
+	load_status_t				status;
 
 	memset(&value, 0, sizeof(cmparse_value_t));
+	memset(&marker, 0, sizeof(cmparse_value_t));
+	memset(&pos, 0, sizeof(cmparse_value_t));
 	if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &value) != CMPARSE_STATUS_OK)
 	{
 		prvCONTROL_PrepareErrorResponse(response, responseSize);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain enable value\r\n");
 		return;
 	}
-	if(LOAD_AddWaveChunk(value.value, value.size, 1000) == DPCONTROL_STATUS_OK)
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "marker", &marker) == CMPARSE_STATUS_OK)
+	{
+		markerName = marker.value;
+		markerNameSize = (uint8_t)marker.size;
+		markerPos = LOAD_WAVE_MARKER_POS_START;
+		if(CMPARSE_GetArgValue(arguments, argumentsLength, "pos", &pos) == CMPARSE_STATUS_OK)
+		{
+			if((pos.size == 1U) && ((pos.value[0] == LOAD_WAVE_MARKER_POS_START) || (pos.value[0] == LOAD_WAVE_MARKER_POS_END)))
+			{
+				markerPos = pos.value[0];
+			}
+			else if((pos.size == 3U) && (pos.value[1] == ',') &&
+					(((pos.value[0] == LOAD_WAVE_MARKER_POS_START) && (pos.value[2] == LOAD_WAVE_MARKER_POS_END)) ||
+					 ((pos.value[0] == LOAD_WAVE_MARKER_POS_END) && (pos.value[2] == LOAD_WAVE_MARKER_POS_START))))
+			{
+				markerPos = LOAD_WAVE_MARKER_POS_BOTH;
+			}
+			else
+			{
+				prvCONTROL_PrepareErrorResponse(response, responseSize);
+				LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Invalid marker position\r\n");
+				return;
+			}
+		}
+	}
+	status = LOAD_AddWaveChunkWithMarker(value.value, value.size, markerName, markerNameSize, markerPos, 1000);
+	if(status == LOAD_STATUS_OK)
 	{
 		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wave chunk successfully added\r\n");

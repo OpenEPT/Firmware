@@ -24,6 +24,7 @@
 #include "system.h"
 #include "drv_aout.h"
 #include "drv_gpio.h"
+#include "energy_debugger.h"
 
 /**
  * @defgroup SERVICES Services
@@ -72,6 +73,9 @@ typedef struct
 {
     char msg[LOAD_WAVE_CHUNK_MSG_SIZE];
     uint16_t size;
+    char markerName[LOAD_WAVE_MARKER_NAME_SIZE];
+    uint8_t markerNameSize;
+    char markerPos;
 } load_wave_chunk_msg_t;
 
 typedef struct load_wave_chunk_t
@@ -87,6 +91,11 @@ typedef struct load_wave_chunk_t
     int maxRepetitionCnt;
 
     uint32_t lastInGroup;
+
+    char markerStartName[LOAD_WAVE_MARKER_NAME_SIZE];
+    uint8_t markerStartNameSize;
+    char markerEndName[LOAD_WAVE_MARKER_NAME_SIZE];
+    uint8_t markerEndNameSize;
 
     struct load_wave_chunk_t* nextGroup;
 
@@ -171,6 +180,49 @@ static load_status_t prvLOAD_SetWaveState(load_wave_state_t state)
 
 static load_wave_complete_callback_t prvLOAD_WAVE_COMPLETE_CALLBACK = NULL;
 
+#define LOAD_WAVE_TAG_END_FLAG                 0x80000000U
+
+static void prvLOAD_WavePointCallback(uint32_t tag)
+{
+    load_wave_chunk_t* chunk;
+    uint32_t chunkId = tag & ~LOAD_WAVE_TAG_END_FLAG;
+
+    if((chunkId == 0U) || (chunkId > prvLOAD_WAVE_DATA.waveChunksCounter))
+    {
+        return;
+    }
+
+    chunk = &prvLOAD_WAVE_DATA.chunks[chunkId - 1U];
+
+    if((tag & LOAD_WAVE_TAG_END_FLAG) != 0U)
+    {
+        if(chunk->markerEndNameSize != 0U)
+        {
+            ENERGY_DEBUGGER_MarkFromISR(chunk->markerEndName, chunk->markerEndNameSize);
+        }
+    }
+    else
+    {
+        if(chunk->markerStartNameSize != 0U)
+        {
+            ENERGY_DEBUGGER_MarkFromISR(chunk->markerStartName, chunk->markerStartNameSize);
+        }
+    }
+}
+
+static void prvLOAD_TrimMarkerName(const char* src, uint8_t srcSize, char* dst, uint8_t* dstSize)
+{
+    uint8_t start = 0U;
+    uint8_t end = srcSize;
+
+    while((start < end) && (src[start] == ' ')) start++;
+    while((end > start) && (src[end - 1U] == ' ')) end--;
+
+    *dstSize = end - start;
+    memset(dst, 0, LOAD_WAVE_MARKER_NAME_SIZE);
+    memcpy(dst, &src[start], *dstSize);
+}
+
 static void prvLOAD_WaveCompleteCallback(void)
 {
     prvLOAD_SetWaveState(LOAD_WAVE_STATE_INACTIVE);
@@ -223,6 +275,17 @@ static load_status_t prvLOAD_SerializeWave(uint32_t* waveLength)
 
             prvLOAD_AOUT_CHUNK_BUFFER[bufferIndex].value = DRV_AOUT_ConvertFloatToDigital(voltage);
             prvLOAD_AOUT_CHUNK_BUFFER[bufferIndex].duration = currentChunk->duration * 1000U;
+            prvLOAD_AOUT_CHUNK_BUFFER[bufferIndex].startTag = 0U;
+            prvLOAD_AOUT_CHUNK_BUFFER[bufferIndex].endTag = 0U;
+
+            if((currentChunk->markerStartNameSize != 0U) && (repetitionIndex == 0))
+            {
+                prvLOAD_AOUT_CHUNK_BUFFER[bufferIndex].startTag = currentChunk->id + 1U;
+            }
+            if((currentChunk->markerEndNameSize != 0U) && (repetitionIndex == (currentChunk->maxRepetitionCnt - 1)))
+            {
+                prvLOAD_AOUT_CHUNK_BUFFER[bufferIndex].endTag = (currentChunk->id + 1U) | LOAD_WAVE_TAG_END_FLAG;
+            }
 
             bufferIndex++;
         }
@@ -326,6 +389,34 @@ static load_status_t prvLOAD_ExtractWaveDataFromMsg(load_wave_chunk_t* chunk, lo
     chunk->id = 0U;
     chunk->next = NULL;
     chunk->nextGroup = NULL;
+    chunk->markerStartNameSize = 0U;
+    chunk->markerEndNameSize = 0U;
+    if(msg->markerNameSize != 0U)
+    {
+        if(msg->markerPos == LOAD_WAVE_MARKER_POS_BOTH)
+        {
+            uint8_t commaIndex = 0U;
+            while((commaIndex < msg->markerNameSize) && (msg->markerName[commaIndex] != ',')) commaIndex++;
+            if(commaIndex >= msg->markerNameSize)
+            {
+                return LOAD_STATUS_ERROR;
+            }
+            prvLOAD_TrimMarkerName(msg->markerName, commaIndex, chunk->markerStartName, &chunk->markerStartNameSize);
+            prvLOAD_TrimMarkerName(&msg->markerName[commaIndex + 1U], msg->markerNameSize - commaIndex - 1U, chunk->markerEndName, &chunk->markerEndNameSize);
+            if((chunk->markerStartNameSize == 0U) || (chunk->markerEndNameSize == 0U))
+            {
+                return LOAD_STATUS_ERROR;
+            }
+        }
+        else if(msg->markerPos == LOAD_WAVE_MARKER_POS_END)
+        {
+            prvLOAD_TrimMarkerName(msg->markerName, msg->markerNameSize, chunk->markerEndName, &chunk->markerEndNameSize);
+        }
+        else
+        {
+            prvLOAD_TrimMarkerName(msg->markerName, msg->markerNameSize, chunk->markerStartName, &chunk->markerStartNameSize);
+        }
+    }
 
     return LOAD_STATUS_OK;
 }
@@ -467,6 +558,12 @@ static void prvLOAD_TaskFunc(void* pvParameters)
                 }
 
                 if(DRV_AOUT_WaveRegisterCompleteCallback(prvLOAD_WaveCompleteCallback) != DRV_AOUT_STATUS_OK)
+                {
+                    prvLOAD_DATA.state = LOAD_SERVICE_STATE_ERROR;
+                    break;
+                }
+
+                if(DRV_AOUT_WaveRegisterPointCallback(prvLOAD_WavePointCallback) != DRV_AOUT_STATUS_OK)
                 {
                     prvLOAD_DATA.state = LOAD_SERVICE_STATE_ERROR;
                     break;
@@ -952,12 +1049,29 @@ load_status_t LOAD_GetState(load_state_t* state, uint32_t timeout)
 
 load_status_t LOAD_AddWaveChunk(char* waveDesc, uint16_t waveDescSize, uint32_t timeout)
 {
+    return LOAD_AddWaveChunkWithMarker(waveDesc, waveDescSize, NULL, 0U, LOAD_WAVE_MARKER_POS_NONE, timeout);
+}
+
+load_status_t LOAD_AddWaveChunkWithMarker(char* waveDesc, uint16_t waveDescSize, const char* markerName, uint8_t markerNameSize, char markerPos, uint32_t timeout)
+{
     load_wave_chunk_msg_t msg;
     uint32_t actualSize = 0U;
 
     if(waveDesc == NULL)
     {
         return LOAD_STATUS_ERROR;
+    }
+
+    if(markerName != NULL)
+    {
+        if((markerNameSize == 0U) || (markerNameSize >= LOAD_WAVE_MARKER_NAME_SIZE))
+        {
+            return LOAD_STATUS_ERROR;
+        }
+        if((markerPos != LOAD_WAVE_MARKER_POS_START) && (markerPos != LOAD_WAVE_MARKER_POS_END) && (markerPos != LOAD_WAVE_MARKER_POS_BOTH))
+        {
+            return LOAD_STATUS_ERROR;
+        }
     }
 
     if(waveDescSize > LOAD_WAVE_CHUNK_MSG_SIZE)
@@ -985,6 +1099,13 @@ load_status_t LOAD_AddWaveChunk(char* waveDesc, uint16_t waveDescSize, uint32_t 
 
     msg.msg[actualSize] = ';';
     msg.size = (uint16_t)(actualSize + 1U);
+
+    if(markerName != NULL)
+    {
+        memcpy(msg.markerName, markerName, markerNameSize);
+        msg.markerNameSize = markerNameSize;
+        msg.markerPos = markerPos;
+    }
 
     if(xQueueSend(prvLOAD_DATA.waveChunkMsgQueue, &msg, pdMS_TO_TICKS(timeout)) != pdTRUE)
     {
