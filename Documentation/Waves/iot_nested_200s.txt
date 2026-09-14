@@ -1,0 +1,146 @@
+# name: IoT nested 200s
+# type: Custom
+# 3 nesting levels: L1 session -> L2 activity -> L3 firmware function
+# L1: Boot, Session A, Sleep, Session B | L2: Connect, Upload, Compute, Sense, Report | L3: auth, dhcp, encrypt, tx_packet, fft, filter, compress, flash_write, calibrate, adc_sample
+
+# L1 Boot  (t=0.00s)
+device wave chunk add -value=5,0,154,0,1,0; -marker="Boot Start" -pos=s
+device wave chunk add -value=67,0,350,0,1,0;
+device wave chunk add -value=107,0,216,0,1,0;
+device wave chunk add -value=130,0,241,0,1,0;
+device wave chunk add -value=158,0,313,0,1,0;
+device wave chunk add -value=200,0,216,0,1,0;
+device wave chunk add -value=222,0,294,0,1,0;
+device wave chunk add -value=325,0,232,0,1,0; -marker="flash_init" -pos=s
+device wave chunk add -value=138,0,1895,0,1,0; -marker="Boot Stop" -pos=e
+
+# L1 Session A  (t=3.91s)
+device wave chunk add -value=64,0,464,0,1,0; -marker="Session A Start" -pos=s
+
+#   L2 Connect  (t=4.38s)
+device wave chunk add -value=77,0,312,0,1,0; -marker="Connect Start" -pos=s
+device wave chunk add -value=258,0,30,0,1,0;
+device wave chunk add -value=61,0,205,0,1,0;
+device wave chunk add -value=382,0,71,0,1,0;
+device wave chunk add -value=65,0,429,0,1,0;
+device wave chunk add -value=287,0,49,0,1,0;
+device wave chunk add -value=63,0,305,0,1,0;
+device wave chunk add -value=398,0,31,0,1,0;
+device wave chunk add -value=64,0,458,0,1,0;
+device wave chunk add -value=388,0,29,0,1,0;
+device wave chunk add -value=74,0,373,0,1,0;
+device wave chunk add -value=289,0,60,0,1,0;
+device wave chunk add -value=74,0,194,0,1,0;
+device wave chunk add -value=413,0,98,0,1,0; -marker="auth Start" -pos=s
+device wave chunk add -value=111,0,849,0,1,0; -marker="auth Stop" -pos=e
+device wave chunk add -value=419,0,51,0,1,0; -marker="dhcp Start, dhcp Stop" -pos=s,e
+device wave chunk add -value=88,0,703,0,1,0; -marker="Connect Stop" -pos=e
+
+#   L2 Upload  (t=8.62s)
+device wave chunk add -value=125,0,301,0,1,0; -marker="Upload Start" -pos=s
+device wave chunk add -value=254,0,2873,0,1,0; -marker="encrypt Start, encrypt Stop" -pos=s,e
+device wave chunk add -value=120,0,307,0,1,0;
+device wave chunk add -value=463,0,15,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=304,0,22,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=123,0,69,0,1,0;
+device wave chunk add -value=478,0,16,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=296,0,27,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=125,0,101,0,1,0;
+device wave chunk add -value=476,0,18,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=290,0,28,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=117,0,87,0,1,0;
+device wave chunk add -value=480,0,14,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=291,0,31,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=125,0,99,0,1,0;
+device wave chunk add -value=468,0,21,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=283,0,38,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=122,0,73,0,1,0;
+device wave chunk add -value=146,0,551,0,1,0; -marker="ack_wait" -pos=s
+device wave chunk add -value=134,0,977,0,1,0; -marker="Upload Stop" -pos=e
+
+#   L2 Compute  (t=14.29s)
+device wave chunk add -value=183,0,491,0,1,0; -marker="Compute Start" -pos=s
+device wave chunk add -value=262,0,8716,0,1,0; -marker="fft Start, fft Stop" -pos=s,e
+device wave chunk add -value=179,0,615,0,1,0;
+device wave chunk add -value=204,0,9370,0,1,0; -marker="filter Start" -pos=s
+device wave chunk add -value=222,0,4640,0,1,0; -marker="filter Stop" -pos=e
+device wave chunk add -value=160,0,473,0,1,0; -marker="wdt_reset" -pos=s
+device wave chunk add -value=275,0,10021,0,1,0; -marker="compress Start, compress Stop" -pos=s,e
+device wave chunk add -value=166,0,3801,0,1,0; -marker="flash_write Start, flash_write Stop" -pos=s,e
+device wave chunk add -value=154,0,790,0,1,0; -marker="Compute Stop" -pos=e
+
+#   L2 Upload (second)  (t=53.21s)
+device wave chunk add -value=125,0,229,0,1,0; -marker="Upload Start" -pos=s
+device wave chunk add -value=475,0,23,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=317,0,22,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=135,0,119,0,1,0;
+device wave chunk add -value=497,0,15,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=291,0,24,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=130,0,106,0,1,0;
+device wave chunk add -value=469,0,23,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=311,0,34,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=123,0,116,0,1,0;
+device wave chunk add -value=482,0,21,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=320,0,22,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=116,0,71,0,1,0;
+device wave chunk add -value=139,0,823,0,1,0; -marker="Upload Stop" -pos=e
+device wave chunk add -value=59,0,514,0,1,0; -marker="Session A Stop" -pos=e
+
+# L1 Sleep  (t=55.37s)
+device wave chunk add -value=3,0,14697,0,1,0; -marker="Sleep Start" -pos=s
+device wave chunk add -value=25,0,107,0,1,0; -marker="rtc_wake" -pos=s
+device wave chunk add -value=3,0,12815,0,1,0;
+device wave chunk add -value=25,0,107,0,1,0; -marker="rtc_wake" -pos=s
+device wave chunk add -value=3,0,12809,0,1,0;
+device wave chunk add -value=25,0,79,0,1,0; -marker="rtc_wake" -pos=s
+device wave chunk add -value=3,0,15130,0,1,0;
+device wave chunk add -value=22,0,137,0,1,0; -marker="Sleep Stop" -pos=e
+
+# L1 Session B  (t=111.25s)
+device wave chunk add -value=57,0,320,0,1,0; -marker="Session B Start" -pos=s
+
+#   L2 Sense  (t=111.57s)
+device wave chunk add -value=57,0,609,0,1,0; -marker="Sense Start" -pos=s
+device wave chunk add -value=94,0,4166,0,1,0; -marker="calibrate Start, calibrate Stop" -pos=s,e
+device wave chunk add -value=114,0,272,0,1,0; -marker="adc_sample Start, adc_sample Stop" -pos=s,e
+device wave chunk add -value=56,0,755,0,1,0;
+device wave chunk add -value=108,0,416,0,1,0; -marker="adc_sample Start, adc_sample Stop" -pos=s,e
+device wave chunk add -value=59,0,1066,0,1,0;
+device wave chunk add -value=106,0,510,0,1,0; -marker="adc_sample Start, adc_sample Stop" -pos=s,e
+device wave chunk add -value=58,0,980,0,1,0;
+device wave chunk add -value=112,0,297,0,1,0; -marker="adc_sample Start, adc_sample Stop" -pos=s,e
+device wave chunk add -value=62,0,628,0,1,0;
+device wave chunk add -value=121,0,387,0,1,0; -marker="adc_sample Start, adc_sample Stop" -pos=s,e
+device wave chunk add -value=56,0,957,0,1,0;
+device wave chunk add -value=118,0,626,0,1,0; -marker="adc_sample Start, adc_sample Stop" -pos=s,e
+device wave chunk add -value=57,0,646,0,1,0;
+device wave chunk add -value=123,0,367,0,1,0; -marker="adc_sample Start, adc_sample Stop" -pos=s,e
+device wave chunk add -value=61,0,941,0,1,0;
+device wave chunk add -value=124,0,484,0,1,0; -marker="adc_sample Start, adc_sample Stop" -pos=s,e
+device wave chunk add -value=63,0,702,0,1,0;
+device wave chunk add -value=63,0,892,0,1,0; -marker="Sense Stop" -pos=e
+
+#   L2 Report  (t=127.27s)
+device wave chunk add -value=94,0,748,0,1,0; -marker="Report Start" -pos=s
+device wave chunk add -value=367,0,47,0,1,0; -marker="wifi_reconnect" -pos=s
+device wave chunk add -value=92,0,380,0,1,0;
+device wave chunk add -value=228,0,1225,0,1,0; -marker="encrypt Start, encrypt Stop" -pos=s,e
+device wave chunk add -value=468,0,22,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=321,0,33,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=128,0,121,0,1,0;
+device wave chunk add -value=487,0,19,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=278,0,27,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=120,0,98,0,1,0;
+device wave chunk add -value=465,0,14,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=307,0,29,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=125,0,117,0,1,0;
+device wave chunk add -value=485,0,14,0,1,0; -marker="tx_packet Start" -pos=s
+device wave chunk add -value=300,0,33,0,1,0; -marker="tx_packet Stop" -pos=e
+device wave chunk add -value=119,0,78,0,1,0;
+device wave chunk add -value=126,0,1472,0,1,0; -marker="Report Stop" -pos=e
+device wave chunk add -value=57,0,481,0,1,0; -marker="Session B Stop" -pos=e
+
+# Final idle until 200 s  (t=132.23s)
+device wave chunk add -value=3,0,67771,0,1,1; -marker="Idle" -pos=s
+
+device wave counter set -value=1;

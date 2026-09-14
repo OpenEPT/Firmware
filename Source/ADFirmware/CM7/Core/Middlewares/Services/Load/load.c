@@ -118,6 +118,9 @@ typedef struct
 
     int repetitionCounter;
 
+    uint32_t seed;
+    uint32_t rngState;
+
 } load_wave_data_t;
 
 typedef struct
@@ -238,12 +241,45 @@ static float prvLOAD_CurrentToVoltage(uint32_t current)
     return ((float)current / 1000.0f) * 8.8f * 0.075f;
 }
 
+static uint32_t prvLOAD_Random(void)
+{
+    uint32_t x = prvLOAD_WAVE_DATA.rngState;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    prvLOAD_WAVE_DATA.rngState = x;
+    return x;
+}
+
+static uint32_t prvLOAD_ApplyDeviation(uint32_t base, uint32_t deviation, uint32_t minValue)
+{
+    int32_t offset;
+    int32_t result;
+
+    if(deviation == 0U)
+    {
+        return base;
+    }
+
+    offset = (int32_t)(prvLOAD_Random() % (2U * deviation + 1U)) - (int32_t)deviation;
+    result = (int32_t)base + offset;
+
+    if(result < (int32_t)minValue)
+    {
+        return minValue;
+    }
+
+    return (uint32_t)result;
+}
+
 static load_status_t prvLOAD_SerializeWave(uint32_t* waveLength)
 {
     load_wave_chunk_t* currentChunk;
     uint32_t bufferIndex = 0U;
     int repetitionIndex;
     float voltage;
+    uint32_t chunkValue;
+    uint32_t chunkDuration;
 
     if(waveLength == NULL)
     {
@@ -256,6 +292,8 @@ static load_status_t prvLOAD_SerializeWave(uint32_t* waveLength)
     }
 
     currentChunk = prvLOAD_WAVE_DATA.firstInChain;
+
+    prvLOAD_WAVE_DATA.rngState = (prvLOAD_WAVE_DATA.seed != 0U) ? prvLOAD_WAVE_DATA.seed : LOAD_WAVE_DEFAULT_SEED;
 
     while(currentChunk != NULL)
     {
@@ -271,10 +309,13 @@ static load_status_t prvLOAD_SerializeWave(uint32_t* waveLength)
                 return LOAD_STATUS_ERROR;
             }
 
-            voltage = prvLOAD_CurrentToVoltage(currentChunk->baseValue);
+            chunkValue = prvLOAD_ApplyDeviation(currentChunk->baseValue, currentChunk->bsDev, 0U);
+            chunkDuration = prvLOAD_ApplyDeviation(currentChunk->duration, currentChunk->dDev, 1U);
+
+            voltage = prvLOAD_CurrentToVoltage(chunkValue);
 
             prvLOAD_AOUT_CHUNK_BUFFER[bufferIndex].value = DRV_AOUT_ConvertFloatToDigital(voltage);
-            prvLOAD_AOUT_CHUNK_BUFFER[bufferIndex].duration = currentChunk->duration * 1000U;
+            prvLOAD_AOUT_CHUNK_BUFFER[bufferIndex].duration = chunkDuration * 1000U;
             prvLOAD_AOUT_CHUNK_BUFFER[bufferIndex].startTag = 0U;
             prvLOAD_AOUT_CHUNK_BUFFER[bufferIndex].endTag = 0U;
 
@@ -1153,6 +1194,28 @@ load_status_t LOAD_SetWaveState(load_wave_state_t state, uint32_t timeout)
 load_status_t LOAD_RegisterWaveCompleteCallback(load_wave_complete_callback_t callback)
 {
     prvLOAD_WAVE_COMPLETE_CALLBACK = callback;
+    return LOAD_STATUS_OK;
+}
+
+load_status_t LOAD_SetWaveSeed(uint32_t seed, uint32_t timeout)
+{
+    if(prvLOAD_WAVE_DATA.state == LOAD_WAVE_STATE_ACTIVE)
+    {
+        return LOAD_STATUS_ERROR;
+    }
+
+    if(xSemaphoreTake(prvLOAD_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE)
+    {
+        return LOAD_STATUS_ERROR;
+    }
+
+    prvLOAD_WAVE_DATA.seed = seed;
+
+    if(xSemaphoreGive(prvLOAD_DATA.guard) != pdTRUE)
+    {
+        return LOAD_STATUS_ERROR;
+    }
+
     return LOAD_STATUS_OK;
 }
 

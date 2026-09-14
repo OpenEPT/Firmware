@@ -2064,6 +2064,33 @@ static void prvCONTROL_WaveCounterSet(const char* arguments, uint16_t argumentsL
  * @param	argumentsLength: length of response message
  * @retval	void
  */
+static void prvCONTROL_WaveSeedSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
+{
+	cmparse_value_t				value;
+	uint32_t					seed = 0U;
+
+	memset(&value, 0, sizeof(cmparse_value_t));
+	if(CMPARSE_GetArgValue(arguments, argumentsLength, "value", &value) != CMPARSE_STATUS_OK)
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to obtain seed value\r\n");
+		return;
+	}
+	sscanf(value.value, "%lu", &seed);
+
+	if(LOAD_SetWaveSeed(seed, 1000) == LOAD_STATUS_OK)
+	{
+		prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO, "Wave seed %lu set\r\n", (unsigned long)seed);
+	}
+	else
+	{
+		prvCONTROL_PrepareErrorResponse(response, responseSize);
+		LOGGING_Write("Control Service", LOGGING_MSG_TYPE_ERROR, "Unable to set wave seed\r\n");
+		return;
+	}
+}
+
 static void prvCONTROL_WaveChunkSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
 	cmparse_value_t				value;
@@ -3360,6 +3387,7 @@ control_status_t 	CONTROL_Init(uint32_t initTimeout){
 
 	CMPARSE_AddCommand("device wave chunk add", 		prvCONTROL_AddWaveChunk);
 	CMPARSE_AddCommand("device wave counter set", 		prvCONTROL_WaveCounterSet);
+	CMPARSE_AddCommand("device wave seed set", 			prvCONTROL_WaveSeedSet);
 	CMPARSE_AddCommand("device wave state set", 		prvCONTROL_WaveChunkSet);
 	CMPARSE_AddCommand("device wave clear", 			prvCONTROL_WaveClear);
 

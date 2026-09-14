@@ -38,7 +38,8 @@
 #define LOAD_DISABLE_PIN                       CONF_LOAD_DISABLE_PIN
 
 #define LOAD_WAVE_CHUNK_MSG_SIZE               50
-#define LOAD_WAVE_MARKER_NAME_SIZE             32
+#define LOAD_WAVE_MARKER_NAME_SIZE             64
+#define LOAD_WAVE_DEFAULT_SEED                 0x2545F491U
 #define LOAD_WAVE_MARKER_POS_NONE              0
 #define LOAD_WAVE_MARKER_POS_START             's'
 #define LOAD_WAVE_MARKER_POS_END               'e'
@@ -184,6 +185,16 @@ load_status_t LOAD_SetWaveState(load_wave_state_t state, uint32_t timeout);
  * @retval ::LOAD_STATUS_OK or ::LOAD_STATUS_ERROR
  */
 load_status_t LOAD_SetWaveCounter(int counter, uint32_t timeout);
+
+/**
+ * @brief Set seed of random generator used for chunk amplitude/duration deviations.
+ * @note  Generator is re-seeded with this value on every wave start, so the same seed
+ *        gives the same wave. Seed 0 is replaced with ::LOAD_WAVE_DEFAULT_SEED.
+ * @param seed Seed value.
+ * @param timeout Timeout in milliseconds.
+ * @retval ::LOAD_STATUS_OK or ::LOAD_STATUS_ERROR
+ */
+load_status_t LOAD_SetWaveSeed(uint32_t seed, uint32_t timeout);
 
 /**
  * @brief Clear currently configured waveform.
