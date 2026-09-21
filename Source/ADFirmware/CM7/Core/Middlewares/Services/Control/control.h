@@ -154,6 +154,12 @@ control_status_t 	CONTROL_StatusLinkSendMessage(const char* message, contol_stat
  */
 control_status_t 	CONTROL_StatusLinkSendMessageFromISR(const char* message, contol_status_message_type_t msgType, uint32_t timeout);
 /**
+ * @brief	Notify GUI over status link that load wave has stopped
+ * @note	ISR safe
+ * @retval	::control_status_t
+ */
+control_status_t 	CONTROL_LoadWaveStoppedNotifyFromISR(void);
+/**
  * @}
  */
 /**

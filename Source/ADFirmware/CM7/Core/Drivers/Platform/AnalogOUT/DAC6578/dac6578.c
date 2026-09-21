@@ -210,6 +210,74 @@ dac6578_status_t DAC6578_Reset(uint32_t timeout)
     return DAC6578_STATUS_OK;
 }
 
+dac6578_status_t DAC6578_SerializeSetAndUpdate(dac6578_channel_t channel, uint16_t value, dac6578_frame_t* frame)
+{
+    if((prvDAC6578_IsChannelValid(channel) == 0U) || (value > DAC6578_MAX_VALUE) || (frame == NULL))
+    {
+        return DAC6578_STATUS_ERROR;
+    }
+
+    frame->data[0] = (uint8_t)(DAC6578_COMMAND_WRITE_INPUT_AND_UPDATE_DAC_REG | (uint8_t)channel);
+    frame->data[1] = (uint8_t)((value >> 2U) & 0xFFU);
+    frame->data[2] = (uint8_t)((value & 0x03U) << 6U);
+
+    return DAC6578_STATUS_OK;
+}
+
+dac6578_status_t DAC6578_TransmitFrameDMA(dac6578_frame_t* frame)
+{
+    uint8_t devAddr;
+
+    if(frame == NULL)
+    {
+        return DAC6578_STATUS_ERROR;
+    }
+
+    devAddr = (uint8_t)(DAC6578_DEV_ADDR << 1U);
+
+    if(DRV_I2C_TransmitDMA(DRV_I2C_INSTANCE_2, devAddr, frame->data, sizeof(frame->data)) != DRV_I2C_STATUS_OK)
+    {
+        return DAC6578_STATUS_ERROR;
+    }
+
+    return DAC6578_STATUS_OK;
+}
+
+
+dac6578_status_t DAC6578_TransmitFramesTriggeredDMA(dac6578_frame_t* frames, uint32_t frameCount)
+{
+    uint8_t devAddr;
+
+    if((frames == NULL) || (frameCount == 0U))
+    {
+        return DAC6578_STATUS_ERROR;
+    }
+
+    devAddr = (uint8_t)(DAC6578_DEV_ADDR << 1U);
+
+    if(DRV_I2C_TransmitTriggeredDMA(DRV_I2C_INSTANCE_2, devAddr, frames[0].data, frameCount * sizeof(dac6578_frame_t), sizeof(dac6578_frame_t)) != DRV_I2C_STATUS_OK)
+    {
+        return DAC6578_STATUS_ERROR;
+    }
+
+    return DAC6578_STATUS_OK;
+}
+
+dac6578_status_t DAC6578_IsTriggeredDMAComplete(uint8_t* complete)
+{
+    return (DRV_I2C_IsTriggeredDMAComplete(DRV_I2C_INSTANCE_2, complete) == DRV_I2C_STATUS_OK) ? DAC6578_STATUS_OK : DAC6578_STATUS_ERROR;
+}
+
+dac6578_status_t DAC6578_WaitIdle(uint32_t timeout)
+{
+    return (DRV_I2C_WaitIdle(DRV_I2C_INSTANCE_2, timeout) == DRV_I2C_STATUS_OK) ? DAC6578_STATUS_OK : DAC6578_STATUS_ERROR;
+}
+
+dac6578_status_t DAC6578_AbortDMA(void)
+{
+    return (DRV_I2C_AbortDMA(DRV_I2C_INSTANCE_2) == DRV_I2C_STATUS_OK) ? DAC6578_STATUS_OK : DAC6578_STATUS_ERROR;
+}
+
 /**
  * @}
  */

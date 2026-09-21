@@ -45,6 +45,7 @@
 #include "fsystem.h"
 #include "configuration.h"
 #include "Bringup/bringup.h"
+#include "load.h"
 
 
 /**
@@ -61,7 +62,7 @@
  * @defgroup SYSTEM_DEFINES System task defines and default values
  * @{
  */
-#define  SYSTEM_MASK_RGB_SET_COLOR	0x00000001  /**< Task notification flag for setting RGB LED color */
+#define  SYSTEM_MASK_SET_DIODE_STATE	0x00000001  /**< Task notification flag for setting RGB LED color */
 /**
  * @}
  */
@@ -139,6 +140,11 @@ static system_status_t prvSYSTEM_SetRGBState(uint8_t red, uint8_t blue, uint8_t 
 static void prvSYSTEM_AcquisitionStateChanged(uint32_t id, sstream_acquisition_state_t state)
 {
 
+}
+
+static void prvSYSTEM_LoadWaveCompleted(void)
+{
+	CONTROL_LoadWaveStoppedNotifyFromISR();
 }
 
 /**
@@ -342,12 +348,26 @@ static void prvSYSTEM_Task()
 			}
 			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Discharge Profile Control service successfully initialized\r\n");
 
+			if(LOAD_Init(2000) != LOAD_STATUS_OK)
+			{
+				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
+				break;
+			}
+			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "Load service successfully initialized\r\n");
+
+			if(LOAD_RegisterWaveCompleteCallback(prvSYSTEM_LoadWaveCompleted) != LOAD_STATUS_OK)
+			{
+				LOGGING_Write("System", LOGGING_MSG_TYPE_ERROR, "Unable to register load wave complete callback\r\n");
+			}
+
 //			if(EEZ_DIB_Init(2000) != EEZ_DIB_STATUS_OK)
 //			{
 //				prvSYSTEM_DATA.state = SYSTEM_STATE_ERROR;
 //				break;
 //			}
 //			LOGGING_Write("System", LOGGING_MSG_TYPE_INFO, "EEZ DIB service successfully initialized\r\n");
+
+
 
 			xSemaphoreGive(prvSYSTEM_DATA.initSig);
 			prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
@@ -356,7 +376,7 @@ static void prvSYSTEM_Task()
 		case SYSTEM_STATE_SERVICE:
 			/*Main application logic goes here*/
 			xTaskNotifyWait(0x0, 0xffffffff, &notifyValue, portMAX_DELAY);
-			if((notifyValue & SYSTEM_MASK_RGB_SET_COLOR) != 0)
+			if((notifyValue & SYSTEM_MASK_SET_DIODE_STATE) != 0)
 			{
 				prvSYSTEM_SetRGBState(prvSYSTEM_DATA.rgbValue.red, prvSYSTEM_DATA.rgbValue.blue, prvSYSTEM_DATA.rgbValue.green);
 			}
@@ -573,7 +593,7 @@ system_status_t SYSTEM_SetRGB(system_rgb_value_t value)
 
 	if(xSemaphoreGive(prvSYSTEM_DATA.guard) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
-	if(xTaskNotify(prvSYSTEM_TASK_HANDLE, SYSTEM_MASK_RGB_SET_COLOR, eSetBits) != pdTRUE) return SYSTEM_STATUS_ERROR;
+	if(xTaskNotify(prvSYSTEM_TASK_HANDLE, SYSTEM_MASK_SET_DIODE_STATE, eSetBits) != pdTRUE) return SYSTEM_STATUS_ERROR;
 
 	return SYSTEM_STATUS_OK;
 }

@@ -156,7 +156,7 @@ drv_uart_status_t	DRV_UART_Instance_Init(drv_uart_instance_t instance, drv_uart_
  * @param	timeout: Transmission timeout in milliseconds
  * @retval	::drv_uart_status_t
  */
-drv_uart_status_t	DRV_UART_Instance_TransferData(drv_uart_instance_t instance, uint8_t* buffer, uint8_t size, uint32_t timeout);
+drv_uart_status_t	DRV_UART_TransferData(drv_uart_instance_t instance, uint8_t* buffer, uint8_t size, uint32_t timeout);
 
 /**
  * @brief	Register receive interrupt callback function

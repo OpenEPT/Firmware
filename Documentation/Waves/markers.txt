@@ -1,0 +1,10 @@
+# name: Markers demo
+# type: Custom
+# Idle -> Boot -> Active burst -> Idle, with ED markers on phase boundaries
+
+device wave chunk add -value=50,0,200,0,1,0; -marker="Idle" -pos=s
+device wave chunk add -value=400,0,100,0,1,0; -marker="Boot" -pos=s
+device wave chunk add -value=1200,0,20,0,5,0; -marker="Burst Start, Burst End" -pos=s,e
+device wave chunk add -value=300,0,50,0,1,0;
+device wave chunk add -value=50,0,200,0,1,1; -marker="Sleep" -pos=e
+device wave counter set -value=3;

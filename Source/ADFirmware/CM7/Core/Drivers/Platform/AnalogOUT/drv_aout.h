@@ -67,6 +67,11 @@ typedef enum
 }drv_aout_channel_t;
 
 /**
+ * @brief AOUT waveform complete callback
+ */
+typedef void (*drv_aout_wave_complete_callback_t)(void);
+
+/**
  * @}
  */
 
@@ -133,6 +138,67 @@ drv_aout_status_t DRV_AOUT_SetVoltage(float voltage, drv_aout_channel_t channel)
  * @retval  uint16_t Converted DAC digital value (0–1023)
  */
 uint16_t DRV_AOUT_ConvertFloatToDigital(float value);
+
+
+/**
+ * @brief AOUT waveform point
+ */
+typedef struct
+{
+    uint16_t value;                         /**< DAC digital value */
+    uint32_t duration;                      /**< Point duration in microseconds */
+    uint32_t startTag;                      /**< Tag reported through point callback when point starts (0 = none) */
+    uint32_t endTag;                        /**< Tag reported through point callback when point ends (0 = none) */
+} drv_aout_wave_point_t;
+
+/**
+ * @brief Wave point tag callback type, called from ISR context
+ */
+typedef void (*drv_aout_wave_point_callback_t)(uint32_t tag);
+
+/**
+ * @brief Configure waveform for selected analog output channel
+ * @param channel: Target analog output channel
+ * @param wave: Waveform point array
+ * @param waveLength: Number of waveform points
+ * @retval ::drv_aout_status_t
+ */
+drv_aout_status_t DRV_AOUT_WaveConfigure(drv_aout_channel_t channel, const drv_aout_wave_point_t* wave, uint32_t waveLength, uint32_t repetition);
+
+/**
+ * @brief Start configured waveform
+ * @retval ::drv_aout_status_t
+ */
+drv_aout_status_t DRV_AOUT_WaveStart(void);
+
+/**
+ * @brief Stop active waveform
+ * @retval ::drv_aout_status_t
+ */
+drv_aout_status_t DRV_AOUT_WaveStop(void);
+
+/**
+ * @brief Get number of wave stops that had to abort an ongoing DAC transfer
+ * @param counter: Pointer where counter value is stored
+ * @retval ::drv_aout_status_t
+ */
+drv_aout_status_t DRV_AOUT_WaveGetStopAbortCounter(uint32_t* counter);
+
+/**
+ * @brief Register callback invoked with point tags (start/end) while wave is running
+ * @param callback: Function to call from timer ISR, NULL to unregister
+ * @retval ::drv_aout_status_t
+ */
+drv_aout_status_t DRV_AOUT_WaveRegisterPointCallback(drv_aout_wave_point_callback_t callback);
+
+/**
+ * @brief Register waveform complete callback
+ * @param callback: Function called when waveform execution is completed
+ * @retval ::drv_aout_status_t
+ */
+drv_aout_status_t DRV_AOUT_WaveRegisterCompleteCallback(drv_aout_wave_complete_callback_t callback);
+
+
 /**
  * @}
  */

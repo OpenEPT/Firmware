@@ -188,12 +188,31 @@ SECTIONS
     *(.Rx_PoolSection)  
   } >RAM_D2
   
-   .adcBuffers (NOLOAD) :
-  {
-    . = ABSOLUTE(0x38000000);
-    *(.ADCSamplesBuffer) 
-    *(.ADCSamplesBufferSPI) 
-  } >RAM_D3
+
+  
+  
+
+  
+	   .adcBuffers (NOLOAD) :
+	  {
+	    . = ABSOLUTE(0x38000000);
+	    *(.ADCSamplesBuffer) 
+	    *(.ADCSamplesBufferSPI) 
+	  } >RAM_D3
+  
+	.dmaBuffers (NOLOAD) :
+	{
+	  . = ALIGN(32);
+	
+	  __dma_buffers_start__ = .;
+	
+	  *(.DMABuffer)
+	  *(.DMABuffer*)
+	
+	  . = ALIGN(32);
+	
+	  __dma_buffers_end__ = .;
+	} >RAM_D3
 
   /* Remove information from the compiler libraries */
   /DISCARD/ :

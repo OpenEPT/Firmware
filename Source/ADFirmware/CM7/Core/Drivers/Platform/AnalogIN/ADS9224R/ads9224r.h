@@ -354,6 +354,13 @@ ads9224r_status_t ADS9224R_RegisterCallback(bufferReceiveCallback callback, ads9
 ads9224r_status_t ADS9224R_SubmitBuffer(uint32_t buffAddr);
 
 /**
+ * @brief	Get number of bytes still to be received into the currently active DMA buffer
+ * @param	remaining: Pointer where remaining byte count is stored
+ * @retval	::ads9224r_status_t
+ */
+ads9224r_status_t ADS9224R_GetRemainingTransfers(uint32_t* remaining);
+
+/**
  * @}
  */
 

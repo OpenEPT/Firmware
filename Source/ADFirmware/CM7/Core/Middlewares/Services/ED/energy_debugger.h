@@ -109,6 +109,13 @@ energy_debugger_status_t ENERGY_DEBUGGER_Init(uint32_t timeout);
  */
 energy_debugger_status_t ENERGY_DEBUGGER_CreateLink(energy_debugger_connection_info* serverInfo, uint32_t timeout);
 /**
+ * @brief   Report energy breakpoint from firmware (ISR context), equivalent to button press followed by UART name
+ * @param   name: Breakpoint name
+ * @param   nameLength: Name length in bytes
+ * @retval  ::energy_debugger_status_t
+ */
+energy_debugger_status_t ENERGY_DEBUGGER_MarkFromISR(const char* name, uint8_t nameLength);
+/**
  * @}
  */
 

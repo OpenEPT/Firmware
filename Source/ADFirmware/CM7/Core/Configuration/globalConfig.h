@@ -344,9 +344,6 @@
 #define CONF_DPCONTROL_TASK_STACK_SIZE          1024    /*!< DPControl task stack size */
 #define CONF_DPCONTROL_TASK_PRIO                3       /*!< DPControl task priority */
 
-#define CONF_DPCONTROL_LOAD_DISABLE_PORT        0       /*!< Load disable GPIO port */
-#define CONF_DPCONTROL_LOAD_DISABLE_PIN         6       /*!< Load disable GPIO pin */
-
 #define CONF_DPCONTROL_GPIO_DISABLE_PORT        6       /*!< GPIO disable control port */
 #define CONF_DPCONTROL_GPIO_DISABLE_PIN         14      /*!< GPIO disable control pin */
 
@@ -431,6 +428,16 @@
 #define CONF_CONFIGURATION_MAX_PARAM_VALUESIZE      32      /*!< Maximum configuration parameter value length */
 
 #define CONF_CONFIGURATION_HEADER_SIZE              8       /*!< Configuration file header size */
+
+
+#define CONF_LOAD_TASK_NAME                    	"Load task"
+#define CONF_LOAD_TASK_PRIO                    	3
+#define CONF_LOAD_TASK_STACK_SIZE              	1024
+
+#define CONF_LOAD_DISABLE_PORT                 	0
+#define CONF_LOAD_DISABLE_PIN                  	6
+
+
 
 /**
  * @}

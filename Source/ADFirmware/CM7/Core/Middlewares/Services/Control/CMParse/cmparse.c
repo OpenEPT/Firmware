@@ -235,13 +235,37 @@ char*					CMPARSE_GetArgParameters(char* argBuffer, uint32_t* argBufferSize, cmp
 	}
 	tmpArgBufferSizeProcessed += 1;
 	tmpArgBuffPtr += 1;
-	while(*tmpArgBuffPtr != ' ' && tmpArgBufferSizeProcessed < *argBufferSize)
+	if((tmpArgBufferSizeProcessed < *argBufferSize) && (*tmpArgBuffPtr == '"'))
+	{
+		tmpArgBufferSizeProcessed += 1;
+		tmpArgBuffPtr += 1;
+		while(*tmpArgBuffPtr != '"' && *tmpArgBuffPtr != 0 && tmpArgBufferSizeProcessed < *argBufferSize && value->size < (CMPARSE_MAX_VALUE_SIZE - 1))
+		{
+			value->value[value->size] = *tmpArgBuffPtr;
+			value->size += 1;
+			tmpArgBufferSizeProcessed += 1;
+			tmpArgBuffPtr += 1;
+		}
+		if(tmpArgBufferSizeProcessed < *argBufferSize)
+		{
+			tmpArgBufferSizeProcessed += 1;
+			tmpArgBuffPtr += 1;
+		}
+		value->value[value->size] = 0;
+		return tmpArgBuffPtr;
+	}
+	while(*tmpArgBuffPtr != ' ' && *tmpArgBuffPtr != 0 && tmpArgBufferSizeProcessed < *argBufferSize && value->size < (CMPARSE_MAX_VALUE_SIZE - 1))
 	{
 		value->value[value->size] = *tmpArgBuffPtr;
 		value->size += 1;
 		tmpArgBufferSizeProcessed += 1;
 		tmpArgBuffPtr += 1;
 	}
+	while((value->size > 0) && ((value->value[value->size - 1] == '\r') || (value->value[value->size - 1] == '\n')))
+	{
+		value->size -= 1;
+	}
+	value->value[value->size] = 0;
 	return tmpArgBuffPtr;
 
 }
@@ -304,6 +328,7 @@ cmparse_status_t		CMPARSE_GetArgValue(const char* argBuffer, uint32_t argBufferS
 		{
 			value->size = localValue.size;
 			memcpy(value->value, localValue.value, value->size);
+			value->value[value->size] = 0;
 			return CMPARSE_STATUS_OK;
 		}
 	}while(unprocessedArgBufferPtr != NULL);

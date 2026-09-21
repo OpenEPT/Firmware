@@ -1,0 +1,187 @@
+# name: IoT comm module 210s
+# type: Custom
+# Boot -> Idle -> WiFi connect -> TX burst -> Processing (firmware functions) -> RX sync -> Deep sleep -> Sensor wake -> TX report -> Sleep
+# Markers: <name> Start / <name> Stop pairs for statistics, single markers = function calls
+
+# Boot: inrush, ramp, firmware init  (t=0.00s)
+device wave chunk add -value=5,0,90,0,1,0; -marker="Boot Start" -pos=s
+device wave chunk add -value=60,0,288,0,1,0;
+device wave chunk add -value=80,0,185,0,1,0;
+device wave chunk add -value=112,0,239,0,1,0;
+device wave chunk add -value=141,0,238,0,1,0;
+device wave chunk add -value=166,0,273,0,1,0;
+device wave chunk add -value=192,0,244,0,1,0;
+device wave chunk add -value=201,0,248,0,1,0;
+device wave chunk add -value=220,0,281,0,1,0;
+device wave chunk add -value=327,0,333,0,1,0;
+device wave chunk add -value=154,0,2894,0,1,0; -marker="Boot Stop" -pos=e
+
+# Idle with housekeeping blips  (t=5.31s)
+device wave chunk add -value=11,0,788,0,1,0; -marker="Idle Start" -pos=s
+device wave chunk add -value=14,0,2389,0,1,0;
+device wave chunk add -value=47,0,252,0,1,0;
+device wave chunk add -value=12,0,1417,0,1,0;
+device wave chunk add -value=44,0,188,0,1,0;
+device wave chunk add -value=11,0,1851,0,1,0;
+device wave chunk add -value=48,0,209,0,1,0;
+device wave chunk add -value=12,0,1358,0,1,0;
+device wave chunk add -value=47,0,160,0,1,0;
+device wave chunk add -value=12,0,1785,0,1,0;
+device wave chunk add -value=46,0,180,0,1,0;
+device wave chunk add -value=11,0,1907,0,1,0;
+device wave chunk add -value=47,0,194,0,1,0;
+device wave chunk add -value=12,0,2538,0,1,0; -marker="Idle Stop" -pos=e
+
+# WiFi connect: scan bursts, auth, DHCP  (t=20.53s)
+device wave chunk add -value=67,0,317,0,1,0; -marker="WiFi Start" -pos=s
+device wave chunk add -value=381,0,21,0,1,0;
+device wave chunk add -value=58,0,356,0,1,0;
+device wave chunk add -value=269,0,59,0,1,0;
+device wave chunk add -value=74,0,163,0,1,0;
+device wave chunk add -value=391,0,42,0,1,0;
+device wave chunk add -value=92,0,423,0,1,0;
+device wave chunk add -value=399,0,57,0,1,0;
+device wave chunk add -value=74,0,101,0,1,0;
+device wave chunk add -value=398,0,54,0,1,0;
+device wave chunk add -value=53,0,244,0,1,0;
+device wave chunk add -value=399,0,25,0,1,0;
+device wave chunk add -value=70,0,144,0,1,0;
+device wave chunk add -value=337,0,40,0,1,0;
+device wave chunk add -value=85,0,166,0,1,0;
+device wave chunk add -value=372,0,35,0,1,0;
+device wave chunk add -value=66,0,107,0,1,0;
+device wave chunk add -value=385,0,22,0,1,0;
+device wave chunk add -value=53,0,238,0,1,0;
+device wave chunk add -value=423,0,65,0,1,0; -marker="wifi_auth" -pos=s
+device wave chunk add -value=94,0,808,0,1,0;
+device wave chunk add -value=378,0,60,0,1,0; -marker="dhcp_request" -pos=s
+device wave chunk add -value=91,0,1395,0,1,0;
+device wave chunk add -value=85,0,1423,0,1,0; -marker="WiFi Stop" -pos=e
+
+# TX burst: packets 480 mA + 120 mA gaps, ACK wait  (t=26.89s)
+device wave chunk add -value=128,0,215,0,1,0; -marker="TX Start" -pos=s
+device wave chunk add -value=479,0,12,0,1,0;
+device wave chunk add -value=122,0,96,0,1,0;
+device wave chunk add -value=470,0,14,0,1,0;
+device wave chunk add -value=113,0,63,0,1,0;
+device wave chunk add -value=494,0,16,0,1,0;
+device wave chunk add -value=120,0,78,0,1,0;
+device wave chunk add -value=463,0,18,0,1,0;
+device wave chunk add -value=118,0,112,0,1,0;
+device wave chunk add -value=475,0,11,0,1,0;
+device wave chunk add -value=126,0,94,0,1,0;
+device wave chunk add -value=501,0,19,0,1,0;
+device wave chunk add -value=111,0,84,0,1,0;
+device wave chunk add -value=489,0,15,0,1,0;
+device wave chunk add -value=128,0,85,0,1,0;
+device wave chunk add -value=478,0,16,0,1,0;
+device wave chunk add -value=114,0,90,0,1,0;
+device wave chunk add -value=466,0,16,0,1,0;
+device wave chunk add -value=119,0,69,0,1,0;
+device wave chunk add -value=490,0,15,0,1,0;
+device wave chunk add -value=111,0,94,0,1,0;
+device wave chunk add -value=464,0,16,0,1,0;
+device wave chunk add -value=128,0,58,0,1,0;
+device wave chunk add -value=498,0,16,0,1,0;
+device wave chunk add -value=120,0,96,0,1,0;
+device wave chunk add -value=138,0,461,0,1,0; -marker="ack_wait" -pos=s
+device wave chunk add -value=115,0,1132,0,1,0; -marker="TX Stop" -pos=e
+
+# Processing: firmware functions with Start/Stop markers  (t=29.91s)
+device wave chunk add -value=170,0,491,0,1,0; -marker="Proc Start" -pos=s
+device wave chunk add -value=180,0,1096,0,1,0; -marker="sensor_read Start, sensor_read Stop" -pos=s,e
+device wave chunk add -value=159,0,407,0,1,0; -marker="log_write" -pos=s
+device wave chunk add -value=254,0,3955,0,1,0; -marker="fft_compute Start, fft_compute Stop" -pos=s,e
+device wave chunk add -value=161,0,586,0,1,0;
+device wave chunk add -value=204,0,4499,0,1,0; -marker="filter_apply Start" -pos=s
+device wave chunk add -value=223,0,1877,0,1,0; -marker="filter_apply Stop" -pos=e
+device wave chunk add -value=156,0,505,0,1,0; -marker="wdt_reset" -pos=s
+device wave chunk add -value=253,0,5271,0,1,0; -marker="compress Start, compress Stop" -pos=s,e
+device wave chunk add -value=171,0,710,0,1,0;
+device wave chunk add -value=213,0,3343,0,1,0; -marker="encrypt Start" -pos=s
+device wave chunk add -value=216,0,1354,0,1,0; -marker="encrypt Stop" -pos=e
+device wave chunk add -value=164,0,320,0,1,0; -marker="log_write" -pos=s
+device wave chunk add -value=191,0,3034,0,1,0; -marker="checksum Start, checksum Stop" -pos=s,e
+device wave chunk add -value=190,0,2019,0,1,0; -marker="flash_write Start" -pos=s
+device wave chunk add -value=199,0,1056,0,1,0; -marker="flash_write Stop" -pos=e
+device wave chunk add -value=161,0,547,0,1,0; -marker="wdt_reset" -pos=s
+device wave chunk add -value=167,0,1287,0,1,0; -marker="Proc Stop" -pos=e
+
+# RX sync: listen mode with beacons  (t=62.26s)
+device wave chunk add -value=97,0,418,0,1,0; -marker="RX Start" -pos=s
+device wave chunk add -value=146,0,46,0,1,0;
+device wave chunk add -value=96,0,2387,0,1,0;
+device wave chunk add -value=144,0,31,0,1,0;
+device wave chunk add -value=99,0,1743,0,1,0;
+device wave chunk add -value=139,0,31,0,1,0;
+device wave chunk add -value=88,0,2102,0,1,0;
+device wave chunk add -value=147,0,44,0,1,0;
+device wave chunk add -value=89,0,2043,0,1,0;
+device wave chunk add -value=142,0,30,0,1,0;
+device wave chunk add -value=102,0,1833,0,1,0;
+device wave chunk add -value=135,0,28,0,1,0;
+device wave chunk add -value=101,0,2859,0,1,0;
+device wave chunk add -value=135,0,51,0,1,0;
+device wave chunk add -value=88,0,1935,0,1,0;
+device wave chunk add -value=136,0,30,0,1,0;
+device wave chunk add -value=96,0,2974,0,1,0;
+device wave chunk add -value=100,0,998,0,1,0; -marker="RX Stop" -pos=e
+
+# Deep sleep with RTC wake blips  (t=81.84s)
+device wave chunk add -value=3,0,15019,0,1,0; -marker="Sleep Start" -pos=s
+device wave chunk add -value=26,0,69,0,1,0; -marker="rtc_wake" -pos=s
+device wave chunk add -value=3,0,15334,0,1,0;
+device wave chunk add -value=25,0,103,0,1,0; -marker="rtc_wake" -pos=s
+device wave chunk add -value=3,0,12462,0,1,0;
+device wave chunk add -value=24,0,110,0,1,0; -marker="rtc_wake" -pos=s
+device wave chunk add -value=4,0,13239,0,1,0;
+device wave chunk add -value=24,0,119,0,1,0; -marker="Sleep Stop" -pos=e
+
+# Sensor wake: ADC sampling + light processing  (t=138.30s)
+device wave chunk add -value=56,0,576,0,1,0; -marker="Sense Start" -pos=s
+device wave chunk add -value=117,0,248,0,1,0; -marker="adc_sample" -pos=s
+device wave chunk add -value=58,0,811,0,1,0;
+device wave chunk add -value=115,0,400,0,1,0;
+device wave chunk add -value=58,0,659,0,1,0;
+device wave chunk add -value=112,0,185,0,1,0;
+device wave chunk add -value=64,0,552,0,1,0;
+device wave chunk add -value=102,0,419,0,1,0; -marker="adc_sample" -pos=s
+device wave chunk add -value=57,0,515,0,1,0;
+device wave chunk add -value=102,0,305,0,1,0;
+device wave chunk add -value=61,0,932,0,1,0;
+device wave chunk add -value=107,0,282,0,1,0;
+device wave chunk add -value=56,0,658,0,1,0;
+device wave chunk add -value=108,0,366,0,1,0; -marker="adc_sample" -pos=s
+device wave chunk add -value=62,0,835,0,1,0;
+device wave chunk add -value=104,0,187,0,1,0;
+device wave chunk add -value=62,0,720,0,1,0;
+device wave chunk add -value=111,0,393,0,1,0;
+device wave chunk add -value=63,0,567,0,1,0;
+device wave chunk add -value=101,0,310,0,1,0; -marker="adc_sample" -pos=s
+device wave chunk add -value=59,0,925,0,1,0;
+device wave chunk add -value=57,0,1489,0,1,0; -marker="Sense Stop" -pos=e
+
+# TX report: reconnect + packets  (t=150.63s)
+device wave chunk add -value=84,0,647,0,1,0; -marker="Report Start" -pos=s
+device wave chunk add -value=352,0,55,0,1,0; -marker="wifi_reconnect" -pos=s
+device wave chunk add -value=95,0,499,0,1,0;
+device wave chunk add -value=390,0,51,0,1,0;
+device wave chunk add -value=94,0,529,0,1,0;
+device wave chunk add -value=486,0,16,0,1,0;
+device wave chunk add -value=115,0,59,0,1,0;
+device wave chunk add -value=457,0,15,0,1,0;
+device wave chunk add -value=113,0,100,0,1,0;
+device wave chunk add -value=487,0,17,0,1,0;
+device wave chunk add -value=117,0,102,0,1,0;
+device wave chunk add -value=473,0,13,0,1,0;
+device wave chunk add -value=127,0,78,0,1,0;
+device wave chunk add -value=468,0,15,0,1,0;
+device wave chunk add -value=126,0,109,0,1,0;
+device wave chunk add -value=478,0,13,0,1,0;
+device wave chunk add -value=113,0,80,0,1,0;
+device wave chunk add -value=120,0,1430,0,1,0; -marker="Report Stop" -pos=e
+
+# Final sleep until 210 s  (t=154.46s)
+device wave chunk add -value=3,0,55538,0,1,1; -marker="Final Sleep" -pos=s
+
+device wave counter set -value=1;

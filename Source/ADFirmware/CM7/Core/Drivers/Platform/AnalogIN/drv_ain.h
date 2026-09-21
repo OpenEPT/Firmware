@@ -350,11 +350,12 @@ drv_ain_status DRV_AIN_Stream_RegisterCallback(drv_ain_adc_t adc, drv_ain_adc_st
 drv_ain_status DRV_AIN_Stream_SubmitAddr(drv_ain_adc_t adc, uint32_t addr, uint8_t bufferID);
 
 /**
- * @brief	Set packet counter for data capture
- * @param	packetCounter: Pointer to packet counter variable
+ * @brief	Mark capture event and return position of the event inside the stream
+ * @param	packetCounter: Pointer where current packet counter is stored
+ * @param	sampleCounter: Pointer where index of the sample inside current packet is stored (may be NULL)
  * @retval	::drv_ain_status
  */
-drv_ain_status DRV_AIN_Stream_SetCapture(uint32_t* packetCounter);
+drv_ain_status DRV_AIN_Stream_SetCapture(uint32_t* packetCounter, uint32_t* sampleCounter);
 
 /**
  * @}

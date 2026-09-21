@@ -3,10 +3,9 @@
  * @file    dpcontrol.h
  *
  * @brief   DPControl service provides interface for controlling power path
- *          components such as load switch, battery switch, and protection latch.
- *          It also allows enabling/disabling DAC and reading protection states.
- *          This header declares all public types and functions used by the
- *          DPControl service.
+ *          components such as battery switch and protection latch.
+ *          It also provides configuration and monitoring of under-voltage,
+ *          over-voltage, and over-current protection circuitry.
  *
  * @author  Haris Turkmanovic
  * @date    November 2023
@@ -32,12 +31,9 @@
  * @defgroup DPCONTROL_PUBLIC_DEFINES DPControl public defines
  * @{
  */
-#define DPCONTROL_TASK_NAME             CONF_DPCONTROL_TASK_NAME     /*!< Task name */
-#define DPCONTROL_TASK_PRIO             CONF_DPCONTROL_TASK_PRIO     /*!< Task priority */
-#define DPCONTROL_TASK_STACK            CONF_DPCONTROL_TASK_STACK_SIZE /*!< Task stack size */
-
-#define DPCONTROL_LOAD_DISABLE_PORT     CONF_DPCONTROL_LOAD_DISABLE_PORT /*!< Load disable GPIO port */
-#define DPCONTROL_LOAD_DISABLE_PIN      CONF_DPCONTROL_LOAD_DISABLE_PIN  /*!< Load disable GPIO pin */
+#define DPCONTROL_TASK_NAME             CONF_DPCONTROL_TASK_NAME         /*!< Task name */
+#define DPCONTROL_TASK_PRIO             CONF_DPCONTROL_TASK_PRIO         /*!< Task priority */
+#define DPCONTROL_TASK_STACK            CONF_DPCONTROL_TASK_STACK_SIZE   /*!< Task stack size */
 
 #define DPCONTROL_BAT_DISABLE_PORT      CONF_DPCONTROL_BAT_DISABLE_PORT  /*!< Battery disable GPIO port */
 #define DPCONTROL_BAT_DISABLE_PIN       CONF_DPCONTROL_BAT_DISABLE_PIN   /*!< Battery disable GPIO pin */
@@ -48,14 +44,8 @@
 #define DPCONTROL_LATCH_PORT            CONF_DPCONTROL_LATCH_PORT        /*!< Latch trigger port */
 #define DPCONTROL_LATCH_PIN             CONF_DPCONTROL_LATCH_PIN         /*!< Latch trigger pin */
 
-#define DPCONTROL_SHUNT_VALUE			CONF_DPCONTROL_SHUNT_VALUE
-#define DPCONTROL_INA_GAIN				CONF_DPCONTROL_INA_GAIN
-
-#define DPCONTROL_WAVE_CHUNK_MSG_SIZE			50
-#define DPCONTROL_WAVE_CHUNK_MSG_FIELDS			6	//base, baseDev, duration, durationdev
-#define DPCONTROL_WAVE_CHUNK_MSG_QUEUE_LENGTH	10
-#define DPCONTROL_WAVE_CHUNK_MAX_NO				10
-#define DPCONTROL_WAVE_CHUNK_PBS				200
+#define DPCONTROL_SHUNT_VALUE           CONF_DPCONTROL_SHUNT_VALUE
+#define DPCONTROL_INA_GAIN              CONF_DPCONTROL_INA_GAIN
 /**
  * @}
  */
@@ -72,22 +62,6 @@ typedef enum {
     DPCONTROL_STATUS_OK = 0,   /*!< Operation successful */
     DPCONTROL_STATUS_ERROR     /*!< Operation failed */
 } dpcontrol_status_t;
-
-/**
- * @brief DAC enable/disable status
- */
-typedef enum {
-    DPCONTROL_DAC_STATUS_DISABLE = 0,  /*!< DAC disabled */
-    DPCONTROL_DAC_STATUS_ENABLE        /*!< DAC enabled */
-} dpcontrol_dac_status_t;
-
-/**
- * @brief Load state enable/disable
- */
-typedef enum {
-    DPCONTROL_LOAD_STATE_DISABLE = 0,  /*!< Load disabled */
-    DPCONTROL_LOAD_STATE_ENABLE        /*!< Load enabled */
-} dpcontrol_load_state_t;
 
 /**
  * @brief Power path state enable/disable
@@ -117,15 +91,6 @@ typedef enum {
  * @brief Internal task states
  */
 typedef enum {
-	DPCONTROL_WAVE_STATE_UNDEF = 0,     /*!< Error state */
-    DPCONTROL_WAVE_STATE_ACTIVE,     /*!< Initialization state */
-    DPCONTROL_WAVE_STATE_INACTIVE,   /*!< Service running */
-} dpcontrol_wave_state_t;
-
-/**
- * @brief Internal task states
- */
-typedef enum {
     DPCONTROL_STATE_INIT,     /*!< Initialization state */
     DPCONTROL_STATE_SERVICE,  /*!< Service running */
     DPCONTROL_STATE_ERROR     /*!< Error state */
@@ -139,67 +104,16 @@ typedef enum {
  * @{
  */
 
+/**
+ * @brief Initialize DPControl service.
+ *
+ * This function creates all required synchronization objects and starts
+ * the DPControl service task.
+ *
+ * @param initTimeout: Initialization timeout in milliseconds
+ * @retval ::DPCONTROL_STATUS_OK or ::DPCONTROL_STATUS_ERROR
+ */
 dpcontrol_status_t DPCONTROL_Init(uint32_t initTimeout);
-
-/**
- * @brief Set DAC value
- * @param value: DAC value to set
- * @param timeout: Timeout for operation
- * @retval ::DPCONTROL_STATUS_OK or ::DPCONTROL_STATUS_ERROR
- */
-dpcontrol_status_t DPCONTROL_SetValue(uint32_t value, uint32_t timeout);
-
-/**
- * @brief Get current DAC value
- * @param value: Pointer to store current value
- * @param timeout: Timeout for operation
- * @retval ::DPCONTROL_STATUS_OK or ::DPCONTROL_STATUS_ERROR
- */
-dpcontrol_status_t DPCONTROL_GetValue(uint32_t* value, uint32_t timeout);
-/**
- * @brief	Set the status of the DAC (Digital-to-Analog Converter).
- *
- * This function enables or disables the DAC output. It is used to control
- * whether the DAC should be active or inactive based on application requirements.
- *
- * @param	activeStatus: Desired DAC status. See ::dpcontrol_dac_status_t
- * @param	timeout: Timeout for operation in milliseconds
- * @retval	::dpcontrol_status_t
- */
-dpcontrol_status_t DPCONTROL_SetDACStatus(dpcontrol_dac_status_t activeStatus, uint32_t timeout);
-
-/**
- * @brief	Get the current status of the DAC.
- *
- * This function retrieves whether the DAC output is currently enabled or disabled.
- *
- * @param	activeStatus: Pointer to variable to store the current DAC status
- * @param	timeout: Timeout for operation in milliseconds
- * @retval	::dpcontrol_status_t
- */
-dpcontrol_status_t DPCONTROL_GetDACStatus(dpcontrol_dac_status_t* activeStatus, uint32_t timeout);
-
-/**
- * @brief	Set the load state (enable or disable load path).
- *
- * This function controls whether the external load is enabled or disabled.
- *
- * @param	state: Desired load state. See ::dpcontrol_load_state_t
- * @param	timeout: Timeout for operation in milliseconds
- * @retval	::dpcontrol_status_t
- */
-dpcontrol_status_t DPCONTROL_SetLoadState(dpcontrol_load_state_t state, uint32_t timeout);
-
-/**
- * @brief	Get the current state of the load path.
- *
- * This function reads whether the external load is currently enabled or disabled.
- *
- * @param	state: Pointer to variable to store current load state
- * @param	timeout: Timeout for operation in milliseconds
- * @retval	::dpcontrol_status_t
- */
-dpcontrol_status_t DPCONTROL_GetLoadState(dpcontrol_load_state_t* state, uint32_t timeout);
 
 /**
  * @brief	Set the battery path state (enable or disable connection to battery).
@@ -287,21 +201,70 @@ dpcontrol_status_t DPCONTROL_GetOCurrentState(dpcontrol_protection_state_t* stat
  */
 dpcontrol_status_t DPCONTROL_LatchTriger(uint32_t timeout);
 
-dpcontrol_status_t DPCONTROL_AddWaveChunk(char* waveDesc, uint16_t waveDescSize, uint32_t timeout);
-
-dpcontrol_status_t DPCONTROL_SetWaveState(dpcontrol_wave_state_t state, uint32_t timeout);
-
-dpcontrol_status_t DPCONTROL_SetWaveCounter(int counter, uint32_t timeout);
-
-dpcontrol_status_t DPCONTROL_ClearWave(uint32_t timeout);
-
+/**
+ * @brief Set over-voltage protection threshold.
+ *
+ * @param value: Over-voltage threshold in volts
+ * @param timeout: Timeout for operation in milliseconds
+ * @retval ::DPCONTROL_STATUS_OK or ::DPCONTROL_STATUS_ERROR
+ */
 dpcontrol_status_t DPCONTROL_SetOVValue(float value, uint32_t timeout);
+
+/**
+ * @brief Set under-voltage protection threshold.
+ *
+ * @param value: Under-voltage threshold in volts
+ * @param timeout: Timeout for operation in milliseconds
+ * @retval ::DPCONTROL_STATUS_OK or ::DPCONTROL_STATUS_ERROR
+ */
 dpcontrol_status_t DPCONTROL_SetUVValue(float value, uint32_t timeout);
+
+/**
+ * @brief Set over-current protection threshold.
+ *
+ * @param value: Over-current threshold in milliamperes
+ * @param timeout: Timeout for operation in milliseconds
+ * @retval ::DPCONTROL_STATUS_OK or ::DPCONTROL_STATUS_ERROR
+ */
 dpcontrol_status_t DPCONTROL_SetOCValue(int32_t value, uint32_t timeout);
+
+/**
+ * @brief Get over-voltage protection threshold.
+ *
+ * @param value: Pointer to store over-voltage threshold
+ * @param timeout: Timeout for operation in milliseconds
+ * @retval ::DPCONTROL_STATUS_OK or ::DPCONTROL_STATUS_ERROR
+ */
 dpcontrol_status_t DPCONTROL_GetOVValue(float* value, uint32_t timeout);
+
+/**
+ * @brief Get under-voltage protection threshold.
+ *
+ * @param value: Pointer to store under-voltage threshold
+ * @param timeout: Timeout for operation in milliseconds
+ * @retval ::DPCONTROL_STATUS_OK or ::DPCONTROL_STATUS_ERROR
+ */
 dpcontrol_status_t DPCONTROL_GetUVValue(float* value, uint32_t timeout);
+
+/**
+ * @brief Get over-current protection threshold.
+ *
+ * @param value: Pointer to store over-current threshold
+ * @param timeout: Timeout for operation in milliseconds
+ * @retval ::DPCONTROL_STATUS_OK or ::DPCONTROL_STATUS_ERROR
+ */
 dpcontrol_status_t DPCONTROL_GetOCValue(int32_t* value, uint32_t timeout);
 
+/**
+ * @}
+ */
 
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
 
 #endif

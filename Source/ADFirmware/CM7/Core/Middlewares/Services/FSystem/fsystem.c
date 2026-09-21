@@ -415,7 +415,8 @@ static void prvFSYSTEM_Task(void *pvParameters)
         	            memset(zeroBuffer, 0xFF, FSYSTEM_BD_CHUNK_SIZE);
 
         	            uint32_t totalSize = CONF_FSYSTEM_BD_SIZE;
-        	            uint32_t offset = CONF_FSYSTEM_OFFSET;
+						//uint32_t offset = CONF_FSYSTEM_OFFSET;
+						uint32_t offset = 0;
 
         	            while(offset < totalSize)
         	            {
