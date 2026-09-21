@@ -27,6 +27,8 @@
 
 #include "system.h"
 #include "logging.h"
+#include "control.h"
+#include <stdio.h>
 
 
 /**
@@ -87,10 +89,18 @@ typedef struct
 /**
  * @brief Structure representing energy debugger breakpoint name
  */
+typedef enum
+{
+	ENERGY_DEBUGGER_MSG_EP = 0,
+	ENERGY_DEBUGGER_MSG_CONTROL,
+	ENERGY_DEBUGGER_MSG_INFO
+}energy_debugger_msg_type_t;
+
 typedef struct
 {
 	uint8_t 	name[ENERGY_DEBUGGER_MESSAGE_BUFFER_LENGTH];	/**< Breakpoint name string */
 	uint8_t     nameLength;									/**< Length of the name string */
+	uint8_t     type;										/**< ::energy_debugger_msg_type_t */
 }energy_debugger_ebp_name_t;
 
 /**
@@ -166,17 +176,60 @@ static energy_debugger_data_t				prvENERGY_DEBUGGER_DATA;
  */
 static void prvEDEBUGGING_SerialCharReceived(uint8_t data)
 {
-	BaseType_t *pxHigherPriorityTaskWoken = pdFALSE;
-	prvENERGY_DEBUGGER_EBP_LAST_NAME.name[prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength] = data;
-	prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength += 1;
-	if(data == '\r')
+	BaseType_t higherPriorityTaskWoken = pdFALSE;
+
+	if(data == '\n')
 	{
-		//Todo: Potential long execution
-	    xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_EBP_NAME, &prvENERGY_DEBUGGER_EBP_LAST_NAME, pxHigherPriorityTaskWoken);
-		memset(&prvENERGY_DEBUGGER_EBP_LAST_NAME, 0, sizeof(energy_debugger_ebp_name_t));
-	    portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
+		return;
 	}
 
+	if(data == '\r')
+	{
+		if((prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength >= 2U) && (prvENERGY_DEBUGGER_EBP_LAST_NAME.name[1] == ':') &&
+		   (prvENERGY_DEBUGGER_EBP_LAST_NAME.name[0] >= '0') && (prvENERGY_DEBUGGER_EBP_LAST_NAME.name[0] <= '2'))
+		{
+			switch(prvENERGY_DEBUGGER_EBP_LAST_NAME.name[0])
+			{
+			case '0': prvENERGY_DEBUGGER_EBP_LAST_NAME.type = ENERGY_DEBUGGER_MSG_CONTROL; break;
+			case '2': prvENERGY_DEBUGGER_EBP_LAST_NAME.type = ENERGY_DEBUGGER_MSG_INFO; break;
+			default:  prvENERGY_DEBUGGER_EBP_LAST_NAME.type = ENERGY_DEBUGGER_MSG_EP; break;
+			}
+			prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength -= 2U;
+			memmove(prvENERGY_DEBUGGER_EBP_LAST_NAME.name, &prvENERGY_DEBUGGER_EBP_LAST_NAME.name[2], prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength);
+			prvENERGY_DEBUGGER_EBP_LAST_NAME.name[prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength] = 0;
+		}
+		else
+		{
+			prvENERGY_DEBUGGER_EBP_LAST_NAME.type = ENERGY_DEBUGGER_MSG_EP;
+		}
+		if(prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength > 0U)
+		{
+			xQueueSendToBackFromISR(prvENERGY_DEBUGGER_QUEUE_EBP_NAME, &prvENERGY_DEBUGGER_EBP_LAST_NAME, &higherPriorityTaskWoken);
+		}
+		memset(&prvENERGY_DEBUGGER_EBP_LAST_NAME, 0, sizeof(energy_debugger_ebp_name_t));
+		portYIELD_FROM_ISR(higherPriorityTaskWoken);
+		return;
+	}
+
+	if((data == ':') && (prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength >= 2U) && (prvENERGY_DEBUGGER_EBP_LAST_NAME.name[1] != ':'))
+	{
+		uint8_t prev = prvENERGY_DEBUGGER_EBP_LAST_NAME.name[prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength - 1U];
+		if((prev >= '0') && (prev <= '2'))
+		{
+			prvENERGY_DEBUGGER_EBP_LAST_NAME.name[0] = prev;
+			prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength = 1U;
+		}
+	}
+
+	if(prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength < (ENERGY_DEBUGGER_MESSAGE_BUFFER_LENGTH - 1U))
+	{
+		prvENERGY_DEBUGGER_EBP_LAST_NAME.name[prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength] = data;
+		prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength += 1;
+	}
+	else
+	{
+		prvENERGY_DEBUGGER_EBP_LAST_NAME.nameLength = 0U;
+	}
 }
 
 /**
@@ -353,6 +406,7 @@ static void prvENERGY_DEBUGGER_Task()
 		drv_uart_config_t channelConfig;
 		energy_debugger_ebp_id_t id;
 		energy_debugger_ebp_name_t		  ebpName;
+		char							  infoBuffer[ENERGY_DEBUGGER_TCP_MESSAGE_BUFFER_LENGTH];
 		energy_debugger_breakpoint_info_t ebp;
 		memset(&ebp, 0, sizeof(energy_debugger_breakpoint_info_t));
 		memset(&ebpName, 0, sizeof(energy_debugger_ebp_name_t));
@@ -404,7 +458,7 @@ static void prvENERGY_DEBUGGER_Task()
 
 			    // Configure the pin for the button
 			    drv_gpio_pin_init_conf_t button_pin_conf;
-			    button_pin_conf.mode = DRV_GPIO_PIN_MODE_IT_RISING;
+			    button_pin_conf.mode = DRV_GPIO_PIN_MODE_IT_RISING_FALLING;
 			    button_pin_conf.pullState = DRV_GPIO_PIN_PULL_NOPULL;
 			    //Definisati pin preko makroa
 			    if (DRV_GPIO_Pin_Init(ENERGY_DEBUGGER_BUTTON_PORT, ENERGY_DEBUGGER_BUTTON_PIN, &button_pin_conf) != DRV_GPIO_STATUS_OK)
@@ -432,6 +486,33 @@ static void prvENERGY_DEBUGGER_Task()
 					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_ERROR,  "Unable to get EP info from callback\r\n");
 					prvENERGY_DEBUGGER_DATA.mainTaskState = ENERGY_DEBUGGER_STATE_ERROR;
 			    	break;
+				}
+
+				if(ebpName.type == ENERGY_DEBUGGER_MSG_CONTROL)
+				{
+					if(strncmp((const char*)ebpName.name, "START", 5) == 0)
+					{
+						LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "EP link start requested by DUT\r\n");
+						xQueueReset(prvENERGY_DEBUGGER_QUEUE_ID);
+						DRV_UART_TransferData(DRV_UART_INSTANCE_4, (uint8_t*)"OK\r", 3, 100);
+					}
+					else if(strncmp((const char*)ebpName.name, "STOP", 4) == 0)
+					{
+						LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "EP link stop requested by DUT\r\n");
+						DRV_UART_TransferData(DRV_UART_INSTANCE_4, (uint8_t*)"OK\r", 3, 100);
+					}
+					memset(&ebpName, 0, sizeof(energy_debugger_ebp_name_t));
+					break;
+				}
+
+				if(ebpName.type == ENERGY_DEBUGGER_MSG_INFO)
+				{
+					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_INFO,  "DUT info: %s\r\n", ebpName.name);
+					memset(infoBuffer, 0, ENERGY_DEBUGGER_TCP_MESSAGE_BUFFER_LENGTH);
+					snprintf(infoBuffer, ENERGY_DEBUGGER_TCP_MESSAGE_BUFFER_LENGTH, "dut info %s\r\n", ebpName.name);
+					CONTROL_StatusLinkSendMessage(infoBuffer, CONTROL_STATUS_MESSAGE_TYPE_INFO, 100);
+					memset(&ebpName, 0, sizeof(energy_debugger_ebp_name_t));
+					break;
 				}
 
 				//Get id

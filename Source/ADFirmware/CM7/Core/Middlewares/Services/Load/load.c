@@ -49,6 +49,7 @@
 #define LOAD_MASK_WAVE_CLEAR                   0x00000020
 #define LOAD_MASK_SET_DAC_STATUS               0x00000040
 #define LOAD_MASK_SET_DAC_VALUE                0x00000080
+#define LOAD_WAVE_TAG_END_FLAG                 0x80000000
 
 
 #define LOAD_AOUT_MAX_CHUNKS                    2048U
@@ -156,6 +157,7 @@ typedef struct
 static load_data_t prvLOAD_DATA;
 static load_wave_data_t prvLOAD_WAVE_DATA;
 static drv_aout_wave_point_t prvLOAD_AOUT_CHUNK_BUFFER[LOAD_AOUT_MAX_CHUNKS];
+static load_wave_complete_callback_t prvLOAD_WAVE_COMPLETE_CALLBACK = NULL;
 
 /**
  * @}
@@ -178,12 +180,6 @@ static load_status_t prvLOAD_SetWaveState(load_wave_state_t state)
 
     return LOAD_STATUS_OK;
 }
-
-
-
-static load_wave_complete_callback_t prvLOAD_WAVE_COMPLETE_CALLBACK = NULL;
-
-#define LOAD_WAVE_TAG_END_FLAG                 0x80000000U
 
 static void prvLOAD_WavePointCallback(uint32_t tag)
 {
@@ -821,9 +817,6 @@ static void prvLOAD_TaskFunc(void* pvParameters)
 
                     xSemaphoreGive(prvLOAD_DATA.initSig);
                 }
-                /**********************************************************************
-                 * DAC CONTROL
-                 **********************************************************************/
                 if(value & LOAD_MASK_SET_DAC_STATUS)
                 {
                     load_dac_status_t dacStatus;
@@ -1260,6 +1253,7 @@ load_status_t LOAD_ClearWave(uint32_t timeout)
 
     return LOAD_STATUS_OK;
 }
+
 load_status_t LOAD_SetDACStatus(load_dac_status_t activeStatus, uint32_t timeout)
 {
     if((activeStatus != LOAD_DAC_STATUS_INACTIVE) && (activeStatus != LOAD_DAC_STATUS_ACTIVE)) return LOAD_STATUS_ERROR;
@@ -1317,8 +1311,6 @@ load_status_t LOAD_GetDACValue(uint32_t* value, uint32_t timeout)
 
     return LOAD_STATUS_OK;
 }
-
-
 
 /**
  * @}

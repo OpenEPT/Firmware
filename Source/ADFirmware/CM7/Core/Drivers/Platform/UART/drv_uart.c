@@ -64,6 +64,25 @@ static volatile	uint32_t 		data;                                                
  * @}
  */
 
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+	uint32_t instance;
+
+	for(instance = 0; instance < CONF_UART_INSTANCES_MAX_NUMBER; instance++)
+	{
+		if(huart == &prvDRV_UART_INSTANCES[instance].deviceHandler)
+		{
+			__HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_OREF | UART_CLEAR_FEF | UART_CLEAR_NEF | UART_CLEAR_PEF | UART_CLEAR_RTOF);
+			huart->ErrorCode = HAL_UART_ERROR_NONE;
+			if(huart->RxState == HAL_UART_STATE_READY)
+			{
+				HAL_UART_Receive_IT(huart, (uint8_t*)&data, 1);
+			}
+			return;
+		}
+	}
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->Instance==UART7)
