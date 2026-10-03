@@ -1185,38 +1185,40 @@ static void prvCONTROL_ChargerBDSizeGet(const char* arguments, uint16_t argument
 
 static void prvCONTROL_ParamCalGet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
-    float vref, voff, vcor, coff, ccor;
+    float vref, voff, vcor, coff, ccor, dacoff, daccor;
     uint8_t def;
 
-    char resp[128];
+    char resp[192];
     uint32_t respLen = 0;
 
     if(CONFIGURATION_GetParameter_Float("CAL_V_REF", &vref, &def) != CONFIGURATION_STATUS_OK ||
        CONFIGURATION_GetParameter_Float("CAL_V_OFF", &voff, &def) != CONFIGURATION_STATUS_OK ||
        CONFIGURATION_GetParameter_Float("CAL_V_COR", &vcor, &def) != CONFIGURATION_STATUS_OK ||
        CONFIGURATION_GetParameter_Float("CAL_C_OFF", &coff, &def) != CONFIGURATION_STATUS_OK ||
-       CONFIGURATION_GetParameter_Float("CAL_C_COR", &ccor, &def) != CONFIGURATION_STATUS_OK)
+       CONFIGURATION_GetParameter_Float("CAL_C_COR", &ccor, &def) != CONFIGURATION_STATUS_OK ||
+       CONFIGURATION_GetParameter_Float("CAL_DAC_OFF", &dacoff, &def) != CONFIGURATION_STATUS_OK ||
+       CONFIGURATION_GetParameter_Float("CAL_DAC_COR", &daccor, &def) != CONFIGURATION_STATUS_OK)
     {
         prvCONTROL_PrepareErrorResponse(response, responseSize);
         return;
     }
 
     respLen = snprintf(resp, sizeof(resp),
-                       "VREF=%.6f VOFF=%.6f VCOR=%.6f COFF=%.6f CCOR=%.6f",
-                       vref, voff, vcor, coff, ccor);
+                       "VREF=%.6f VOFF=%.6f VCOR=%.6f COFF=%.6f CCOR=%.6f DACOFF=%.6f DACCOR=%.6f",
+                       vref, voff, vcor, coff, ccor, dacoff, daccor);
 
     prvCONTROL_PrepareOkResponse(response, responseSize, resp, respLen);
 
     LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO,
-                  "Calibration parameters read: VREF=%.6f VOFF=%.6f VCOR=%.6f COFF=%.6f CCOR=%.6f\r\n",
-                  vref, voff, vcor, coff, ccor);
+                  "Calibration parameters read: VREF=%.6f VOFF=%.6f VCOR=%.6f COFF=%.6f CCOR=%.6f DACOFF=%.6f DACCOR=%.6f\r\n",
+                  vref, voff, vcor, coff, ccor, dacoff, daccor);
 }
 
 static void prvCONTROL_ParamCalSet(const char* arguments, uint16_t argumentsLength, char* response, uint16_t* responseSize)
 {
     cmparse_value_t value;
 
-    float vref, voff, vcor, coff, ccor;
+    float vref, voff, vcor, coff, ccor, dacoff, daccor;
 
     if(CMPARSE_GetArgValue(arguments, argumentsLength, "vref", &value) != CMPARSE_STATUS_OK ||
        sscanf(value.value, "%f", &vref) != 1)
@@ -1238,19 +1240,48 @@ static void prvCONTROL_ParamCalSet(const char* arguments, uint16_t argumentsLeng
        sscanf(value.value, "%f", &ccor) != 1)
         goto error;
 
+    /*Load DAC parameters are optional so that an older application can still set the
+      calibration parameters it knows about*/
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "dacoff", &value) != CMPARSE_STATUS_OK ||
+       sscanf(value.value, "%f", &dacoff) != 1)
+    {
+        uint8_t def;
+        if(CONFIGURATION_GetParameter_Float("CAL_DAC_OFF", &dacoff, &def) != CONFIGURATION_STATUS_OK) dacoff = 0.0f;
+    }
+
+    if(CMPARSE_GetArgValue(arguments, argumentsLength, "daccor", &value) != CMPARSE_STATUS_OK ||
+       sscanf(value.value, "%f", &daccor) != 1)
+    {
+        uint8_t def;
+        if(CONFIGURATION_GetParameter_Float("CAL_DAC_COR", &daccor, &def) != CONFIGURATION_STATUS_OK) daccor = 1.0f;
+    }
+
+    if(daccor <= 0.0f) goto error;
 
     CONFIGURATION_SetParameter_Float("CAL_V_REF", vref, 1000);
     CONFIGURATION_SetParameter_Float("CAL_V_OFF", voff, 1000);
     CONFIGURATION_SetParameter_Float("CAL_V_COR", vcor, 1000);
     CONFIGURATION_SetParameter_Float("CAL_C_OFF", coff, 1000);
     CONFIGURATION_SetParameter_Float("CAL_C_COR", ccor, 1000);
+    CONFIGURATION_SetParameter_Float("CAL_DAC_OFF", dacoff, 1000);
+    CONFIGURATION_SetParameter_Float("CAL_DAC_COR", daccor, 1000);
+
+    if(LOAD_SetDacCorrection(daccor, 1000) != LOAD_STATUS_OK)
+    {
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNING, "Unable to apply load DAC correction\r\n");
+    }
+
+    if(LOAD_SetDacOffset(dacoff, 1000) != LOAD_STATUS_OK)
+    {
+        LOGGING_Write("Control Service", LOGGING_MSG_TYPE_WARNING, "Unable to apply load DAC offset\r\n");
+    }
 
     prvCONTROL_PrepareOkResponse(response, responseSize, "OK", 2);
 
 
     LOGGING_Write("Control Service", LOGGING_MSG_TYPE_INFO,
-                  "Calibration parameters updated: VREF=%.6f VOFF=%.6f VCOR=%.6f COFF=%.6f CCOR=%.6f\r\n",
-                  vref, voff, vcor, coff, ccor);
+                  "Calibration parameters updated: VREF=%.6f VOFF=%.6f VCOR=%.6f COFF=%.6f CCOR=%.6f DACOFF=%.6f DACCOR=%.6f\r\n",
+                  vref, voff, vcor, coff, ccor, dacoff, daccor);
     return;
 
 error:

@@ -208,6 +208,44 @@ load_status_t LOAD_ClearWave(uint32_t timeout);
  * @param callback Function to call, NULL to unregister.
  * @retval ::LOAD_STATUS_OK or ::LOAD_STATUS_ERROR
  */
+/**
+ * @brief   Set load DAC offset calibration value
+ *
+ * Offset compensates hardware between the DAC and the current sink. It is added to
+ * every requested current before the current is converted to a DAC voltage.
+ *
+ * @param   offset: Offset value in mA
+ * @param   timeout: Timeout in ms
+ * @retval  ::load_status_t
+ */
+load_status_t LOAD_SetDacOffset(float offset, uint32_t timeout);
+/**
+ * @brief   Get load DAC offset calibration value
+ *
+ * @param   offset: Pointer where offset value in mA is stored
+ * @param   timeout: Timeout in ms
+ * @retval  ::load_status_t
+ */
+load_status_t LOAD_GetDacOffset(float* offset, uint32_t timeout);
+/**
+ * @brief   Set load DAC correction calibration value
+ *
+ * Correction compensates gain of the hardware between the DAC and the current sink.
+ * Requested current is multiplied with it before the offset is added.
+ *
+ * @param   correction: Correction factor, has to be greater than 0
+ * @param   timeout: Timeout in ms
+ * @retval  ::load_status_t
+ */
+load_status_t LOAD_SetDacCorrection(float correction, uint32_t timeout);
+/**
+ * @brief   Get load DAC correction calibration value
+ *
+ * @param   correction: Pointer where correction factor is stored
+ * @param   timeout: Timeout in ms
+ * @retval  ::load_status_t
+ */
+load_status_t LOAD_GetDacCorrection(float* correction, uint32_t timeout);
 load_status_t LOAD_RegisterWaveCompleteCallback(load_wave_complete_callback_t callback);
 
 /**

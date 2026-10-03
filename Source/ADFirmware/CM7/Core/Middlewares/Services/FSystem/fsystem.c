@@ -414,6 +414,9 @@ static void prvFSYSTEM_Task(void *pvParameters)
         	            uint8_t zeroBuffer[FSYSTEM_BD_CHUNK_SIZE];
         	            memset(zeroBuffer, 0xFF, FSYSTEM_BD_CHUNK_SIZE);
 
+						LOGGING_Write("FSYSTEM", LOGGING_MSG_TYPE_INFO, "Format block device started\r\n");
+
+
         	            uint32_t totalSize = CONF_FSYSTEM_BD_SIZE;
 						//uint32_t offset = CONF_FSYSTEM_OFFSET;
 						uint32_t offset = 0;

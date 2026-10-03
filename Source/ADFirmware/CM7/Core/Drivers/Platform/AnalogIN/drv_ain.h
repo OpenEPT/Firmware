@@ -242,6 +242,16 @@ drv_ain_status DRV_AIN_SetSamplesNo(drv_ain_adc_t adc, uint32_t samplesNo);
  * @retval	::drv_ain_adc_acquisition_status_t
  */
 drv_ain_adc_acquisition_status_t DRV_AIN_GetAcquisitionStatus(drv_ain_adc_t adc);
+
+/**
+ * @brief	Get number of stream stalls caused by an unprocessed sample buffer
+ * @details	Every stall stops the running acquisition, so the stream and all
+ * 			captured energy point positions freeze until acquisition is
+ * 			restarted.
+ * @param	counter: Pointer where the number of stalls is stored
+ * @retval	::drv_ain_status
+ */
+drv_ain_status DRV_AIN_Stream_GetOverflowCounter(uint32_t* counter);
 /**
  * @brief	Set ADC resolution
  * @param	adc: ADC peripheral. See ::drv_ain_adc_t

@@ -1,11 +1,1 @@
-{
-  "version": "0.0.1",
-  "configurations": [
-    {
-      "name": "docs",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "/home/elektronika/Documents/PlatformIO/Projects/Testing/Documentation"],
-      "port": 8765
-    }
-  ]
-}
+{"version":"0.0.1","configurations":[{"name":"site","runtimeExecutable":"python3","runtimeArgs":["-m","http.server","8080","--directory","/home/elektronika/Desktop/Projects/OpenEPT/WebSiteNew/WebSite/deploy/dev"],"port":8080}]}

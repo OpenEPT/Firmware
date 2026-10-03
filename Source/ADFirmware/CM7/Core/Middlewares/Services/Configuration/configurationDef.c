@@ -129,6 +129,22 @@ static configuration_param_t prvCONFIGURATION_DEFAULTS[] =
 			.defaultValue = 1,
 			.systemParam = 0
 		},
+		{
+			.name = "CAL_DAC_OFF",
+			.value = STR(CONF_DPCONTROL_CAL_DAC_OFF),
+			.type = CONFIGURATION_PARAM_TYPE_FLOAT,
+			.readOnly = 0,
+			.defaultValue = 1,
+			.systemParam = 0
+		},
+		{
+			.name = "CAL_DAC_COR",
+			.value = STR(CONF_DPCONTROL_CAL_DAC_COR),
+			.type = CONFIGURATION_PARAM_TYPE_FLOAT,
+			.readOnly = 0,
+			.defaultValue = 1,
+			.systemParam = 0
+		},
 		//Network parameters
 		{
 			.name = "MAC_ADDRESS",
