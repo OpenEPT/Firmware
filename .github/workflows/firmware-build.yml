@@ -1,0 +1,108 @@
+name: Firmware build
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PROJECT: ADFirmware_CM7
+  CONFIG: Debug
+  BIN_PATH: Source/ADFirmware/CM7/Debug/ADFirmware_CM7.bin
+
+jobs:
+  firmware:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check installer secret
+        run: |
+          if [ -z "${{ secrets.CUBEIDE_DEB_URL }}" ]; then
+            echo "Secret CUBEIDE_DEB_URL is not set."
+            echo "Upload the STM32CubeIDE Linux .deb installer somewhere the runner can reach"
+            echo "and set the CUBEIDE_DEB_URL repository secret to its download URL."
+            exit 1
+          fi
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgtk-3-0 libnotify4 libnss3 libxss1 libasound2
+
+      - name: Cache STM32CubeIDE installer
+        id: cache-installer
+        uses: actions/cache@v4
+        with:
+          path: ~/cubeide.deb
+          key: stm32cubeide-deb-v1
+
+      - name: Download STM32CubeIDE installer
+        if: steps.cache-installer.outputs.cache-hit != 'true'
+        run: curl -fSL "${{ secrets.CUBEIDE_DEB_URL }}" -o ~/cubeide.deb
+
+      - name: Install STM32CubeIDE
+        run: |
+          export LICENSE_ALREADY_ACCEPTED=1
+          sudo -E apt-get install -y ~/cubeide.deb
+
+      - name: Locate STM32CubeIDE
+        id: ide
+        run: |
+          IDE="$(find /opt/st -maxdepth 2 -name stm32cubeide -type f | head -n1)"
+          if [ -z "$IDE" ]; then
+            echo "stm32cubeide executable not found under /opt/st"
+            exit 1
+          fi
+          echo "bin=$IDE" >> "$GITHUB_OUTPUT"
+
+      - name: Headless build
+        run: |
+          rm -rf "${{ runner.temp }}/ws"
+          xvfb-run -a "${{ steps.ide.outputs.bin }}" \
+            --launcher.suppressErrors -nosplash -consoleLog \
+            -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
+            -data "${{ runner.temp }}/ws" \
+            -importAll "${GITHUB_WORKSPACE}/Source" \
+            -cleanBuild "${PROJECT}/${CONFIG}"
+
+      - name: Verify and stage binary
+        id: artifact
+        run: |
+          if [ ! -f "${BIN_PATH}" ]; then
+            echo "Build did not produce ${BIN_PATH}"
+            exit 1
+          fi
+          OUT="OpenEPT-Firmware-${{ steps.version.outputs.version }}.bin"
+          cp "${BIN_PATH}" "${OUT}"
+          echo "name=${OUT}" >> "$GITHUB_OUTPUT"
+          ls -lh "${OUT}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenEPT-Firmware-${{ steps.version.outputs.version }}
+          path: ${{ steps.artifact.outputs.name }}
+          if-no-files-found: error
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.artifact.outputs.name }}

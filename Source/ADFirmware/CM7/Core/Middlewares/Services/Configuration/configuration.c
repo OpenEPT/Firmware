@@ -1124,7 +1124,7 @@ configuration_status_t CONFIGURATION_CHARGER_UpdateFromBD(uint32_t timeout)
 configuration_status_t CONFIGURATION_CHARGER_StoreToBD(uint32_t timeout)
 {
     if(prvCONFIGURATION_DATA.chargerPresent == 0U)
-        return CONFIGURATION_STATUS_ERROR;
+        return CONFIGURATION_STATUS_OK;
 
     if(xTaskNotify(prvCONFIGURATION_DATA.taskHandle, CONFIGURATION_MASK_CHARGER_SAVE_TO_BD, eSetBits) != pdTRUE)
         return CONFIGURATION_STATUS_ERROR;
