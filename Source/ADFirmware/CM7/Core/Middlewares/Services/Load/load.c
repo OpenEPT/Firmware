@@ -25,6 +25,7 @@
 #include "drv_aout.h"
 #include "drv_gpio.h"
 #include "energy_debugger.h"
+#include "configuration.h"
 
 /**
  * @defgroup SERVICES Services
@@ -137,6 +138,8 @@ typedef struct
 
     uint32_t current;
     uint32_t dacValue;
+    float dacOffset;
+    float dacCorrection;
     load_state_t loadState;
     load_dac_status_t requestedDACStatus; /**< Requested DAC active status */
     load_dac_status_t dacStatus; /**< Current DAC active status */
@@ -234,7 +237,13 @@ static void prvLOAD_WaveCompleteCallback(void)
 
 static float prvLOAD_CurrentToVoltage(uint32_t current)
 {
-    return ((float)current / 1000.0f) * 8.8f * 0.075f;
+    /*Hardware between the DAC and the current sink scales and shifts the requested
+      current, so both are corrected before the current is converted to a DAC voltage*/
+    float compensated = (float)current * prvLOAD_DATA.dacCorrection + prvLOAD_DATA.dacOffset;
+
+    if(compensated < 0.0f) compensated = 0.0f;
+
+    return (compensated / 1000.0f) * 8.8f * 0.075f;
 }
 
 static uint32_t prvLOAD_Random(void)
@@ -548,6 +557,7 @@ static load_status_t prvLOAD_PrintChunk(load_wave_chunk_t* chunk, char* buffer, 
 static void prvLOAD_TaskFunc(void* pvParameters)
 {
     uint32_t value;
+    uint8_t configDefaultFlag;
 
     (void)pvParameters;
 
@@ -579,6 +589,20 @@ static void prvLOAD_TaskFunc(void* pvParameters)
 
                 prvLOAD_DATA.loadState = LOAD_STATE_DISABLE;
                 prvLOAD_DATA.current = 0U;
+
+                if(CONFIGURATION_GetParameter_Float("CAL_DAC_OFF", &prvLOAD_DATA.dacOffset, &configDefaultFlag) != CONFIGURATION_STATUS_OK)
+                {
+                    prvLOAD_DATA.dacOffset = 0.0f;
+                    LOGGING_Write("Load", LOGGING_MSG_TYPE_WARNING, "Unable to read load DAC offset\r\n");
+                }
+
+                if(CONFIGURATION_GetParameter_Float("CAL_DAC_COR", &prvLOAD_DATA.dacCorrection, &configDefaultFlag) != CONFIGURATION_STATUS_OK)
+                {
+                    prvLOAD_DATA.dacCorrection = 1.0f;
+                    LOGGING_Write("Load", LOGGING_MSG_TYPE_WARNING, "Unable to read load DAC correction\r\n");
+                }
+
+                if(prvLOAD_DATA.dacCorrection <= 0.0f) prvLOAD_DATA.dacCorrection = 1.0f;
 
                 if(DRV_AOUT_SetValue(0, DRV_AOUT_CHANNEL_D) != DRV_AOUT_STATUS_OK)
                 {
@@ -1180,6 +1204,67 @@ load_status_t LOAD_SetWaveState(load_wave_state_t state, uint32_t timeout)
     {
         return LOAD_STATUS_ERROR;
     }
+
+    return LOAD_STATUS_OK;
+}
+
+load_status_t LOAD_SetDacOffset(float offset, uint32_t timeout)
+{
+    uint32_t current;
+
+    if(xSemaphoreTake(prvLOAD_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return LOAD_STATUS_ERROR;
+
+    prvLOAD_DATA.dacOffset = offset;
+    current = prvLOAD_DATA.current;
+
+    xSemaphoreGive(prvLOAD_DATA.guard);
+
+    LOGGING_Write("Load", LOGGING_MSG_TYPE_INFO, "Load DAC offset set to %d mA\r\n", (int)offset);
+
+    /*Applied current has to be converted again so that the new offset takes effect*/
+    return LOAD_SetCurrent(current, timeout);
+}
+
+load_status_t LOAD_SetDacCorrection(float correction, uint32_t timeout)
+{
+    uint32_t current;
+
+    if(correction <= 0.0f) return LOAD_STATUS_ERROR;
+
+    if(xSemaphoreTake(prvLOAD_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return LOAD_STATUS_ERROR;
+
+    prvLOAD_DATA.dacCorrection = correction;
+    current = prvLOAD_DATA.current;
+
+    xSemaphoreGive(prvLOAD_DATA.guard);
+
+    LOGGING_Write("Load", LOGGING_MSG_TYPE_INFO, "Load DAC correction set to %d/1000\r\n", (int)(correction * 1000.0f));
+
+    return LOAD_SetCurrent(current, timeout);
+}
+
+load_status_t LOAD_GetDacCorrection(float* correction, uint32_t timeout)
+{
+    if(correction == NULL) return LOAD_STATUS_ERROR;
+
+    if(xSemaphoreTake(prvLOAD_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return LOAD_STATUS_ERROR;
+
+    *correction = prvLOAD_DATA.dacCorrection;
+
+    xSemaphoreGive(prvLOAD_DATA.guard);
+
+    return LOAD_STATUS_OK;
+}
+
+load_status_t LOAD_GetDacOffset(float* offset, uint32_t timeout)
+{
+    if(offset == NULL) return LOAD_STATUS_ERROR;
+
+    if(xSemaphoreTake(prvLOAD_DATA.guard, pdMS_TO_TICKS(timeout)) != pdTRUE) return LOAD_STATUS_ERROR;
+
+    *offset = prvLOAD_DATA.dacOffset;
+
+    xSemaphoreGive(prvLOAD_DATA.guard);
 
     return LOAD_STATUS_OK;
 }

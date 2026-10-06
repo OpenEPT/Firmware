@@ -82,6 +82,7 @@ typedef struct
 	energy_debugger_links_t				activeLink[ENERGY_DEBUGGER_MAX_CONNECTIONS];	/**< Array of active TCP connections */
 	uint32_t							activeConnectionsNo;							/**< Number of currently active connections */
 	uint8_t 						    buttonClickCounter;								/**< Counter for button press events */
+	uint32_t							droppedEbpCounter;								/**< Energy points dropped because acquisition was not running */
 	energy_debugger_state_t 			mainTaskState;									/**< Main task state */
 } energy_debugger_data_t;
 
@@ -255,7 +256,12 @@ static void prvEDEBUGGING_ButtonPressedCallback(uint16_t GPIO_Pin)
 	energy_debugger_ebp_id_t tmpPacketCounter = {0};
 
 	//Set energy breakpoint marker
-	DRV_AIN_Stream_SetCapture(&tmpPacketCounter.packetId, &tmpPacketCounter.sampleId);
+	if(DRV_AIN_Stream_SetCapture(&tmpPacketCounter.packetId, &tmpPacketCounter.sampleId) != DRV_AIN_STATUS_OK)
+	{
+		//Acquisition is not running, energy point position would be meaningless
+		prvENERGY_DEBUGGER_DATA.droppedEbpCounter++;
+		return;
+	}
 
     // Increment the button click counter
     prvENERGY_DEBUGGER_DATA.buttonClickCounter++;
@@ -518,7 +524,15 @@ static void prvENERGY_DEBUGGER_Task()
 				//Get id
 				if(xQueueReceive(prvENERGY_DEBUGGER_QUEUE_ID, &id, 0) != pdTRUE)
 				{
-					LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_WARNING,  "EP ID mismatch\r\n");
+					if(prvENERGY_DEBUGGER_DATA.droppedEbpCounter != 0U)
+					{
+						LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_WARNING,  "EP dropped, acquisition is not running (%lu so far)\r\n",
+								(unsigned long)prvENERGY_DEBUGGER_DATA.droppedEbpCounter);
+					}
+					else
+					{
+						LOGGING_Write("Energy point service",LOGGING_MSG_TYPE_WARNING,  "EP ID mismatch\r\n");
+					}
 					continue;
 				}
 

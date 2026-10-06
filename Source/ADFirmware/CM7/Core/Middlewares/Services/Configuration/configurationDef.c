@@ -56,7 +56,7 @@ static configuration_param_t prvCONFIGURATION_DEFAULTS[] =
 		},
 		{
 			.name = "FW_VERSION",
-			.value = "2.0.0",
+			.value = "2.2.0",
 			.type = CONFIGURATION_PARAM_TYPE_STRING,
 			.readOnly = 0,
 			.defaultValue = 1,
@@ -124,6 +124,22 @@ static configuration_param_t prvCONFIGURATION_DEFAULTS[] =
 		{
 			.name = "CAL_C_COR",
 			.value = STR(CONF_DPCONTROL_CAL_C_COR),
+			.type = CONFIGURATION_PARAM_TYPE_FLOAT,
+			.readOnly = 0,
+			.defaultValue = 1,
+			.systemParam = 0
+		},
+		{
+			.name = "CAL_DAC_OFF",
+			.value = STR(CONF_DPCONTROL_CAL_DAC_OFF),
+			.type = CONFIGURATION_PARAM_TYPE_FLOAT,
+			.readOnly = 0,
+			.defaultValue = 1,
+			.systemParam = 0
+		},
+		{
+			.name = "CAL_DAC_COR",
+			.value = STR(CONF_DPCONTROL_CAL_DAC_COR),
 			.type = CONFIGURATION_PARAM_TYPE_FLOAT,
 			.readOnly = 0,
 			.defaultValue = 1,

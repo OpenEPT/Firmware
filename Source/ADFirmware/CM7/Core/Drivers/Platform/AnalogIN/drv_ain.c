@@ -53,6 +53,7 @@ static uint8_t							prvDRV_AIN_ADC_DATA_SAMPLES_ACTIVE[CONF_AIN_MAX_BUFFER_NO];
 
 static uint8_t							prvDRV_AIN_ADC_ACTIVE_BUFFER;    /**< Currently active buffer index */
 static uint32_t							prvDRV_AIN_ADC_BUFFER_COUNTER;   /**< Buffer counter for sequential numbering */
+static uint32_t							prvDRV_AIN_BUFFER_OVERFLOW_COUNTER; /**< Number of stream stalls caused by an unprocessed buffer */
 
 static uint8_t							prvDRV_AIN_CAPTURE_EVENT;        /**< Flag for capture event trigger */
 
@@ -213,7 +214,8 @@ static void							prvDRV_AIN_DMAHalfComplitedCallback(DMA_HandleTypeDef *_hdma)
 	if(prvDRV_AIN_ADC_DATA_SAMPLES_ACTIVE[prvDRV_AIN_ADC_ACTIVE_BUFFER] == 1)
 	{
 		//If we ends here, previous buffer not processed (submitted)
-		DRV_AIN_Stop(DRV_AIN_ADC_3);
+		prvDRV_AIN_BUFFER_OVERFLOW_COUNTER += 1;
+		DRV_AIN_Stop(prvDRV_AIN_ACTIVE_ADC);
 		return;
 	}
 	/* Set buffer counter */
@@ -438,6 +440,7 @@ drv_ain_status 						DRV_AIN_Start(drv_ain_adc_t adc)
 	prvDRV_AIN_CAPTURE_SINGLE_BUFFER = 0;
 	prvDRV_AIN_ADC_ACTIVE_BUFFER	= 0;
 	prvDRV_AIN_ADC_BUFFER_COUNTER	= 0;
+	prvDRV_AIN_BUFFER_OVERFLOW_COUNTER = 0;
 
 	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_15, GPIO_PIN_RESET);
 	switch(adc)
@@ -817,6 +820,11 @@ drv_ain_status 						DRV_AIN_Stream_SubmitAddr(drv_ain_adc_t adc, uint32_t addr,
 drv_ain_status 						DRV_AIN_Stream_SetCapture(uint32_t* packetCounter, uint32_t* sampleCounter)
 {
 	//TODO: Should be protected
+	if(prvDRV_AIN_ACQUISITION_STATUS != DRV_AIN_ADC_ACQUISITION_STATUS_ACTIVE)
+	{
+		return DRV_AIN_STATUS_ERROR;
+	}
+
 	prvDRV_AIN_CAPTURE_EVENT = 1;
 
 	*packetCounter = prvDRV_AIN_ADC_BUFFER_COUNTER;

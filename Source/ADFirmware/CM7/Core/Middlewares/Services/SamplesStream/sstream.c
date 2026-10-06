@@ -568,7 +568,7 @@ static void prvSSTREAM_ControlTaskFunc(void* pvParam)
 			if(notifyValue & SSTREAM_TASK_SET_ADC_STIME_BIT)
 			{
 				/* Try to configure ADC clock div */
-				if(DRV_AIN_SetSamplingPeriod(DRV_AIN_ADC_3, connectionData->ainConfig.period, connectionData->ainConfig.prescaler) == DRV_AIN_STATUS_OK)
+				if(DRV_AIN_SetSamplingPeriod(connectionData->ainConfig.adc, connectionData->ainConfig.period, connectionData->ainConfig.prescaler) == DRV_AIN_STATUS_OK)
 				{
 					LOGGING_Write("SStream service", LOGGING_MSG_TYPE_INFO,  "Sampling period set: timer period %lu, prescaler %lu -> %lu ns\r\n",
 							(unsigned long)connectionData->ainConfig.period, (unsigned long)connectionData->ainConfig.prescaler,

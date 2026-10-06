@@ -307,7 +307,7 @@
 #define CONF_ENERGY_DEBUGGER_MESSAGE_BUFFER_LENGTH      100     /*!< Internal message buffer length */
 #define CONF_ENERGY_DEBUGGER_TCP_MESSAGE_BUFFER_LENGTH  200     /*!< TCP message buffer length */
 
-#define CONF_ENERGY_DEBUGGER_EBP_NAMES_QUEUE_LENGTH     10      /*!< EBP names queue length */
+#define CONF_ENERGY_DEBUGGER_EBP_NAMES_QUEUE_LENGTH     32      /*!< EBP names queue length */
 #define CONF_ENERGY_DEBUGGER_EBP_QUEUE_LENGTH           10      /*!< EBP queue length */
 
 #define CONF_ENERGY_DEBUGGER_MAX_CONNECTIONS            3       /*!< Maximum number of TCP connections */
@@ -374,6 +374,9 @@
 
 #define CONF_DPCONTROL_CAL_C_OFF                1.63265 /*!< Current offset calibration value */
 #define CONF_DPCONTROL_CAL_C_COR                1.0     /*!< Current correction calibration value */
+
+#define CONF_DPCONTROL_CAL_DAC_OFF              0.0     /*!< Load DAC offset calibration value in mA */
+#define CONF_DPCONTROL_CAL_DAC_COR              1.0     /*!< Load DAC correction calibration value */
 
 #define CONF_DPCONTROL_OV_VALUE                 4.3     /*!< Over-voltage protection threshold */
 #define CONF_DPCONTROL_UV_VALUE                 3.0     /*!< Under-voltage protection threshold */
