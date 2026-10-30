@@ -439,6 +439,32 @@ bq25180_status_t BQ25180_SetChargerTimerState(bq25180_stimer_value_t value, uint
     return BQ25180_STATUS_OK;
 }
 
+bq25180_status_t BQ25180_SetTSAutoState(bq25180_ts_auto_state_t state, uint32_t timeout)
+{
+    uint8_t regData = 0;
+
+    /* Validate TS auto state value */
+    if(state > BQ25180_TS_AUTO_ENABLED) return BQ25180_STATUS_ERROR;
+
+    /* Read current register value */
+    if(prvBQ25180_ReadReg(BQ25180_REG_IC_CTRL, &regData, timeout) != BQ25180_STATUS_OK)
+    {
+        return BQ25180_STATUS_ERROR;
+    }
+
+    /* Update only TS_EN bit (bit 7) */
+    regData &= ~(0x80);
+    regData |= ((uint8_t)(state << 7) & 0x80);
+
+    /* Write updated register value */
+    if(prvBQ25180_WriteReg(BQ25180_REG_IC_CTRL, regData, 1, timeout) != BQ25180_STATUS_OK)
+    {
+        return BQ25180_STATUS_ERROR;
+    }
+
+    return BQ25180_STATUS_OK;
+}
+
 bq25180_status_t BQ25180_Charge_ChargeStatus_Set(bq25180_charge_status status, uint32_t timeout)
 {
 	/**/
