@@ -303,6 +303,13 @@ static void prvCHARGER_TaskFunc(void* pvParameters)
 				break;
 			}
 
+			if(BQ25180_SetTSAutoState(BQ25180_TS_AUTO_DISABLED, 1000) != BQ25180_STATUS_OK)
+			{
+				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;
+				LOGGING_Write("Charger service", LOGGING_MSG_TYPE_ERROR,  "Unable to disable TS auto function\r\n");
+				break;
+			}
+
 			if(BQ25180_Charge_ChargeStatus_Set(prvCHARGER_DATA.chargingInfo.chargingStatus, 1000) != BQ25180_STATUS_OK)
 			{
 				prvCHARGER_DATA.state	= CHARGER_STATE_ERROR;

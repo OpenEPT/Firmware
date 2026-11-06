@@ -120,6 +120,15 @@ typedef enum
 }bq25180_stimer_value_t;
 
 /**
+ * @brief BQ25180 TS auto function state (IC_CTRL.TS_EN, bit 7)
+ */
+typedef enum
+{
+    BQ25180_TS_AUTO_DISABLED            = 0,    /*!< TS auto function disabled (only charge control disabled; TS monitoring stays enabled) */
+    BQ25180_TS_AUTO_ENABLED             = 1     /*!< TS auto function enabled (reset default) */
+}bq25180_ts_auto_state_t;
+
+/**
  * @brief BQ25180 charging state values
  */
 typedef enum
@@ -174,6 +183,14 @@ bq25180_status_t BQ25180_GetChargerIntFlags(uint8_t* intFlags, uint32_t timeout)
  * @retval ::bq25180_status_t
  */
 bq25180_status_t BQ25180_SetChargerTimerState(bq25180_stimer_value_t value, uint32_t timeout);
+
+/**
+ * @brief Set the TS auto function state (IC_CTRL.TS_EN, bit 7)
+ * @param state: TS auto function state. See ::bq25180_ts_auto_state_t
+ * @param timeout: Communication timeout in milliseconds
+ * @retval ::bq25180_status_t
+ */
+bq25180_status_t BQ25180_SetTSAutoState(bq25180_ts_auto_state_t state, uint32_t timeout);
 
 
 
